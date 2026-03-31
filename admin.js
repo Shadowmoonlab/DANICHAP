@@ -1,13 +1,15 @@
 // admin.js — Panel admin DANICHAP
 (async () => {
   // ── Guard: solo admins ────────────────────────────────────────────────────
-  const user = await Auth.getUser();
-  if (!user) { window.location.href = 'login.html'; return; }
+  // Usar getSession primero (lee localStorage, sin red) y luego getUser para validar
+  const session = await Auth.getSession();
+  const user = session?.user ?? await Auth.getUser();
+  if (!user) { window.location.href = 'index.html'; return; }
 
   const perfil = await Perfiles.get(user.id);
   document.getElementById('admin-loading').classList.add('hidden');
 
-  if (perfil?.rol !== 'admin') {
+  if (!perfil || perfil.rol !== 'admin') {
     document.getElementById('admin-guard').classList.remove('hidden');
     return;
   }
