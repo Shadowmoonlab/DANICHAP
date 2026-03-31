@@ -16,8 +16,13 @@
   document.getElementById('admin-loading').classList.add('hidden');
 
   if (!perfil || perfil.rol !== 'admin') {
-    console.warn('Admin guard: perfil =', perfil, '| user =', user.email);
-    document.getElementById('admin-guard').classList.remove('hidden');
+    console.warn('Admin guard: perfil =', JSON.stringify(perfil), '| user =', user?.email);
+    const guard = document.getElementById('admin-guard');
+    guard.classList.remove('hidden');
+    const msg = guard.querySelector('p');
+    if (msg) msg.textContent = perfil
+      ? `Acceso restringido. Rol actual: ${perfil.rol}`
+      : `No se pudo leer el perfil para ${user?.email}. Revisá la consola.`;
     return;
   }
 

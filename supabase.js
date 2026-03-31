@@ -37,8 +37,9 @@ const Auth = {
 /* ── Perfiles ─────────────────────────────────────────────────────────────── */
 const Perfiles = {
   async get(userId) {
-    const { data } = await _supabase
+    const { data, error } = await _supabase
       .from('perfiles').select('*').eq('id', userId).single();
+    if (error) console.warn('Perfiles.get error:', error.message, '| userId:', userId);
     return data;
   },
   async isAdmin(userId) {
