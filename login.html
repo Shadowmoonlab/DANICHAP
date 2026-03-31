@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ingresar — DANICHAP</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="shared.css"/>
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode:"class",
+  theme:{extend:{colors:{
+    "primary":"#1E3A5F","primary-container":"#2563EB","primary-hi":"#60A5FA",
+    "on-primary":"#ffffff","surface":"#F2F0EC","surface-container-low":"#ECEAE5",
+    "surface-container":"#E2DFD9","on-surface":"#111827","secondary":"#4B5563",
+    "tertiary":"#1A9850","tertiary-container":"#25D366","on-tertiary-container":"#003b15",
+    "outline":"#9CA3AF","outline-variant":"#D1D5DB","error":"#ba1a1a",
+  },
+  fontFamily:{"headline":["Space Grotesk"],"body":["Inter"],"label":["Inter"]},
+  borderRadius:{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},
+  }},
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="supabase.js"></script>
+<style>
+  .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle;}
+</style>
+</head>
+<body class="bg-surface font-body text-on-surface min-h-screen flex items-center justify-center p-4">
+
+<div class="w-full max-w-sm">
+  <!-- Logo -->
+  <a href="index.html" class="flex items-center justify-center gap-3 mb-10 group">
+    <svg width="36" height="36" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="lg" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#60A5FA"/><stop offset="100%" stop-color="#2563EB"/>
+        </linearGradient>
+      </defs>
+      <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(#lg)"/>
+      <path d="M10 28 L28 10" stroke="#F2F0EC" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="#F2F0EC" opacity="0.55"/>
+    </svg>
+    <div class="leading-none">
+      <span class="block font-headline font-black text-xl uppercase tracking-tight text-on-surface">DANICHAP</span>
+      <span class="block text-[9px] font-bold tracking-[0.2em] uppercase font-label text-primary-container">REPUESTOS · LONGCHAMPS</span>
+    </div>
+  </a>
+
+  <!-- Card -->
+  <div class="bg-surface border border-outline-variant rounded-2xl shadow-sm p-8">
+    <!-- Tabs -->
+    <div class="flex gap-1 mb-7 bg-surface-container rounded-xl p-1">
+      <button id="tab-login"    class="flex-1 py-2 rounded-lg text-sm font-bold font-headline uppercase tracking-wide transition-all bg-surface shadow text-on-surface">Ingresar</button>
+      <button id="tab-register" class="flex-1 py-2 rounded-lg text-sm font-bold font-headline uppercase tracking-wide transition-all text-secondary">Registrarse</button>
+    </div>
+
+    <!-- Login form -->
+    <form id="form-login" class="space-y-4">
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Email</label>
+        <input type="email" name="email" required autofocus autocomplete="email"
+          class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+      </div>
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Contraseña</label>
+        <input type="password" name="password" required autocomplete="current-password"
+          class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+      </div>
+      <p id="login-error" class="text-error text-xs hidden font-body"></p>
+      <button type="submit"
+        class="w-full bg-primary-container text-white py-3 rounded-xl font-bold font-headline uppercase text-sm hover:opacity-90 transition-opacity">
+        Entrar
+      </button>
+    </form>
+
+    <!-- Register form -->
+    <form id="form-register" class="space-y-4 hidden">
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Nombre</label>
+        <input type="text" name="nombre" required autocomplete="name"
+          class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+      </div>
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Email</label>
+        <input type="email" name="email" required autocomplete="email"
+          class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+      </div>
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Contraseña</label>
+        <input type="password" name="password" required minlength="6" autocomplete="new-password"
+          class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+      </div>
+      <p id="register-error"   class="text-error   text-xs hidden font-body"></p>
+      <p id="register-success" class="text-tertiary text-xs hidden font-body">¡Cuenta creada! Revisá tu email para confirmar.</p>
+      <button type="submit"
+        class="w-full bg-primary-container text-white py-3 rounded-xl font-bold font-headline uppercase text-sm hover:opacity-90 transition-opacity">
+        Crear cuenta
+      </button>
+    </form>
+  </div>
+
+  <p class="text-center text-secondary text-xs font-body mt-6">
+    <a href="index.html" class="hover:text-on-surface transition-colors">← Volver al sitio</a>
+  </p>
+</div>
+
+<script>
+  // Tab switching
+  document.getElementById('tab-login').addEventListener('click', () => switchTab('login'));
+  document.getElementById('tab-register').addEventListener('click', () => switchTab('register'));
+
+  function switchTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('form-login').classList.toggle('hidden', !isLogin);
+    document.getElementById('form-register').classList.toggle('hidden', isLogin);
+    const base = 'flex-1 py-2 rounded-lg text-sm font-bold font-headline uppercase tracking-wide transition-all';
+    document.getElementById('tab-login').className    = `${base} ${isLogin  ? 'bg-surface shadow text-on-surface' : 'text-secondary'}`;
+    document.getElementById('tab-register').className = `${base} ${!isLogin ? 'bg-surface shadow text-on-surface' : 'text-secondary'}`;
+  }
+
+  // Login
+  document.getElementById('form-login').addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd    = new FormData(e.target);
+    const errEl = document.getElementById('login-error');
+    const btn   = e.target.querySelector('button[type=submit]');
+    errEl.classList.add('hidden');
+    btn.textContent = 'Entrando…'; btn.disabled = true;
+    const { error } = await Auth.signIn(fd.get('email'), fd.get('password'));
+    if (error) {
+      errEl.textContent = 'Email o contraseña incorrectos.';
+      errEl.classList.remove('hidden');
+      btn.textContent = 'Entrar'; btn.disabled = false;
+      return;
+    }
+    // Redirigir según rol
+    const user    = await Auth.getUser();
+    const perfil  = await Perfiles.get(user.id);
+    window.location.href = perfil?.rol === 'admin' ? 'admin.html' : 'index.html';
+  });
+
+  // Register
+  document.getElementById('form-register').addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd    = new FormData(e.target);
+    const errEl = document.getElementById('register-error');
+    const okEl  = document.getElementById('register-success');
+    const btn   = e.target.querySelector('button[type=submit]');
+    errEl.classList.add('hidden'); okEl.classList.add('hidden');
+    btn.textContent = 'Creando…'; btn.disabled = true;
+    const { error } = await Auth.signUp(fd.get('email'), fd.get('password'), fd.get('nombre'));
+    btn.textContent = 'Crear cuenta'; btn.disabled = false;
+    if (error) {
+      errEl.textContent = error.message;
+      errEl.classList.remove('hidden');
+      return;
+    }
+    okEl.classList.remove('hidden');
+    e.target.reset();
+  });
+
+  // Si ya está logueado, redirigir
+  Auth.getUser().then(async user => {
+    if (!user) return;
+    const perfil = await Perfiles.get(user.id);
+    window.location.href = perfil?.rol === 'admin' ? 'admin.html' : 'index.html';
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+/* shared.css — Danichap Design System — Premium Palette v2 */
+
+/* ── Logo SVG global ─────────────────────────────────────────────────────── */
+.danichap-logo-icon { display:inline-block; vertical-align:middle; }
+
+/* ── Premium amber glow ──────────────────────────────────────────────────── */
+.amber-glow {
+  filter: drop-shadow(0 0 12px rgba(37,99,235,0.45));
+}
+.amber-glow-sm {
+  filter: drop-shadow(0 0 6px rgba(37,99,235,0.35));
+}
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+}
+
+.technical-grid {
+  background-image: radial-gradient(rgba(37, 99, 235, 0.10) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.metallic-sheen {
+  background: linear-gradient(135deg, #1E3A5F 0%, #2563EB 60%, #60A5FA 100%);
+}
+
+.wpp-fab:hover .wpp-fab-label {
+  max-width: 200px;
+  margin-left: 0.75rem;
+}
+
+.wpp-fab-label {
+  max-width: 0;
+  overflow: hidden;
+  transition: max-width 0.5s ease, margin-left 0.5s ease;
+  white-space: nowrap;
+}
+
+/* Accordion subcats */
+.subcat-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+.subcat-panel.open {
+  max-height: 600px;
+}
+
+/* Promo banner pulse */
+@keyframes pulse-orange {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(37,99,235,0); }
+}
+.promo-pulse {
+  animation: pulse-orange 2s infinite;
+}
+
+/* Ticker / marquee */
+@keyframes ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-scroll 30s linear infinite;
+}
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+/* Timeline line */
+.timeline-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 1.25rem;
+  top: 2.5rem;
+  bottom: -1rem;
+  width: 2px;
+  background: linear-gradient(to bottom, #2563EB, transparent);
+}
+.timeline-item {
+  position: relative;
+}
+
+/* ── Apple-style scroll animations ─────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(36px);
+  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-right {
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible,
+.reveal-left.visible,
+.reveal-right.visible {
+  opacity: 1;
+  transform: translate(0);
+}
+.reveal-delay-1 { transition-delay: 0.10s; }
+.reveal-delay-2 { transition-delay: 0.20s; }
+.reveal-delay-3 { transition-delay: 0.30s; }
+.reveal-delay-4 { transition-delay: 0.40s; }
+.reveal-delay-5 { transition-delay: 0.50s; }

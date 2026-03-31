@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin — DANICHAP</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="shared.css"/>
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary":"#1E3A5F","primary-container":"#2563EB","primary-hi":"#60A5FA",
+        "on-primary":"#ffffff","on-primary-container":"#EFF6FF",
+        "surface":"#F2F0EC","surface-container-lowest":"#FAFAF9",
+        "surface-container-low":"#ECEAE5","surface-container":"#E2DFD9",
+        "surface-container-high":"#D5D2CB","surface-dim":"#C6C3BB",
+        "background":"#F2F0EC","inverse-surface":"#0F172A",
+        "on-surface":"#111827","secondary":"#4B5563","on-surface-variant":"#6B7280",
+        "tertiary":"#1A9850","tertiary-container":"#25D366","on-tertiary-container":"#003b15",
+        "outline":"#9CA3AF","outline-variant":"#D1D5DB",
+        "surface-variant":"#E2DFD9","surface-container-highest":"#D5D2CB",
+        "error":"#ba1a1a","on-error":"#ffffff",
+      },
+      fontFamily: { "headline":["Space Grotesk"], "body":["Inter"], "label":["Inter"] },
+      borderRadius: { "DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem" },
+    },
+  },
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="supabase.js"></script>
+<style>
+  .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align:middle; }
+</style>
+</head>
+<body class="bg-surface font-body text-on-surface min-h-screen">
+
+<!-- Guard (acceso denegado) -->
+<div id="admin-guard" class="hidden fixed inset-0 bg-surface flex items-center justify-center z-[300]">
+  <div class="text-center">
+    <span class="material-symbols-outlined text-6xl text-outline-variant">lock</span>
+    <p class="mt-4 text-secondary font-body">Acceso restringido.</p>
+    <a href="index.html" class="mt-2 inline-block text-primary-container font-bold hover:underline">← Volver al sitio</a>
+  </div>
+</div>
+
+<!-- Loading -->
+<div id="admin-loading" class="fixed inset-0 bg-surface flex items-center justify-center z-[200]">
+  <div class="text-center">
+    <div class="w-10 h-10 border-4 border-primary-container/30 border-t-primary-container rounded-full animate-spin mx-auto"></div>
+    <p class="mt-4 text-secondary text-sm font-body">Cargando panel…</p>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="bg-surface border-b border-outline-variant px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+  <div class="flex items-center gap-3">
+    <a href="index.html" class="text-secondary hover:text-on-surface transition-colors p-1 rounded-lg hover:bg-surface-container">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </a>
+    <div class="w-px h-6 bg-outline-variant"></div>
+    <h1 class="font-headline font-black text-base uppercase text-on-surface tracking-tight">Panel Admin</h1>
+    <span class="text-[10px] font-label uppercase tracking-widest text-primary-container bg-primary-container/10 px-2 py-1 rounded-full border border-primary-container/20">DANICHAP</span>
+  </div>
+  <div class="flex items-center gap-3">
+    <span id="admin-user-label" class="text-xs text-secondary font-body hidden sm:block"></span>
+    <button id="admin-logout"
+      class="flex items-center gap-1.5 text-secondary hover:text-error text-sm font-body transition-colors px-3 py-2 rounded-lg hover:bg-surface-container">
+      <span class="material-symbols-outlined text-sm">logout</span>
+      <span class="hidden sm:inline">Salir</span>
+    </button>
+  </div>
+</header>
+
+<!-- Main -->
+<main class="max-w-screen-xl mx-auto px-4 sm:px-6 py-8">
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-surface border border-outline-variant rounded-2xl p-5 shadow-sm">
+      <div class="text-3xl font-black font-headline text-primary-container" id="stat-total">—</div>
+      <div class="text-xs font-label uppercase tracking-wide text-secondary mt-1">Productos</div>
+    </div>
+    <div class="bg-surface border border-outline-variant rounded-2xl p-5 shadow-sm">
+      <div class="text-3xl font-black font-headline text-primary-container" id="stat-destacados">—</div>
+      <div class="text-xs font-label uppercase tracking-wide text-secondary mt-1">Destacados</div>
+    </div>
+    <div class="bg-surface border border-outline-variant rounded-2xl p-5 shadow-sm">
+      <div class="text-3xl font-black font-headline text-primary-container" id="stat-sin-precio">—</div>
+      <div class="text-xs font-label uppercase tracking-wide text-secondary mt-1">Sin precio</div>
+    </div>
+    <div class="bg-surface border border-outline-variant rounded-2xl p-5 shadow-sm">
+      <div class="text-3xl font-black font-headline text-primary-container" id="stat-categorias">—</div>
+      <div class="text-xs font-label uppercase tracking-wide text-secondary mt-1">Categorías</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
+    <div class="flex gap-2 w-full sm:w-auto">
+      <input id="admin-search" type="text" placeholder="Buscar producto…"
+        class="bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary-container transition-colors w-full sm:w-56"/>
+      <select id="admin-filter-cat"
+        class="bg-surface border border-outline-variant rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary-container transition-colors">
+        <option value="">Todas las cats.</option>
+      </select>
+    </div>
+    <button id="btn-nuevo-producto"
+      class="flex-shrink-0 flex items-center gap-2 bg-primary-container text-white px-5 py-2.5 rounded-xl font-bold text-sm font-headline uppercase hover:opacity-90 transition-opacity shadow-sm">
+      <span class="material-symbols-outlined text-sm">add</span>
+      Nuevo producto
+    </button>
+  </div>
+
+  <!-- Tabla -->
+  <div class="bg-surface border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm min-w-[600px]">
+        <thead class="bg-surface-container-low border-b border-outline-variant">
+          <tr>
+            <th class="text-left px-4 py-3 font-label font-bold uppercase tracking-wide text-secondary text-xs">Producto</th>
+            <th class="text-left px-4 py-3 font-label font-bold uppercase tracking-wide text-secondary text-xs hidden md:table-cell">Categoría</th>
+            <th class="text-left px-4 py-3 font-label font-bold uppercase tracking-wide text-secondary text-xs">Precio</th>
+            <th class="text-center px-4 py-3 font-label font-bold uppercase tracking-wide text-secondary text-xs">★</th>
+            <th class="text-right px-4 py-3 font-label font-bold uppercase tracking-wide text-secondary text-xs">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="admin-productos-table" class="divide-y divide-outline-variant"></tbody>
+      </table>
+    </div>
+    <div id="admin-empty" class="hidden py-16 text-center">
+      <span class="material-symbols-outlined text-5xl text-outline-variant">inventory_2</span>
+      <p class="text-secondary font-body text-sm mt-3">No hay productos.</p>
+      <button id="btn-nuevo-empty" class="mt-2 text-primary-container font-bold hover:underline text-sm font-headline uppercase">Crear el primero</button>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL Producto -->
+<div id="producto-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" id="modal-overlay"></div>
+  <div class="relative bg-surface rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto border border-outline-variant z-10">
+    <!-- Modal header -->
+    <div class="flex items-center justify-between px-6 py-5 border-b border-outline-variant sticky top-0 bg-surface z-10">
+      <h2 id="modal-title" class="font-headline font-black text-lg uppercase text-on-surface">Nuevo Producto</h2>
+      <button id="modal-close" class="text-secondary hover:text-on-surface transition-colors p-1">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <!-- Formulario -->
+    <form id="form-producto" class="px-6 py-6 space-y-5">
+      <input type="hidden" id="prod-id"/>
+
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Nombre *</label>
+        <input type="text" id="prod-nombre" required
+          class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Categoría *</label>
+          <input type="text" id="prod-categoria" required list="cat-list"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+          <datalist id="cat-list"></datalist>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Subcategoría</label>
+          <input type="text" id="prod-subcategoria"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Marca</label>
+          <input type="text" id="prod-marca"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"
+            placeholder="Ej: Bosch, NGK, Brembo"/>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Badge</label>
+          <input type="text" id="prod-badge"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"
+            placeholder="Ej: OFERTA, NUEVO"/>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Precio ($)</label>
+          <input type="number" id="prod-precio" min="0" step="1"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"
+            placeholder="Dejar vacío = consultar"/>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Precio anterior ($)</label>
+          <input type="number" id="prod-precio-antes" min="0" step="1"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Descripción</label>
+        <textarea id="prod-descripcion" rows="3"
+          class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors resize-none"></textarea>
+      </div>
+
+      <!-- Imagen -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Imagen</label>
+        <div class="flex gap-4 items-start">
+          <div id="img-preview"
+            class="w-20 h-20 rounded-xl bg-surface-container-low border border-outline-variant flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <span class="material-symbols-outlined text-3xl text-outline">image</span>
+          </div>
+          <div class="flex-1 space-y-2">
+            <input type="file" id="prod-imagen" accept="image/*"
+              class="w-full text-sm text-secondary file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary-container/10 file:text-primary-container hover:file:bg-primary-container/20 transition-colors cursor-pointer"/>
+            <input type="text" id="prod-imagen-url" placeholder="O pegar URL de imagen…"
+              class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Switches -->
+      <div class="flex gap-6 pt-1">
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" id="prod-destacado" class="w-4 h-4 rounded accent-[#2563EB]"/>
+          <span class="text-sm font-body text-on-surface">Destacado</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" id="prod-stock" checked class="w-4 h-4 rounded accent-[#2563EB]"/>
+          <span class="text-sm font-body text-on-surface">En stock</span>
+        </label>
+      </div>
+
+      <p id="form-error" class="text-error text-xs hidden font-body"></p>
+
+      <!-- Botones -->
+      <div class="flex gap-3 justify-end pt-3 border-t border-outline-variant">
+        <button type="button" id="btn-cancel-modal"
+          class="px-5 py-2.5 border border-outline-variant rounded-xl text-sm font-body text-secondary hover:bg-surface-container transition-colors">
+          Cancelar
+        </button>
+        <button type="submit" id="btn-save-modal"
+          class="px-6 py-2.5 bg-primary-container text-white rounded-xl text-sm font-bold font-headline uppercase hover:opacity-90 transition-opacity">
+          Guardar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>

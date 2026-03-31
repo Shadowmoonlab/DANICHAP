@@ -1,0 +1,6 @@
+# Archivos innecesarios
+*.zip
+stitch_export/
+skills-lock.json
+.DS_Store
+Thumbs.db
