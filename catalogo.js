@@ -1,5 +1,5 @@
 // catalogo.js — Lógica del catálogo Danichap
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Estado ──────────────────────────────────────────────────────────────────
   const filtros = { marca: '', modelo: '', version: '', año: '', cat: '', sub: '', sort: 'default' };
@@ -237,22 +237,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const vehiculo = buildVehiculoStr();
     const wpp = wppLink(p.nombre, vehiculo);
     const cat = CATEGORIAS.find(c => c.slug === p.categoria);
-    const subLabel = p.sub.includes('/') ? p.sub.split('/').pop().trim() : p.sub;
+    const subLabel = p.sub ? (p.sub.includes('/') ? p.sub.split('/').pop().trim() : p.sub) : '';
 
     const precioHtml = p.precio !== null
-      ? `<span class="text-xl font-black text-on-surface font-headline">$ ${p.precio.toLocaleString('es-AR')}</span>`
+      ? `<div class="flex items-baseline gap-2">
+           <span class="text-xl font-black text-on-surface font-headline">$ ${p.precio.toLocaleString('es-AR')}</span>
+           ${p.precio_antes ? `<span class="text-xs text-secondary line-through font-body">$ ${p.precio_antes.toLocaleString('es-AR')}</span>` : ''}
+         </div>`
       : `<span class="inline-flex items-center gap-1 text-tertiary font-bold text-sm font-body">
            <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">chat</span>
            Precio por WhatsApp
          </span>`;
 
-    const compat = p.compatibilidades[0];
-    const masCompat = p.compatibilidades.length > 1 ? ` <span class="text-secondary">+${p.compatibilidades.length - 1}</span>` : '';
+    const compat = p.compatibilidades?.[0] || 'Universal';
+    const masCompat = (p.compatibilidades?.length || 0) > 1 ? ` <span class="text-secondary">+${p.compatibilidades.length - 1}</span>` : '';
+
+    const imagenHtml = p.imagen_url
+      ? `<img src="${p.imagen_url}" alt="${p.nombre}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>`
+      : `<span class="material-symbols-outlined text-7xl text-surface-dim group-hover:scale-110 transition-transform duration-500">${cat ? cat.icon : 'build'}</span>`;
 
     return `
       <div class="bg-surface-container-lowest rounded-xl overflow-hidden group hover:shadow-lg transition-all duration-300 border border-surface-container flex flex-col">
         <div class="relative h-40 bg-surface-container-low flex items-center justify-center overflow-hidden">
-          <span class="material-symbols-outlined text-7xl text-surface-dim group-hover:scale-110 transition-transform duration-500">${cat ? cat.icon : 'build'}</span>
+          ${imagenHtml}
+          ${p.badge ? `<span class="absolute top-3 right-3 bg-primary-container text-white text-[10px] font-black px-2 py-1 uppercase tracking-widest font-label rounded">${p.badge}</span>` : ''}
           ${p.marca_rep ? `<span class="absolute top-3 left-3 bg-inverse-surface text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest font-label rounded">${p.marca_rep}</span>` : ''}
         </div>
         <div class="p-4 flex flex-col flex-1">
@@ -313,6 +321,34 @@ document.addEventListener('DOMContentLoaded', () => {
   leerParamsURL();
   renderSidebarCats('categorias-sidebar');
   renderSidebarCats('m-categorias-sidebar');
+
+  // Cargar productos desde Supabase si hay. Si no, usar los estáticos de data.js
+  try {
+    if (typeof Productos !== 'undefined') {
+      const { data: dbProds } = await Productos.list();
+      if (dbProds && dbProds.length > 0) {
+        // Normalizar al formato de PRODUCTOS (añadir compatibilidades/sub si faltan)
+        const normalizados = dbProds.map(p => ({
+          id: p.id,
+          nombre: p.nombre,
+          categoria: p.categoria,
+          sub: p.subcategoria || '',
+          marca_rep: p.marca_rep || '',
+          precio: p.precio ? Number(p.precio) : null,
+          precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
+          imagen_url: p.imagen_url || null,
+          badge: p.badge || null,
+          destacado: p.destacado || false,
+          compatibilidades: ['Universal'],
+          _fromDB: true,
+        }));
+        // Reemplazar el array global
+        PRODUCTOS.length = 0;
+        normalizados.forEach(p => PRODUCTOS.push(p));
+      }
+    }
+  } catch(e) { console.warn('Catalogo: no se pudo cargar desde Supabase, usando datos estáticos', e); }
+
   renderProductos();
 });
 
