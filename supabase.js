@@ -1,9 +1,15 @@
 // supabase.js — Cliente Supabase singleton + helpers
 const SUPABASE_URL     = 'https://stambpkmtwtnhfjmxztl.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_zZnI3YWriVpzNiqKpRMcnQ_a5hv_Y7m';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0YW1icGttdHd0bmhmam14enRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MjM5NjksImV4cCI6MjA5MDQ5OTk2OX0.f-0w0-NoJksWXPr5LCrH8uDbUvVR7LicVxEAixoMkZ8';
 
 const { createClient } = supabase;
-const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  }
+});
 
 /* ── Auth ─────────────────────────────────────────────────────────────────── */
 const Auth = {

@@ -7,7 +7,7 @@
 <meta name="description" content="Contacto Danichap. Av. Hipólito Yrigoyen 19608, Longchamps. WhatsApp 011 7520-0352. Atención personalizada."/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=snap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="shared.css"/>
 <script id="tailwind-config">
 tailwind.config = {
@@ -15,20 +15,22 @@ tailwind.config = {
   theme: {
     extend: {
       colors: {
-        "primary":"#b84d10","primary-container":"#E8621A","primary-hi":"#FF8C42",
-        "on-primary":"#ffffff","on-primary-container":"#fff5ee",
-        "surface":"#F5F2EE","surface-container-lowest":"#ffffff","surface-container-low":"#EDE9E4",
-        "surface-container":"#E2DDD7","surface-container-high":"#D6D0C9","surface-dim":"#C8C2BA",
-        "background":"#F5F2EE","inverse-surface":"#0B0F1A","inverse-surface-mid":"#141922",
-        "inverse-surface-soft":"#1C2333","inverse-on-surface":"#F0EDE8",
-        "on-surface":"#1A1410","on-background":"#1A1410","secondary":"#6B5F55",
-        "on-surface-variant":"#7A6E64","tertiary":"#1A9850","tertiary-container":"#25D366",
-        "on-tertiary":"#ffffff","on-tertiary-container":"#003b15","outline":"#A09488",
-        "outline-variant":"#C8C2BA","surface-variant":"#E2DDD7","surface-container-highest":"#D6D0C9",
-        "secondary-container":"#EDE9E4","on-secondary-container":"#4A3E34",
+        "primary":"#1E3A5F","primary-container":"#2563EB","primary-hi":"#60A5FA",
+        "on-primary":"#ffffff","on-primary-container":"#EFF6FF",
+        "surface":"#F2F0EC","surface-container-lowest":"#FAFAF9",
+        "surface-container-low":"#ECEAE5","surface-container":"#E2DFD9",
+        "surface-container-high":"#D5D2CB","surface-dim":"#C6C3BB",
+        "background":"#F2F0EC","inverse-surface":"#0F172A","inverse-surface-mid":"#1E293B",
+        "inverse-surface-soft":"#334155","inverse-on-surface":"#F1F5F9",
+        "on-surface":"#111827","on-background":"#111827","secondary":"#4B5563",
+        "on-surface-variant":"#6B7280","tertiary":"#1A9850","tertiary-container":"#25D366",
+        "on-tertiary":"#ffffff","on-tertiary-container":"#003b15","outline":"#9CA3AF",
+        "outline-variant":"#D1D5DB","surface-variant":"#E2DFD9","surface-container-highest":"#D5D2CB",
+        "secondary-container":"#ECEAE5","on-secondary-container":"#1F2937",
         "error":"#ba1a1a","on-error":"#ffffff","error-container":"#ffdad6",
-        "inverse-primary":"#FF8C42","surface-tint":"#E8621A","primary-fixed":"#FFD6B8",
-        "on-secondary-fixed":"#1A1410","on-secondary":"#ffffff",
+        "inverse-primary":"#60A5FA","surface-tint":"#2563EB","primary-fixed":"#DBEAFE",
+        "on-secondary-fixed":"#111827","on-secondary":"#ffffff",
+        "surface-bright":"#FAFAF9",
       },
       fontFamily: { "headline":["Space Grotesk"], "body":["Inter"], "label":["Inter"] },
       borderRadius: { "DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem" },
@@ -36,50 +38,75 @@ tailwind.config = {
   },
 }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="supabase.js"></script>
+<script src="auth.js"></script>
+<script src="cart.js"></script>
+<script src="cart-ui.js"></script>
 <script src="data.js"></script>
 <script src="nav.js" defer></script>
 </head>
 <body class="bg-surface font-body text-on-surface">
 
 <!-- ═══ NAV ═══════════════════════════════════════════════════════════════ -->
-<nav class="fixed top-0 w-full z-50 bg-slate-900/95 backdrop-blur-md shadow-2xl shadow-black/20">
+<nav class="fixed top-0 w-full z-50 bg-surface/95 backdrop-blur-md shadow-sm border-b border-outline-variant">
   <div class="flex justify-between items-center px-6 py-4 max-w-screen-2xl mx-auto">
     <a href="index.html" class="flex items-center gap-3 group">
-      <svg class="amber-glow-sm" width="34" height="34" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs><linearGradient id="amberGCO" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#FF8C42"/><stop offset="100%" stop-color="#E8621A"/></linearGradient></defs>
+      <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="amberGCO" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#60A5FA"/><stop offset="100%" stop-color="#2563EB"/></linearGradient></defs>
         <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(#amberGCO)"/>
-        <path d="M10 28 L28 10" stroke="#0B0F1A" stroke-width="4.5" stroke-linecap="round"/>
-        <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="#0B0F1A" opacity="0.55"/>
+        <path d="M10 28 L28 10" stroke="#F2F0EC" stroke-width="4.5" stroke-linecap="round"/>
+        <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="#F2F0EC" opacity="0.55"/>
       </svg>
       <div class="flex flex-col leading-none">
-        <span class="text-xl font-black tracking-[-0.04em] text-white font-headline uppercase">DANICHAP</span>
-        <span class="text-[9px] font-bold tracking-[0.22em] uppercase font-label" style="color:#E8621A;">REPUESTOS · LONGCHAMPS</span>
+        <span class="text-xl font-black tracking-[-0.04em] text-on-surface font-headline uppercase">DANICHAP</span>
+        <span class="text-[9px] font-bold tracking-[0.22em] uppercase font-label text-primary-container">REPUESTOS · LONGCHAMPS</span>
       </div>
     </a>
     <div class="hidden md:flex gap-8 items-center font-headline uppercase tracking-tight text-sm font-bold">
-      <a href="index.html" class="text-slate-300 hover:text-white transition-colors">Inicio</a>
-      <a href="catalogo.html" class="text-slate-300 hover:text-white transition-colors">Catálogo</a>
-      <a href="contacto.html#nosotros" class="text-slate-300 hover:text-white transition-colors">Nosotros</a>
+      <a href="index.html" class="text-secondary hover:text-on-surface transition-colors">Inicio</a>
+      <a href="catalogo.html" class="text-secondary hover:text-on-surface transition-colors">Catálogo</a>
+      <a href="contacto.html#nosotros" class="text-secondary hover:text-on-surface transition-colors">Nosotros</a>
       <a href="contacto.html" class="text-primary-container border-b-2 border-primary-container pb-1">Contacto</a>
     </div>
-    <div class="flex items-center gap-3">
-      <a href="https://wa.me/541175200352?text=Hola%20Danichap!%20Quiero%20consultar%20por%20un%20repuesto."
-         target="_blank"
+    <div id="nav-actions" class="flex items-center gap-2">
+      <button id="cart-nav-btn" class="relative p-2 rounded-lg hover:bg-surface-container transition-colors text-on-surface" title="Carrito">
+        <span class="material-symbols-outlined text-xl">shopping_cart</span>
+        <span id="cart-badge" class="hidden absolute -top-1 -right-1 bg-primary-container text-white text-[10px] font-black w-5 h-5 rounded-full items-center justify-center font-label flex">0</span>
+      </button>
+      <button id="nav-login-btn" class="hidden md:flex items-center gap-2 border border-primary-container text-primary-container px-4 py-2 rounded-xl font-bold text-sm hover:bg-primary-container/10 transition-colors font-headline uppercase">
+        <span class="material-symbols-outlined text-sm">person</span>
+        Ingresar
+      </button>
+      <div id="nav-user-btn" class="hidden items-center gap-2 relative group">
+        <button class="flex items-center gap-2 border border-outline-variant px-3 py-2 rounded-xl font-bold text-sm text-on-surface hover:bg-surface-container transition-colors font-headline uppercase">
+          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">account_circle</span>
+          <span id="nav-user-label" class="max-w-[100px] truncate">Mi cuenta</span>
+        </button>
+        <div class="absolute top-full right-0 mt-1 bg-surface border border-outline-variant rounded-xl shadow-lg py-1.5 w-44 hidden group-hover:block z-50">
+          <a id="nav-admin-link" href="admin.html" class="hidden items-center gap-2 px-4 py-2.5 text-sm text-primary-container font-bold hover:bg-surface-container-low transition-colors font-headline uppercase">
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">admin_panel_settings</span>Admin
+          </a>
+          <button id="nav-logout-btn" class="flex items-center gap-2 px-4 py-2.5 text-sm text-secondary hover:text-error hover:bg-surface-container-low transition-colors font-body w-full text-left">
+            <span class="material-symbols-outlined text-sm">logout</span>Cerrar sesión
+          </button>
+        </div>
+      </div>
+      <a href="https://wa.me/541175200352?text=Hola%20Danichap!%20Quiero%20consultar%20por%20un%20repuesto." target="_blank"
          class="hidden md:flex items-center gap-2 bg-tertiary-container text-on-tertiary-container px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-tertiary transition-colors font-headline uppercase">
-        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>
-        WhatsApp
+        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>WhatsApp
       </a>
-      <button id="mobile-menu-btn" class="md:hidden text-white p-2 rounded-lg hover:bg-white/10 transition-colors">
+      <button id="mobile-menu-btn" class="md:hidden text-on-surface p-2 rounded-lg hover:bg-surface-container transition-colors">
         <span class="material-symbols-outlined text-2xl" id="menu-icon">menu</span>
       </button>
     </div>
   </div>
-  <div id="mobile-menu" class="hidden md:hidden border-t border-white/10 bg-slate-900/98">
+  <div id="mobile-menu" class="hidden md:hidden border-t border-outline-variant bg-surface">
     <div class="flex flex-col px-6 py-4 gap-1">
-      <a href="index.html" class="py-3 text-slate-300 hover:text-white font-headline uppercase text-sm tracking-wide border-b border-white/5">Inicio</a>
-      <a href="catalogo.html" class="py-3 text-slate-300 hover:text-white font-headline uppercase text-sm tracking-wide border-b border-white/5">Catálogo</a>
-      <a href="contacto.html#nosotros" class="py-3 text-slate-300 hover:text-white font-headline uppercase text-sm tracking-wide border-b border-white/5">Nosotros</a>
-      <a href="contacto.html" class="py-3 text-primary-hi font-headline uppercase text-sm tracking-wide border-b border-white/5">Contacto</a>
+      <a href="index.html" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Inicio</a>
+      <a href="catalogo.html" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Catálogo</a>
+      <a href="contacto.html#nosotros" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Nosotros</a>
+      <a href="contacto.html" class="py-3 text-primary-container font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Contacto</a>
       <a href="https://wa.me/541175200352" target="_blank"
          class="mt-3 flex items-center justify-center gap-2 bg-tertiary-container text-on-tertiary-container py-3 rounded-xl font-bold font-headline uppercase text-sm">
         <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>WhatsApp
@@ -89,14 +116,14 @@ tailwind.config = {
 </nav>
 
 <!-- ═══ HERO CONTACTO ════════════════════════════════════════════════════════ -->
-<section class="pt-32 pb-16 bg-inverse-surface relative overflow-hidden">
+<section class="pt-32 pb-16 bg-surface-container-low border-b border-outline-variant relative overflow-hidden">
   <div class="absolute inset-0 technical-grid opacity-10"></div>
   <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
-    <span class="inline-block px-4 py-1.5 rounded-full border border-primary-container/30 bg-orange-500/10 text-primary-hi text-xs font-bold tracking-widest uppercase font-label mb-6">Contacto</span>
-    <h1 class="font-headline text-5xl md:text-6xl font-black uppercase tracking-tighter text-white mb-4">
+    <span class="inline-block px-4 py-1.5 rounded-full border border-primary-container/30 bg-primary-container/10 text-primary-container text-xs font-bold tracking-widest uppercase font-label mb-6">Contacto</span>
+    <h1 class="font-headline text-5xl md:text-6xl font-black uppercase tracking-tighter text-on-surface mb-4">
       Hablemos por <span class="text-primary-container">WhatsApp</span>
     </h1>
-    <p class="text-slate-400 text-lg max-w-xl mx-auto font-body">Respondemos en minutos. Asesoramiento técnico real, antes y después de tu compra.</p>
+    <p class="text-secondary text-lg max-w-xl mx-auto font-body">Respondemos en minutos. Asesoramiento técnico real, antes y después de tu compra.</p>
   </div>
 </section>
 
@@ -112,7 +139,7 @@ tailwind.config = {
       <a href="https://wa.me/541175200352?text=Hola%20Danichap!%20Quisiera%20consultar%20por%20un%20repuesto."
          target="_blank"
          class="flex items-center gap-4 bg-tertiary-container text-on-tertiary-container p-5 rounded-xl mb-8 hover:bg-tertiary transition-colors group">
-        <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+        <div class="w-12 h-12 rounded-full bg-on-tertiary-container/20 flex items-center justify-center flex-shrink-0">
           <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">chat</span>
         </div>
         <div class="flex-1 min-w-0">
@@ -166,7 +193,7 @@ tailwind.config = {
 
     <!-- Mapa -->
     <div>
-      <div class="rounded-2xl overflow-hidden shadow-xl h-80 lg:h-[420px] bg-slate-200 relative">
+      <div class="rounded-2xl overflow-hidden shadow-xl h-80 lg:h-[420px] bg-surface-container relative">
         <!-- Placeholder del mapa: reemplazar con iframe real de Google Maps embed -->
         <div class="w-full h-full flex flex-col items-center justify-center bg-surface-container text-center p-6">
           <span class="material-symbols-outlined text-6xl text-primary-container mb-4">map</span>
@@ -196,18 +223,18 @@ tailwind.config = {
 </section>
 
 <!-- ═══ NOSOTROS ══════════════════════════════════════════════════════════════ -->
-<section id="nosotros" class="py-20 bg-inverse-surface text-white">
+<section id="nosotros" class="py-20 bg-surface-container-low">
   <div class="max-w-4xl mx-auto px-6">
     <div class="text-center mb-14">
       <span class="text-primary-container font-black tracking-widest uppercase text-xs font-label">Quiénes somos</span>
-      <h2 class="font-headline font-black text-4xl uppercase text-white mt-2">Sobre Danichap</h2>
+      <h2 class="font-headline font-black text-4xl uppercase text-on-surface mt-2">Sobre Danichap</h2>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start mb-16">
       <div>
-        <p class="text-slate-300 font-body leading-relaxed text-base mb-6">
-          Danichap es una tienda de repuestos y accesorios automotrices ubicada en <strong class="text-white">Longchamps, Zona Sur del Gran Buenos Aires</strong>. Con más de 10 años en el rubro, nos especializamos en atención personalizada: te asesoramos antes de comprar y seguimos ahí después de la compra.
+        <p class="text-on-surface font-body leading-relaxed text-base mb-6">
+          Danichap es una tienda de repuestos y accesorios automotrices ubicada en <strong class="text-primary">Longchamps, Zona Sur del Gran Buenos Aires</strong>. Con más de 10 años en el rubro, nos especializamos en atención personalizada: te asesoramos antes de comprar y seguimos ahí después de la compra.
         </p>
-        <p class="text-slate-400 font-body leading-relaxed text-sm mb-6">
+        <p class="text-secondary font-body leading-relaxed text-sm mb-6">
           Trabajamos con marcas premium como Brembo, NGK, Bosch, Gates, Monroe, Valeo y Liqui-Moly, además de alternativas de calidad para todos los presupuestos. Nuestro objetivo es que tu auto funcione bien y que vos quedes tranquilo.
         </p>
         <a href="https://wa.me/541175200352?text=Hola%20Danichap!%20Quiero%20conocer%20m%C3%A1s%20sobre%20sus%20productos."
@@ -219,24 +246,24 @@ tailwind.config = {
       </div>
       <!-- Stats -->
       <div class="grid grid-cols-3 gap-4">
-        <div class="bg-white/5 rounded-xl p-6 text-center hover:bg-white/10 transition-colors">
+        <div class="bg-surface-container rounded-xl p-6 text-center hover:bg-surface-container-high transition-colors border border-outline-variant">
           <span class="text-4xl font-black font-headline text-primary-container block mb-2">+10</span>
-          <span class="font-body text-slate-300 text-xs uppercase tracking-wide">Años de experiencia</span>
+          <span class="font-body text-secondary text-xs uppercase tracking-wide">Años de experiencia</span>
         </div>
-        <div class="bg-white/5 rounded-xl p-6 text-center hover:bg-white/10 transition-colors">
+        <div class="bg-surface-container rounded-xl p-6 text-center hover:bg-surface-container-high transition-colors border border-outline-variant">
           <span class="text-4xl font-black font-headline text-primary-container block mb-2">249</span>
-          <span class="font-body text-slate-300 text-xs uppercase tracking-wide">Reseñas Google</span>
+          <span class="font-body text-secondary text-xs uppercase tracking-wide">Reseñas Google</span>
         </div>
-        <div class="bg-white/5 rounded-xl p-6 text-center hover:bg-white/10 transition-colors">
+        <div class="bg-surface-container rounded-xl p-6 text-center hover:bg-surface-container-high transition-colors border border-outline-variant">
           <span class="text-4xl font-black font-headline text-primary-container block mb-2">4.3★</span>
-          <span class="font-body text-slate-300 text-xs uppercase tracking-wide">Calificación</span>
+          <span class="font-body text-secondary text-xs uppercase tracking-wide">Calificación</span>
         </div>
       </div>
     </div>
 
     <!-- Timeline resumido -->
     <div>
-      <h3 class="font-headline font-bold text-xl uppercase text-center mb-10 text-white">Nuestro recorrido</h3>
+      <h3 class="font-headline font-bold text-xl uppercase text-center mb-10 text-on-surface">Nuestro recorrido</h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" id="nosotros-timeline">
         <!-- Generado por JS -->
       </div>
@@ -311,37 +338,37 @@ tailwind.config = {
 </section>
 
 <!-- ═══ FOOTER ═══════════════════════════════════════════════════════════════ -->
-<footer class="bg-slate-900 text-white border-t border-slate-800">
+<footer class="bg-inverse-surface text-white border-t border-inverse-surface-mid">
   <div class="grid grid-cols-1 md:grid-cols-3 gap-12 px-6 md:px-12 py-16 max-w-screen-2xl mx-auto">
     <div>
       <div class="flex items-center gap-3 mb-4">
         <svg width="28" height="28" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs><linearGradient id="amberGFCO" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#FF8C42"/><stop offset="100%" stop-color="#E8621A"/></linearGradient></defs>
+          <defs><linearGradient id="amberGFCO" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#60A5FA"/><stop offset="100%" stop-color="#2563EB"/></linearGradient></defs>
           <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(#amberGFCO)"/>
-          <path d="M10 28 L28 10" stroke="#0B0F1A" stroke-width="4.5" stroke-linecap="round"/>
-          <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="#0B0F1A" opacity="0.55"/>
+          <path d="M10 28 L28 10" stroke="#F2F0EC" stroke-width="4.5" stroke-linecap="round"/>
+          <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="#F2F0EC" opacity="0.55"/>
         </svg>
         <div class="flex flex-col leading-none">
           <span class="text-lg font-black text-white font-headline tracking-[-0.04em] uppercase">DANICHAP</span>
-          <span class="text-[8px] font-bold tracking-[0.2em] uppercase font-label" style="color:#E8621A;">REPUESTOS · LONGCHAMPS</span>
+          <span class="text-[8px] font-bold tracking-[0.2em] uppercase font-label" style="color:#60A5FA;">REPUESTOS · LONGCHAMPS</span>
         </div>
       </div>
-      <p class="text-slate-400 text-sm leading-relaxed mb-6 max-w-xs">Líderes en repuestos y accesorios multimarca con el mejor asesoramiento técnico de la zona sur.</p>
+      <p class="text-inverse-on-surface/70 text-sm leading-relaxed mb-6 max-w-xs">Líderes en repuestos y accesorios multimarca con el mejor asesoramiento técnico de la zona sur.</p>
       <a href="https://www.instagram.com/danichap.arg/" target="_blank"
-         class="inline-flex items-center gap-2 w-10 h-10 rounded-lg bg-white/5 hover:bg-primary-container transition-colors justify-center">
+         class="inline-flex items-center gap-2 w-10 h-10 rounded-lg bg-white/10 hover:bg-primary-container transition-colors justify-center">
         <span class="material-symbols-outlined text-sm">photo_camera</span>
       </a>
     </div>
     <div>
       <h4 class="font-headline font-bold text-sm uppercase tracking-widest text-primary-container mb-6">Contacto</h4>
-      <ul class="space-y-4 text-sm text-slate-400 font-body">
+      <ul class="space-y-4 text-sm text-inverse-on-surface/70 font-body">
         <li class="flex items-start gap-3">
           <span class="material-symbols-outlined text-primary-container text-lg mt-0.5">location_on</span>
           Av. Hipólito Yrigoyen 19608, Longchamps, Buenos Aires
         </li>
         <li class="flex items-center gap-3">
           <span class="material-symbols-outlined text-primary-container text-lg">call</span>
-          <a href="https://wa.me/541175200352" class="hover:text-primary-hi transition-colors">011 7520-0352</a>
+          <a href="https://wa.me/541175200352" class="hover:text-white transition-colors">011 7520-0352</a>
         </li>
         <li class="flex items-start gap-3">
           <span class="material-symbols-outlined text-primary-container text-lg mt-0.5">schedule</span>
@@ -351,18 +378,18 @@ tailwind.config = {
     </div>
     <div>
       <h4 class="font-headline font-bold text-sm uppercase tracking-widest text-primary-container mb-6">Navegación</h4>
-      <ul class="grid grid-cols-2 gap-y-3 text-sm text-slate-400 font-body">
-        <li><a href="index.html" class="hover:text-primary-hi transition-colors">Inicio</a></li>
-        <li><a href="catalogo.html" class="hover:text-primary-hi transition-colors">Catálogo</a></li>
-        <li><a href="contacto.html#nosotros" class="hover:text-primary-hi transition-colors">Nosotros</a></li>
-        <li><a href="contacto.html" class="hover:text-primary-hi transition-colors">Contacto</a></li>
-        <li><a href="https://wa.me/541175200352" target="_blank" class="hover:text-primary-hi transition-colors">WhatsApp</a></li>
-        <li><a href="https://www.instagram.com/danichap.arg/" target="_blank" class="hover:text-primary-hi transition-colors">Instagram</a></li>
+      <ul class="grid grid-cols-2 gap-y-3 text-sm text-inverse-on-surface/70 font-body">
+        <li><a href="index.html" class="hover:text-white transition-colors">Inicio</a></li>
+        <li><a href="catalogo.html" class="hover:text-white transition-colors">Catálogo</a></li>
+        <li><a href="contacto.html#nosotros" class="hover:text-white transition-colors">Nosotros</a></li>
+        <li><a href="contacto.html" class="hover:text-white transition-colors">Contacto</a></li>
+        <li><a href="https://wa.me/541175200352" target="_blank" class="hover:text-white transition-colors">WhatsApp</a></li>
+        <li><a href="https://www.instagram.com/danichap.arg/" target="_blank" class="hover:text-white transition-colors">Instagram</a></li>
       </ul>
     </div>
   </div>
-  <div class="border-t border-slate-800/50 py-6 px-6 text-center">
-    <p class="text-xs text-slate-500 font-body">Copyright © 2025 DANICHAP. Todos los derechos reservados.</p>
+  <div class="border-t border-white/10 py-6 px-6 text-center">
+    <p class="text-xs text-inverse-on-surface/40 font-body">Copyright © 2025 DANICHAP. Todos los derechos reservados.</p>
   </div>
 </footer>
 
@@ -377,10 +404,10 @@ tailwind.config = {
 <script>
 // Renderizar timeline resumido en nosotros
 document.getElementById('nosotros-timeline').innerHTML = TIMELINE.map(t => `
-  <div class="bg-white/5 rounded-xl p-5 hover:bg-white/10 transition-colors">
+  <div class="bg-surface-container rounded-xl p-5 hover:bg-surface-container-high transition-colors border border-outline-variant">
     <span class="text-primary-container font-black font-headline text-2xl block mb-1">${t.año}</span>
-    <h4 class="font-headline font-bold text-sm uppercase text-white mb-2">${t.titulo}</h4>
-    <p class="text-slate-400 font-body text-xs leading-relaxed">${t.desc}</p>
+    <h4 class="font-headline font-bold text-sm uppercase text-on-surface mb-2">${t.titulo}</h4>
+    <p class="text-secondary font-body text-xs leading-relaxed">${t.desc}</p>
   </div>
 `).join('');
 </script>

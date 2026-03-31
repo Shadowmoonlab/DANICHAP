@@ -107,14 +107,51 @@ tailwind.config = {
       <a href="contacto.html#nosotros" class="text-secondary hover:text-on-surface transition-colors">Nosotros</a>
       <a href="contacto.html" class="text-secondary hover:text-on-surface transition-colors">Contacto</a>
     </div>
-    <!-- CTA + hamburger -->
-    <div class="flex items-center gap-3">
+    <!-- CTA + auth + carrito + hamburger -->
+    <div id="nav-actions" class="flex items-center gap-2">
+      <!-- Carrito -->
+      <button id="cart-nav-btn"
+        class="relative p-2 rounded-lg hover:bg-surface-container transition-colors text-on-surface"
+        title="Carrito">
+        <span class="material-symbols-outlined text-xl">shopping_cart</span>
+        <span id="cart-badge"
+          class="hidden absolute -top-1 -right-1 bg-primary-container text-white text-[10px] font-black w-5 h-5 rounded-full items-center justify-center font-label flex">
+          0
+        </span>
+      </button>
+      <!-- Login -->
+      <button id="nav-login-btn"
+        class="hidden md:flex items-center gap-2 border border-primary-container text-primary-container px-4 py-2 rounded-xl font-bold text-sm hover:bg-primary-container/10 transition-colors font-headline uppercase">
+        <span class="material-symbols-outlined text-sm">person</span>
+        Ingresar
+      </button>
+      <!-- Usuario logueado -->
+      <div id="nav-user-btn" class="hidden items-center gap-2 relative group">
+        <button class="flex items-center gap-2 border border-outline-variant px-3 py-2 rounded-xl font-bold text-sm text-on-surface hover:bg-surface-container transition-colors font-headline uppercase">
+          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">account_circle</span>
+          <span id="nav-user-label" class="max-w-[100px] truncate">Mi cuenta</span>
+        </button>
+        <div class="absolute top-full right-0 mt-1 bg-surface border border-outline-variant rounded-xl shadow-lg py-1.5 w-44 hidden group-hover:block z-50">
+          <a id="nav-admin-link" href="admin.html"
+            class="hidden items-center gap-2 px-4 py-2.5 text-sm text-primary-container font-bold hover:bg-surface-container-low transition-colors font-headline uppercase">
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">admin_panel_settings</span>
+            Admin
+          </a>
+          <button id="nav-logout-btn"
+            class="flex items-center gap-2 px-4 py-2.5 text-sm text-secondary hover:text-error hover:bg-surface-container-low transition-colors font-body w-full text-left">
+            <span class="material-symbols-outlined text-sm">logout</span>
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+      <!-- WhatsApp desktop -->
       <a href="https://wa.me/541175200352?text=Hola%20Danichap!%20Quiero%20consultar%20por%20un%20repuesto."
          target="_blank"
          class="hidden md:flex items-center gap-2 bg-tertiary-container text-on-tertiary-container px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-tertiary transition-colors font-headline uppercase">
         <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>
         WhatsApp
       </a>
+      <!-- Hamburger mobile -->
       <button id="mobile-menu-btn" class="md:hidden text-on-surface p-2 rounded-lg hover:bg-surface-container transition-colors">
         <span class="material-symbols-outlined text-2xl" id="menu-icon">menu</span>
       </button>

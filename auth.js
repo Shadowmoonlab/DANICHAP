@@ -9,20 +9,27 @@ const AuthUI = {
 
   async init() {
     // Escuchar cambios de sesión
-    Auth.onAuthChange(async (event, session) => {
-      _currentUser   = session?.user ?? null;
-      _currentPerfil = _currentUser ? await Perfiles.get(_currentUser.id) : null;
-      this._updateNavUI();
-      if (event === 'SIGNED_IN')  { if (typeof CartUI !== 'undefined') CartUI.syncFromDB(); }
-      if (event === 'SIGNED_OUT') { if (typeof CartUI !== 'undefined') CartUI.clearLocal(); }
-    });
+    try {
+      Auth.onAuthChange(async (event, session) => {
+        try {
+          _currentUser   = session?.user ?? null;
+          _currentPerfil = _currentUser ? await Perfiles.get(_currentUser.id) : null;
+          this._updateNavUI();
+          if (event === 'SIGNED_IN')  { if (typeof CartUI !== 'undefined') await CartUI.syncFromDB(); }
+          if (event === 'SIGNED_OUT') { if (typeof CartUI !== 'undefined') CartUI.clearLocal(); }
+        } catch(e) { console.warn('onAuthChange handler error:', e); }
+      });
+    } catch(e) { console.warn('Auth listener error:', e); }
 
     // Sesión inicial
-    const user = await Auth.getUser();
-    if (user) {
-      _currentUser   = user;
-      _currentPerfil = await Perfiles.get(user.id);
-    }
+    try {
+      const user = await Auth.getUser();
+      if (user) {
+        _currentUser   = user;
+        _currentPerfil = await Perfiles.get(user.id);
+      }
+    } catch(e) { console.warn('Auth getUser error:', e); }
+
     this._injectModal();
     this._updateNavUI();
   },
@@ -130,12 +137,13 @@ const AuthUI = {
   },
 
   open(tab = 'login') {
+    if (!document.getElementById('auth-modal')) this._injectModal();
     document.getElementById('auth-modal').classList.remove('hidden');
     this._switchTab(tab);
     document.body.style.overflow = 'hidden';
   },
   close() {
-    document.getElementById('auth-modal').classList.add('hidden');
+    document.getElementById('auth-modal')?.classList.add('hidden');
     document.body.style.overflow = '';
   },
 
@@ -149,10 +157,15 @@ const AuthUI = {
     if (_currentUser) {
       loginBtn.classList.add('hidden');
       userBtn.classList.remove('hidden');
+      userBtn.classList.add('flex');
       if (userLabel) userLabel.textContent = _currentPerfil?.nombre || _currentUser.email.split('@')[0];
-      if (adminLink) adminLink.classList.toggle('hidden', !this.isAdmin);
+      if (adminLink) {
+        adminLink.classList.toggle('hidden', !this.isAdmin);
+        if (this.isAdmin) adminLink.classList.add('flex');
+      }
     } else {
       loginBtn.classList.remove('hidden');
+      userBtn.classList.remove('flex');
       userBtn.classList.add('hidden');
       if (adminLink) adminLink.classList.add('hidden');
     }

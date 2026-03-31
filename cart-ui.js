@@ -63,19 +63,12 @@ const CartUI = {
   },
 
   _injectNavBadge() {
-    const navActions = document.querySelector('nav .flex.items-center.gap-3');
-    if (!navActions || document.getElementById('cart-nav-btn')) return;
-    navActions.insertAdjacentHTML('afterbegin', `
-      <button id="cart-nav-btn"
-        class="relative p-2 rounded-lg hover:bg-surface-container transition-colors text-on-surface"
-        title="Carrito">
-        <span class="material-symbols-outlined text-xl">shopping_cart</span>
-        <span id="cart-badge"
-          class="hidden absolute -top-1 -right-1 bg-primary-container text-white text-[10px] font-black w-5 h-5 rounded-full items-center justify-center font-label flex">
-          0
-        </span>
-      </button>`);
-    document.getElementById('cart-nav-btn').addEventListener('click', () => this.open());
+    // El botón ya está en el HTML — solo registrar el click si nav.js no lo hizo
+    const btn = document.getElementById('cart-nav-btn');
+    if (btn && !btn._cartListenerAdded) {
+      btn.addEventListener('click', () => this.open());
+      btn._cartListenerAdded = true;
+    }
   },
 
   open() {
