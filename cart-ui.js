@@ -88,7 +88,16 @@ const CartUI = {
 
     // Badge
     const badge = document.getElementById('cart-badge');
-    if (badge) { badge.textContent = count; badge.classList.toggle('hidden', count === 0); }
+    if (badge) {
+      badge.textContent = count;
+      if (count === 0) {
+        badge.classList.add('hidden');
+        badge.classList.remove('flex');
+      } else {
+        badge.classList.remove('hidden');
+        badge.classList.add('flex');
+      }
+    }
 
     const drawerCount = document.getElementById('cart-drawer-count');
     if (drawerCount) drawerCount.textContent = count;

@@ -50,7 +50,7 @@ tailwind.config = {
 
 <!-- ═══ NAV ═══════════════════════════════════════════════════════════════ -->
 <nav class="fixed top-0 w-full z-50 bg-surface/95 backdrop-blur-md shadow-sm border-b border-outline-variant">
-  <div class="flex justify-between items-center px-6 py-4 max-w-screen-2xl mx-auto">
+  <div class="flex justify-between items-center px-6 py-4 max-w-screen-xl mx-auto">
     <a href="index.html" class="flex items-center gap-3 group">
       <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs><linearGradient id="amberGCO" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#60A5FA"/><stop offset="100%" stop-color="#2563EB"/></linearGradient></defs>
@@ -72,7 +72,7 @@ tailwind.config = {
     <div id="nav-actions" class="flex items-center gap-2">
       <button id="cart-nav-btn" class="relative p-2 rounded-lg hover:bg-surface-container transition-colors text-on-surface" title="Carrito">
         <span class="material-symbols-outlined text-xl">shopping_cart</span>
-        <span id="cart-badge" class="hidden absolute -top-1 -right-1 bg-primary-container text-white text-[10px] font-black w-5 h-5 rounded-full items-center justify-center font-label flex">0</span>
+        <span id="cart-badge" class="hidden absolute -top-1 -right-1 bg-primary-container text-white text-[10px] font-black w-5 h-5 rounded-full items-center justify-center font-label">0</span>
       </button>
       <button id="nav-login-btn" class="hidden md:flex items-center gap-2 border border-primary-container text-primary-container px-4 py-2 rounded-xl font-bold text-sm hover:bg-primary-container/10 transition-colors font-headline uppercase">
         <span class="material-symbols-outlined text-sm">person</span>
@@ -107,8 +107,12 @@ tailwind.config = {
       <a href="catalogo.html" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Catálogo</a>
       <a href="contacto.html#nosotros" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Nosotros</a>
       <a href="contacto.html" class="py-3 text-primary-container font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Contacto</a>
+      <button id="nav-login-btn-mobile"
+        class="mt-2 flex items-center justify-center gap-2 border border-primary-container text-primary-container py-3 rounded-xl font-bold font-headline uppercase text-sm hover:bg-primary-container/10 transition-colors">
+        <span class="material-symbols-outlined text-sm">person</span>Ingresar
+      </button>
       <a href="https://wa.me/541175200352" target="_blank"
-         class="mt-3 flex items-center justify-center gap-2 bg-tertiary-container text-on-tertiary-container py-3 rounded-xl font-bold font-headline uppercase text-sm">
+         class="mt-2 flex items-center justify-center gap-2 bg-tertiary-container text-on-tertiary-container py-3 rounded-xl font-bold font-headline uppercase text-sm">
         <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>WhatsApp
       </a>
     </div>
@@ -339,7 +343,7 @@ tailwind.config = {
 
 <!-- ═══ FOOTER ═══════════════════════════════════════════════════════════════ -->
 <footer class="bg-inverse-surface text-white border-t border-inverse-surface-mid">
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-12 px-6 md:px-12 py-16 max-w-screen-2xl mx-auto">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-12 px-6 md:px-12 py-16 max-w-screen-xl mx-auto">
     <div>
       <div class="flex items-center gap-3 mb-4">
         <svg width="28" height="28" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -148,14 +148,16 @@ const AuthUI = {
   },
 
   _updateNavUI() {
-    const loginBtn  = document.getElementById('nav-login-btn');
-    const userBtn   = document.getElementById('nav-user-btn');
-    const userLabel = document.getElementById('nav-user-label');
-    const adminLink = document.getElementById('nav-admin-link');
+    const loginBtn       = document.getElementById('nav-login-btn');
+    const loginBtnMobile = document.getElementById('nav-login-btn-mobile');
+    const userBtn        = document.getElementById('nav-user-btn');
+    const userLabel      = document.getElementById('nav-user-label');
+    const adminLink      = document.getElementById('nav-admin-link');
     if (!loginBtn) return;
 
     if (_currentUser) {
       loginBtn.classList.add('hidden');
+      if (loginBtnMobile) loginBtnMobile.classList.add('hidden');
       userBtn.classList.remove('hidden');
       userBtn.classList.add('flex');
       if (userLabel) userLabel.textContent = _currentPerfil?.nombre || _currentUser.email.split('@')[0];
@@ -165,6 +167,7 @@ const AuthUI = {
       }
     } else {
       loginBtn.classList.remove('hidden');
+      if (loginBtnMobile) loginBtnMobile.classList.remove('hidden');
       userBtn.classList.remove('flex');
       userBtn.classList.add('hidden');
       if (adminLink) adminLink.classList.add('hidden');

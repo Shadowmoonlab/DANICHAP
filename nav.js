@@ -23,6 +23,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('nav-login-btn')?.addEventListener('click', () => {
     AuthUI.open('login');
   });
+  document.getElementById('nav-login-btn-mobile')?.addEventListener('click', () => {
+    menu?.classList.add('hidden');
+    if (icon) icon.textContent = 'menu';
+    AuthUI.open('login');
+  });
   document.getElementById('nav-logout-btn')?.addEventListener('click', async () => {
     await Auth.signOut();
   });
