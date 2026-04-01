@@ -166,14 +166,17 @@ tailwind.config = {
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Categoría *</label>
-          <input type="text" id="prod-categoria" required list="cat-list"
-            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
-          <datalist id="cat-list"></datalist>
+          <select id="prod-categoria" required
+            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors text-on-surface">
+            <option value="">— Seleccioná una categoría —</option>
+          </select>
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Subcategoría</label>
-          <input type="text" id="prod-subcategoria"
-            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+          <select id="prod-subcategoria"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors text-on-surface disabled:opacity-50" disabled>
+            <option value="">— Seleccioná primero una categoría —</option>
+          </select>
         </div>
       </div>
 

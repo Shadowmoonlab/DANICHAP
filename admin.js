@@ -34,6 +34,90 @@
   let allProductos = [];
   let editingId    = null;
 
+  // ── Selects categoría / subcategoría ─────────────────────────────────────
+  function _initCatSelects() {
+    const catSel = document.getElementById('prod-categoria');
+    const subSel = document.getElementById('prod-subcategoria');
+    if (!catSel) return;
+    catSel.innerHTML = '<option value="">— Seleccioná una categoría —</option>' +
+      CATEGORIAS.map(c => `<option value="${c.slug}">${c.label}</option>`).join('');
+    catSel.addEventListener('change', () => {
+      const cat = CATEGORIAS.find(c => c.slug === catSel.value);
+      subSel.innerHTML = '<option value="">— Todas / ninguna —</option>';
+      if (cat && cat.subs.length) {
+        cat.subs.forEach(s => subSel.add(new Option(s, s)));
+        subSel.disabled = false;
+      } else {
+        subSel.disabled = true;
+      }
+    });
+  }
+  _initCatSelects();
+
+  // ── Watermark ─────────────────────────────────────────────────────────────
+  async function applyWatermark(file) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width  = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+
+        const wSize  = Math.round(Math.min(canvas.width, canvas.height) * 0.22);
+        const margin = Math.round(wSize * 0.18);
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur  = 6;
+
+        // Texto DANICHAP
+        ctx.globalAlpha  = 0.30;
+        ctx.font         = `bold ${Math.round(wSize * 0.22)}px "Space Grotesk", sans-serif`;
+        ctx.fillStyle    = '#ffffff';
+        ctx.textAlign    = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('DANICHAP', canvas.width - margin, canvas.height - margin);
+
+        // Logo SVG
+        const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${wSize}" height="${wSize}" viewBox="0 0 38 38">
+          <defs><linearGradient id="wg" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#93c5fd"/>
+          </linearGradient></defs>
+          <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(#wg)"/>
+          <path d="M10 28 L28 10" stroke="rgba(15,23,42,0.6)" stroke-width="4.5" stroke-linecap="round"/>
+          <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="rgba(242,240,236,0.55)"/>
+        </svg>`;
+        const svgBlob = new Blob([svgStr], { type: 'image/svg+xml' });
+        const svgUrl  = URL.createObjectURL(svgBlob);
+        const svgImg  = new Image();
+        svgImg.onload = () => {
+          const logoX = canvas.width  - margin - wSize;
+          const logoY = canvas.height - margin - wSize - Math.round(wSize * 0.28);
+          ctx.globalAlpha = 0.34;
+          ctx.shadowBlur  = 8;
+          ctx.drawImage(svgImg, logoX, logoY, wSize, wSize);
+          ctx.restore();
+          URL.revokeObjectURL(svgUrl);
+          canvas.toBlob(blob => {
+            resolve(blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file);
+          }, 'image/jpeg', 0.92);
+        };
+        svgImg.onerror = () => {
+          URL.revokeObjectURL(svgUrl);
+          ctx.restore();
+          canvas.toBlob(blob => resolve(new File([blob || file], file.name, { type: file.type })), file.type, 0.92);
+        };
+        svgImg.src = svgUrl;
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+
   // ── Logout ────────────────────────────────────────────────────────────────
   document.getElementById('admin-logout').addEventListener('click', async () => {
     await Auth.signOut();
@@ -147,8 +231,19 @@
     document.getElementById('modal-title').textContent    = id ? 'Editar Producto' : 'Nuevo Producto';
     document.getElementById('prod-id').value              = p?.id || '';
     document.getElementById('prod-nombre').value          = p?.nombre || '';
-    document.getElementById('prod-categoria').value       = p?.categoria || '';
-    document.getElementById('prod-subcategoria').value    = p?.subcategoria || '';
+    const catSel = document.getElementById('prod-categoria');
+    const subSel = document.getElementById('prod-subcategoria');
+    catSel.value = p?.categoria || '';
+    // Repoblar subcategorías para la categoría guardada
+    const cat = CATEGORIAS.find(c => c.slug === catSel.value);
+    subSel.innerHTML = '<option value="">— Todas / ninguna —</option>';
+    if (cat && cat.subs.length) {
+      cat.subs.forEach(s => subSel.add(new Option(s, s)));
+      subSel.disabled = false;
+    } else {
+      subSel.disabled = true;
+    }
+    subSel.value = p?.subcategoria || '';
     document.getElementById('prod-marca').value           = p?.marca_rep || '';
     document.getElementById('prod-badge').value           = p?.badge || '';
     document.getElementById('prod-precio').value          = p?.precio ?? '';
@@ -218,7 +313,8 @@
     let imagenUrl = document.getElementById('prod-imagen-url').value.trim() || null;
     const fileInput = document.getElementById('prod-imagen');
     if (fileInput.files[0]) {
-      const { url, error } = await Productos.uploadImagen(fileInput.files[0]);
+      const fileToUpload = await applyWatermark(fileInput.files[0]);
+      const { url, error } = await Productos.uploadImagen(fileToUpload);
       if (error) {
         errEl.textContent = 'Error subiendo imagen: ' + error.message;
         errEl.classList.remove('hidden');
