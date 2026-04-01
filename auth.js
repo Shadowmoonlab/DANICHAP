@@ -104,9 +104,10 @@ const AuthUI = {
       const errEl = document.getElementById('login-error');
       const btn   = e.target.querySelector('button[type=submit]');
       errEl.classList.add('hidden');
-      btn.textContent = 'Entrando…'; btn.disabled = true;
+      btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin align-middle mr-2"></span>Entrando…';
+      btn.disabled = true;
       const { error } = await Auth.signIn(fd.get('email'), fd.get('password'));
-      btn.textContent = 'Entrar'; btn.disabled = false;
+      btn.innerHTML = 'Entrar'; btn.disabled = false;
       if (error) { errEl.textContent = 'Email o contraseña incorrectos.'; errEl.classList.remove('hidden'); return; }
       this.close();
     });
@@ -118,9 +119,10 @@ const AuthUI = {
       const okEl  = document.getElementById('register-success');
       const btn   = e.target.querySelector('button[type=submit]');
       errEl.classList.add('hidden'); okEl.classList.add('hidden');
-      btn.textContent = 'Creando…'; btn.disabled = true;
+      btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin align-middle mr-2"></span>Creando…';
+      btn.disabled = true;
       const { error } = await Auth.signUp(fd.get('email'), fd.get('password'), fd.get('nombre'));
-      btn.textContent = 'Crear cuenta'; btn.disabled = false;
+      btn.innerHTML = 'Crear cuenta'; btn.disabled = false;
       if (error) { errEl.textContent = error.message; errEl.classList.remove('hidden'); return; }
       okEl.classList.remove('hidden');
       e.target.reset();

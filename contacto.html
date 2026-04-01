@@ -198,26 +198,19 @@ tailwind.config = {
     <!-- Mapa -->
     <div>
       <div class="rounded-2xl overflow-hidden shadow-xl h-80 lg:h-[420px] bg-surface-container relative">
-        <!-- Placeholder del mapa: reemplazar con iframe real de Google Maps embed -->
-        <div class="w-full h-full flex flex-col items-center justify-center bg-surface-container text-center p-6">
-          <span class="material-symbols-outlined text-6xl text-primary-container mb-4">map</span>
-          <p class="font-headline font-bold uppercase text-sm mb-2">Av. Hipólito Yrigoyen 19608</p>
-          <p class="font-body text-secondary text-sm mb-6">Longchamps, Buenos Aires</p>
-          <a href="https://maps.google.com/?q=Av.+Hip%C3%B3lito+Yrigoyen+19608+Longchamps+Buenos+Aires"
-             target="_blank"
-             class="inline-flex items-center gap-2 bg-primary-container text-white px-4 py-2 rounded-xl text-sm font-bold font-label uppercase hover:opacity-90 transition-opacity">
-            <span class="material-symbols-outlined text-sm">open_in_new</span>
-            Abrir en Google Maps
-          </a>
-        </div>
-        <!-- Descomentar y pegar el iframe de Google Maps embed:
         <iframe
-          src="PEGAR_AQUI_EL_SRC_DE_GOOGLE_MAPS_EMBED"
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3271.4!2d-58.399!3d-34.869!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcd3c3c3c3c3c3%3A0x0!2sAv.+Hip%C3%B3lito+Yrigoyen+19608%2C+Longchamps!5e0!3m2!1ses!2sar!4v1"
           width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
-          title="Ubicación Danichap">
+          title="Ubicación Danichap — Av. Hipólito Yrigoyen 19608, Longchamps">
         </iframe>
-        -->
+        <!-- Overlay con link a Google Maps -->
+        <a href="https://maps.google.com/?q=Av.+Hip%C3%B3lito+Yrigoyen+19608+Longchamps+Buenos+Aires"
+           target="_blank"
+           class="absolute bottom-4 right-4 bg-surface/90 backdrop-blur-sm border border-outline-variant text-on-surface px-3 py-2 rounded-xl text-xs font-bold font-label uppercase flex items-center gap-1.5 hover:bg-primary-container hover:text-white transition-colors shadow">
+          <span class="material-symbols-outlined text-sm">open_in_new</span>
+          Ver en Google Maps
+        </a>
       </div>
       <p class="text-xs text-secondary font-body mt-3 text-center">
         A 10 min en transporte público · 4 min en auto

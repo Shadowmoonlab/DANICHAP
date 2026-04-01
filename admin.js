@@ -118,6 +118,32 @@
     });
   }
 
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  function showToast(msg, type = 'success') {
+    let toast = document.getElementById('admin-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'admin-toast';
+      toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] px-5 py-3 rounded-xl font-bold text-sm font-headline uppercase tracking-wide shadow-xl flex items-center gap-2 transition-all duration-300 opacity-0 translate-y-4';
+      document.body.appendChild(toast);
+    }
+    toast.className = toast.className.replace(/bg-\S+/g, '').replace(/text-\S+(?=\s)/g, '');
+    const colors = type === 'success'
+      ? 'bg-inverse-surface text-inverse-on-surface'
+      : 'bg-error text-on-error';
+    toast.classList.add(...colors.split(' '));
+    const icon = type === 'success' ? 'check_circle' : 'error';
+    toast.innerHTML = `<span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">${icon}</span>${msg}`;
+    requestAnimationFrame(() => {
+      toast.classList.remove('opacity-0', 'translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+    });
+    setTimeout(() => {
+      toast.classList.add('opacity-0', 'translate-y-4');
+      toast.classList.remove('opacity-100', 'translate-y-0');
+    }, 2500);
+  }
+
   // ── Logout ────────────────────────────────────────────────────────────────
   document.getElementById('admin-logout').addEventListener('click', async () => {
     await Auth.signOut();
@@ -306,7 +332,8 @@
     e.preventDefault();
     const btn   = document.getElementById('btn-save-modal');
     const errEl = document.getElementById('form-error');
-    btn.textContent = 'Guardando…'; btn.disabled = true;
+    btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin align-middle mr-1"></span>Guardando…';
+    btn.disabled = true;
     errEl.classList.add('hidden');
 
     // Upload imagen si hay archivo
@@ -318,7 +345,7 @@
       if (error) {
         errEl.textContent = 'Error subiendo imagen: ' + error.message;
         errEl.classList.remove('hidden');
-        btn.textContent = 'Guardar'; btn.disabled = false;
+        btn.innerHTML = 'Guardar'; btn.disabled = false;
         return;
       }
       imagenUrl = url;
@@ -342,7 +369,7 @@
       ? await Productos.update(editingId, payload)
       : await Productos.create(payload);
 
-    btn.textContent = 'Guardar'; btn.disabled = false;
+    btn.innerHTML = 'Guardar'; btn.disabled = false;
 
     if (error) {
       errEl.textContent = error.message;
@@ -350,6 +377,7 @@
       return;
     }
     closeModal();
+    showToast(editingId ? 'Producto actualizado ✓' : 'Producto creado ✓');
     await loadProductos();
   });
 
@@ -357,7 +385,8 @@
   window.deleteProducto = async (id, nombre) => {
     if (!confirm(`¿Eliminar "${nombre}"?\nEsta acción no se puede deshacer.`)) return;
     const { error } = await Productos.delete(id);
-    if (error) { alert('Error al eliminar: ' + error.message); return; }
+    if (error) { showToast('Error al eliminar: ' + error.message, 'error'); return; }
+    showToast('Producto eliminado');
     await loadProductos();
   };
 

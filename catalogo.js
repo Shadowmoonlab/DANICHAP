@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Estado ──────────────────────────────────────────────────────────────────
-  const filtros = { marca: '', modelo: '', version: '', año: '', cat: '', sub: '', sort: 'default' };
+  const filtros = { marca: '', modelo: '', version: '', año: '', cat: '', sub: '', sort: 'default', texto: '' };
 
   // ── Referencias DOM ─────────────────────────────────────────────────────────
   const selMarca   = document.getElementById('fil-marca');
@@ -116,6 +116,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderProductos();
   });
 
+  // ── Búsqueda texto libre ─────────────────────────────────────────────────────
+  const searchInput = document.getElementById('search-text');
+  const searchClear = document.getElementById('search-clear');
+  searchInput && searchInput.addEventListener('input', e => {
+    filtros.texto = e.target.value.trim();
+    searchClear && searchClear.classList.toggle('hidden', !filtros.texto);
+    renderProductos();
+  });
+  searchClear && searchClear.addEventListener('click', () => {
+    filtros.texto = '';
+    if (searchInput) searchInput.value = '';
+    searchClear.classList.add('hidden');
+    renderProductos();
+  });
+
   // ── Sidebar categorías ───────────────────────────────────────────────────────
   function renderSidebarCats(containerId) {
     const container = document.getElementById(containerId);
@@ -180,6 +195,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   function getProductosFiltrados() {
     let lista = [...PRODUCTOS];
 
+    if (filtros.texto) {
+      const q = filtros.texto.toLowerCase();
+      lista = lista.filter(p =>
+        p.nombre.toLowerCase().includes(q) ||
+        (p.marca_rep || '').toLowerCase().includes(q) ||
+        (p.descripcion || '').toLowerCase().includes(q) ||
+        p.categoria.toLowerCase().includes(q)
+      );
+    }
     if (filtros.cat) lista = lista.filter(p => p.categoria === filtros.cat);
     if (filtros.sub) lista = lista.filter(p => p.sub === filtros.sub);
 
@@ -322,6 +346,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderSidebarCats('categorias-sidebar');
   renderSidebarCats('m-categorias-sidebar');
 
+  // Mostrar loading mientras carga
+  const loadingEl = document.getElementById('catalogo-loading');
+  const gridEl    = document.getElementById('productos-grid');
+
   // Cargar productos desde Supabase si hay. Si no, usar los estáticos de data.js
   try {
     if (typeof Productos !== 'undefined') {
@@ -348,6 +376,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
   } catch(e) { console.warn('Catalogo: no se pudo cargar desde Supabase, usando datos estáticos', e); }
+
+  // Ocultar loading, mostrar grid
+  if (loadingEl) loadingEl.classList.add('hidden');
+  if (gridEl) gridEl.classList.remove('hidden');
 
   renderProductos();
 });

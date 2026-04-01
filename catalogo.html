@@ -199,22 +199,39 @@ tailwind.config = {
   <!-- MAIN -->
   <main class="flex-1 p-5 md:p-8 min-w-0">
 
-    <!-- Barra de resultados -->
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-      <p id="resultado-count" class="font-body text-secondary text-sm"></p>
-      <div class="flex items-center gap-2">
-        <label class="font-body text-sm text-secondary hidden sm:block">Ordenar:</label>
-        <select id="sort-select" class="rounded-xl bg-surface-container-lowest border border-outline-variant p-2 text-sm font-body focus:ring-2 focus:ring-primary-container">
-          <option value="default">Relevancia</option>
-          <option value="price-asc">Precio: menor a mayor</option>
-          <option value="price-desc">Precio: mayor a menor</option>
-          <option value="name-asc">Nombre A-Z</option>
-        </select>
+    <!-- Barra de búsqueda + resultados -->
+    <div class="flex flex-col gap-3 mb-6">
+      <!-- Búsqueda texto libre -->
+      <div class="relative">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-base pointer-events-none">search</span>
+        <input type="text" id="search-text" placeholder="Buscar por nombre, marca, categoría…"
+          class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant text-sm font-body focus:outline-none focus:border-primary-container transition-colors text-on-surface placeholder:text-outline"/>
+        <button id="search-clear" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors">
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p id="resultado-count" class="font-body text-secondary text-sm"></p>
+        <div class="flex items-center gap-2">
+          <label class="font-body text-sm text-secondary hidden sm:block">Ordenar:</label>
+          <select id="sort-select" class="rounded-xl bg-surface-container-lowest border border-outline-variant p-2 text-sm font-body focus:ring-2 focus:ring-primary-container">
+            <option value="default">Relevancia</option>
+            <option value="price-asc">Precio: menor a mayor</option>
+            <option value="price-desc">Precio: mayor a menor</option>
+            <option value="name-asc">Nombre A-Z</option>
+          </select>
+        </div>
       </div>
     </div>
 
+    <!-- Loading state -->
+    <div id="catalogo-loading" class="text-center py-20">
+      <div class="inline-block w-8 h-8 border-2 border-primary-container border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p class="text-secondary font-body text-sm">Cargando productos…</p>
+    </div>
+
     <!-- Grid de productos -->
-    <div id="productos-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+    <div id="productos-grid" class="hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
       <!-- Generado por catalogo.js -->
     </div>
 

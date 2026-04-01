@@ -798,31 +798,37 @@ document.getElementById('categorias-home').innerHTML = CATEGORIAS.map(c => `
 `).join('');
 
 // ─── RENDERIZAR PRODUCTOS DESTACADOS ─────────────────────────────────────────
-const destacados = PRODUCTOS.filter(p => p.precio !== null).slice(0, 6);
-document.getElementById('featured-products').innerHTML = destacados.map(p => {
-  const cat = CATEGORIAS.find(c => c.slug === p.categoria);
-  const wpp = wppLink(p.nombre, '');
-  return `
-    <div class="bg-surface-container-lowest rounded-xl overflow-hidden group hover:shadow-xl transition-all duration-300 border border-surface-container flex flex-col">
-      <div class="relative h-44 bg-surface-container-low flex items-center justify-center overflow-hidden">
-        <span class="material-symbols-outlined text-8xl text-surface-dim group-hover:scale-110 transition-transform duration-500">${cat ? cat.icon : 'build'}</span>
-        ${p.marca_rep ? `<span class="absolute top-3 left-3 bg-inverse-surface text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest font-label rounded">${p.marca_rep}</span>` : ''}
-      </div>
-      <div class="p-5 flex flex-col flex-1">
-        <span class="text-[10px] font-bold uppercase tracking-widest text-secondary font-label mb-1">${cat ? cat.label : ''}</span>
-        <h3 class="font-headline font-bold text-base uppercase mb-2 leading-tight">${p.nombre}</h3>
-        <p class="text-xs text-tertiary font-body mb-4">✓ ${p.compatibilidades[0]}</p>
-        <div class="mt-auto flex items-center justify-between gap-3">
-          <span class="text-xl font-black text-on-surface font-headline">$ ${p.precio.toLocaleString('es-AR')}</span>
-          <a href="${wpp}" target="_blank" rel="noopener"
-             class="flex-shrink-0 bg-tertiary-container text-on-tertiary-container px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 hover:bg-tertiary transition-colors font-label uppercase">
-            <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>
-            Consultar
-          </a>
-        </div>
-      </div>
-    </div>`;
-}).join('');
+(async () => {
+  const container = document.getElementById('featured-products');
+  let destacados = [];
+  try {
+    if (typeof Productos !== 'undefined') {
+      const { data } = await Productos.list({ destacado: true });
+      if (data && data.length > 0) destacados = data.slice(0, 6);
+    }
+  } catch(e) {}
+  if (destacados.length === 0) {
+    destacados = PRODUCTOS.filter(p => p.destacado || p.precio !== null).slice(0, 6);
+  }
+  if (destacados.length === 0) {
+    container.innerHTML = '<div class="col-span-full text-center py-12"><span class="material-symbols-outlined text-5xl text-outline-variant mb-3 block">inventory_2</span><p class="text-secondary font-body text-sm mb-4">Próximamente más productos destacados.</p><a href="catalogo.html" class="inline-flex items-center gap-2 text-primary-container font-bold font-headline uppercase text-sm hover:underline">Ver catálogo completo <span class="material-symbols-outlined text-sm">arrow_forward</span></a></div>';
+    return;
+  }
+  container.innerHTML = destacados.map(p => {
+    const cat = CATEGORIAS.find(c => c.slug === p.categoria);
+    const wpp = wppLink(p.nombre, '');
+    const precioHtml = p.precio
+      ? '<span class="text-xl font-black text-on-surface font-headline">$ ' + Number(p.precio).toLocaleString('es-AR') + '</span>'
+      : '<span class="text-sm font-bold text-tertiary font-body flex items-center gap-1"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>Consultar</span>';
+    const imagenHtml = p.imagen_url
+      ? '<img src="' + p.imagen_url + '" alt="' + p.nombre + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>'
+      : '<span class="material-symbols-outlined text-7xl text-surface-dim group-hover:scale-110 transition-transform duration-500">' + (cat ? cat.icon : 'build') + '</span>';
+    const badgeHtml = p.badge ? '<span class="absolute top-3 right-3 bg-primary-container text-white text-[10px] font-black px-2 py-1 uppercase tracking-widest font-label rounded">' + p.badge + '</span>' : '';
+    const marcaHtml = p.marca_rep ? '<span class="absolute top-3 left-3 bg-inverse-surface text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest font-label rounded">' + p.marca_rep + '</span>' : '';
+    const compat = (p.compatibilidades && p.compatibilidades[0]) ? p.compatibilidades[0] : 'Universal';
+    return '<div class="bg-surface-container-lowest rounded-xl overflow-hidden group hover:shadow-xl transition-all duration-300 border border-surface-container flex flex-col"><div class="relative h-44 bg-surface-container-low flex items-center justify-center overflow-hidden">' + imagenHtml + badgeHtml + marcaHtml + '</div><div class="p-5 flex flex-col flex-1"><span class="text-[10px] font-bold uppercase tracking-widest text-secondary font-label mb-1">' + (cat ? cat.label : '') + '</span><h3 class="font-headline font-bold text-base uppercase mb-2 leading-tight">' + p.nombre + '</h3><p class="text-xs text-tertiary font-body mb-4">✓ ' + compat + '</p><div class="mt-auto flex items-center justify-between gap-3">' + precioHtml + '<a href="' + wpp + '" target="_blank" rel="noopener" class="flex-shrink-0 bg-tertiary-container text-on-tertiary-container px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 hover:bg-tertiary transition-colors font-label uppercase"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>Consultar</a></div></div></div>';
+  }).join('');
+})();
 
 // timeline-container removed — reemplazado por sección Danichap en Números
 

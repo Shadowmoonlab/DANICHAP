@@ -37,6 +37,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof CartUI !== 'undefined') CartUI.open();
   });
 
+  // ── Dropdown usuario: click/touch fix para tablets ─────────────────────────
+  const userBtn = document.getElementById('nav-user-btn');
+  if (userBtn) {
+    const dropdown = userBtn.querySelector('div.hidden, div[class*="group-hover"]');
+    userBtn.querySelector('button')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dd = userBtn.querySelector('div.absolute');
+      if (dd) {
+        dd.classList.toggle('hidden');
+        dd.classList.toggle('block');
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (!userBtn.contains(e.target)) {
+        const dd = userBtn.querySelector('div.absolute');
+        if (dd) { dd.classList.add('hidden'); dd.classList.remove('block'); }
+      }
+    });
+  }
+
   // ── Inicializar módulos ────────────────────────────────────────────────────
   try { await AuthUI.init(); }    catch(e) { console.warn('AuthUI:', e); }
   try { CartUI.init(); }          catch(e) { console.warn('CartUI:', e); }
