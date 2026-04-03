@@ -104,7 +104,6 @@ tailwind.config = {
     <div class="hidden md:flex gap-8 items-center font-headline uppercase tracking-tight text-sm font-bold">
       <a href="index.html" class="text-primary-container border-b-2 border-primary-container pb-1">Inicio</a>
       <a href="catalogo.html" class="text-secondary hover:text-on-surface transition-colors">Catálogo</a>
-      <a href="contacto.html#nosotros" class="text-secondary hover:text-on-surface transition-colors">Nosotros</a>
       <a href="contacto.html" class="text-secondary hover:text-on-surface transition-colors">Contacto</a>
     </div>
     <!-- CTA + auth + carrito + hamburger -->
@@ -162,7 +161,6 @@ tailwind.config = {
     <div class="flex flex-col px-6 py-4 gap-1">
       <a href="index.html" class="py-3 text-primary-container font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Inicio</a>
       <a href="catalogo.html" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Catálogo</a>
-      <a href="contacto.html#nosotros" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Nosotros</a>
       <a href="contacto.html" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Contacto</a>
       <button id="nav-login-btn-mobile"
         class="mt-2 flex items-center justify-center gap-2 border border-primary-container text-primary-container py-3 rounded-xl font-bold font-headline uppercase text-sm hover:bg-primary-container/10 transition-colors">
@@ -203,7 +201,7 @@ tailwind.config = {
         </a>
       </div>
       <!-- Mini stats -->
-      <div class="flex gap-8 pt-4 border-t border-outline-variant">
+      <div class="flex flex-wrap gap-6 pt-4 border-t border-outline-variant">
         <div>
           <span class="text-3xl font-black font-headline text-primary-container">249</span>
           <span class="block text-xs text-secondary font-label uppercase tracking-wide">Reseñas Google</span>
@@ -216,6 +214,21 @@ tailwind.config = {
           <span class="text-3xl font-black font-headline text-primary-container">+10</span>
           <span class="block text-xs text-secondary font-label uppercase tracking-wide">Años en el rubro</span>
         </div>
+      </div>
+      <!-- Badges de valor diferencial -->
+      <div class="flex flex-wrap gap-2 pt-1">
+        <span class="inline-flex items-center gap-1.5 bg-primary-container/10 border border-primary-container/20 text-primary-container px-3 py-1.5 rounded-full text-xs font-bold font-label uppercase tracking-wide">
+          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">local_shipping</span>
+          Envíos en 24 hs
+        </span>
+        <span class="inline-flex items-center gap-1.5 bg-primary-container/10 border border-primary-container/20 text-primary-container px-3 py-1.5 rounded-full text-xs font-bold font-label uppercase tracking-wide">
+          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">storefront</span>
+          Local en Longchamps
+        </span>
+        <span class="inline-flex items-center gap-1.5 bg-primary-container/10 border border-primary-container/20 text-primary-container px-3 py-1.5 rounded-full text-xs font-bold font-label uppercase tracking-wide">
+          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">support_agent</span>
+          Asesoramiento personalizado
+        </span>
       </div>
     </div>
     <!-- Hero: Mapa del local -->
@@ -249,11 +262,13 @@ tailwind.config = {
       <span class="opacity-50">✦</span>
       <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">timer</span>Respondemos en minutos</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">local_shipping</span>Envíos a todo el país</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">local_shipping</span>Envíos en 24 hs a todo el país</span>
+      <span class="opacity-50">✦</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">storefront</span>Visitanos en el local · Longchamps</span>
       <span class="opacity-50">✦</span>
       <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">verified</span>+10 años en el rubro</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">support_agent</span>Asesoramiento técnico real</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">support_agent</span>Asesoramiento personalizado en el local</span>
       <span class="opacity-50">✦</span>
       <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">workspace_premium</span>Marcas originales: Brembo, NGK, Bosch, Liqui-Moly</span>
       <span class="opacity-50">✦</span>
@@ -264,11 +279,13 @@ tailwind.config = {
       <span class="opacity-50">✦</span>
       <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">timer</span>Respondemos en minutos</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">local_shipping</span>Envíos a todo el país</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">local_shipping</span>Envíos en 24 hs a todo el país</span>
+      <span class="opacity-50">✦</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">storefront</span>Visitanos en el local · Longchamps</span>
       <span class="opacity-50">✦</span>
       <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">verified</span>+10 años en el rubro</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">support_agent</span>Asesoramiento técnico real</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">support_agent</span>Asesoramiento personalizado en el local</span>
       <span class="opacity-50">✦</span>
       <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">workspace_premium</span>Marcas originales: Brembo, NGK, Bosch, Liqui-Moly</span>
       <span class="opacity-50">✦</span>
@@ -383,11 +400,29 @@ tailwind.config = {
           <span class="material-symbols-outlined text-3xl">local_shipping</span>
         </div>
         <div>
-          <h4 class="font-bold text-on-surface text-sm uppercase font-headline leading-tight">Envíos</h4>
+          <h4 class="font-bold text-on-surface text-sm uppercase font-headline leading-tight">Envíos en 24 hs</h4>
           <p class="text-xs text-secondary font-label">A todo el país</p>
         </div>
       </div>
       <div class="flex items-center gap-4 group reveal reveal-delay-2">
+        <div class="w-14 h-14 rounded-full bg-white flex items-center justify-center text-primary-container shadow-sm group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-3xl">storefront</span>
+        </div>
+        <div>
+          <h4 class="font-bold text-on-surface text-sm uppercase font-headline leading-tight">Local físico</h4>
+          <p class="text-xs text-secondary font-label">Visitanos en Longchamps</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4 group reveal reveal-delay-3">
+        <div class="w-14 h-14 rounded-full bg-white flex items-center justify-center text-primary-container shadow-sm group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-3xl">support_agent</span>
+        </div>
+        <div>
+          <h4 class="font-bold text-on-surface text-sm uppercase font-headline leading-tight">Asesoramiento</h4>
+          <p class="text-xs text-secondary font-label">Personalizado en el local</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4 group reveal reveal-delay-4">
         <div class="w-14 h-14 rounded-full bg-white flex items-center justify-center text-primary-container shadow-sm group-hover:scale-110 transition-transform">
           <span class="material-symbols-outlined text-3xl">verified</span>
         </div>
@@ -396,27 +431,137 @@ tailwind.config = {
           <p class="text-xs text-secondary font-label">En todos los productos</p>
         </div>
       </div>
-      <div class="flex items-center gap-4 group reveal reveal-delay-3">
-        <div class="w-14 h-14 rounded-full bg-white flex items-center justify-center text-primary-container shadow-sm group-hover:scale-110 transition-transform">
-          <span class="material-symbols-outlined text-3xl">support_agent</span>
-        </div>
-        <div>
-          <h4 class="font-bold text-on-surface text-sm uppercase font-headline leading-tight">Atención</h4>
-          <p class="text-xs text-secondary font-label">Personalizada</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-4 group reveal reveal-delay-4">
-        <div class="w-14 h-14 rounded-full bg-white flex items-center justify-center text-primary-container shadow-sm group-hover:scale-110 transition-transform">
-          <span class="material-symbols-outlined text-3xl">construction</span>
-        </div>
-        <div>
-          <h4 class="font-bold text-on-surface text-sm uppercase font-headline leading-tight">Experiencia</h4>
-          <p class="text-xs text-secondary font-label">+10 años en el rubro</p>
-        </div>
-      </div>
     </div>
   </div>
 </section>
+
+<!-- ═══ SCROLL STORY ════════════════════════════════════════════════════════ -->
+<section id="scroll-story" class="relative bg-[#0a0a0f]" style="height:350vh">
+  <div id="scroll-stage" class="sticky top-0 w-full h-screen flex items-center justify-center overflow-hidden">
+    <!-- Fondo animado -->
+    <div id="ss-bg" class="absolute inset-0 transition-opacity duration-700" style="background:radial-gradient(ellipse 80% 60% at 50% 50%, rgba(37,99,235,0.18) 0%, transparent 70%)"></div>
+
+    <!-- Número grande decorativo -->
+    <span id="ss-year" class="absolute select-none font-headline font-black text-[30vw] leading-none text-white/[0.04] pointer-events-none" style="top:50%;left:50%;transform:translate(-50%,-50%)">2016</span>
+
+    <!-- Contenido principal -->
+    <div class="relative z-10 max-w-2xl mx-auto px-8 text-center">
+      <!-- Chip -->
+      <div id="ss-chip" class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary-container/40 bg-primary-container/10 mb-6 transition-all duration-500 opacity-0 translate-y-4">
+        <span id="ss-chip-icon" class="material-symbols-outlined text-primary-container text-base" style="font-variation-settings:'FILL' 1;">storefront</span>
+        <span id="ss-chip-year" class="text-primary-container font-black text-xs tracking-widest font-label">2016</span>
+      </div>
+      <!-- Título -->
+      <h2 id="ss-title" class="font-headline font-black text-4xl md:text-6xl text-white uppercase tracking-tight mb-5 transition-all duration-500 opacity-0 translate-y-6">Los comienzos</h2>
+      <!-- Descripción -->
+      <p id="ss-desc" class="text-white/60 font-body text-base md:text-lg leading-relaxed transition-all duration-500 opacity-0 translate-y-6 max-w-lg mx-auto">Danichap abre sus puertas en Longchamps con un pequeño local y una visión clara: repuestos de calidad con atención personalizada.</p>
+      <!-- Progress dots -->
+      <div id="ss-dots" class="flex gap-2 justify-center mt-10">
+        <div class="ss-dot w-2 h-2 rounded-full bg-primary-container"></div>
+        <div class="ss-dot w-2 h-2 rounded-full bg-white/20"></div>
+        <div class="ss-dot w-2 h-2 rounded-full bg-white/20"></div>
+        <div class="ss-dot w-2 h-2 rounded-full bg-white/20"></div>
+        <div class="ss-dot w-2 h-2 rounded-full bg-white/20"></div>
+      </div>
+    </div>
+
+    <!-- Scroll hint -->
+    <div id="ss-hint" class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/40 transition-opacity duration-500">
+      <span class="font-label text-xs uppercase tracking-widest">Deslizá</span>
+      <span class="material-symbols-outlined text-lg animate-bounce">expand_more</span>
+    </div>
+  </div>
+</section>
+
+<style>
+#scroll-story .ss-dot { transition: all 0.4s ease; }
+#scroll-story .ss-dot.active { background: rgb(37 99 235); transform: scale(1.4); }
+</style>
+
+<script>
+(function(){
+  const story = [
+    { año:'2016', titulo:'Los comienzos',         icon:'storefront',    desc:'Danichap abre sus puertas en Longchamps con un pequeño local y una visión clara: repuestos de calidad con atención personalizada.' },
+    { año:'2018', titulo:'Stock premium',          icon:'inventory_2',   desc:'Incorporamos Brembo, NGK, Bosch, Gates y Liqui-Moly. El local ya no alcanzaba para tanto producto de calidad.' },
+    { año:'2020', titulo:'WhatsApp & envíos',      icon:'chat',          desc:'En plena pandemia adaptamos el negocio: atención 100% digital, envíos a todo el país y catálogo online.' },
+    { año:'2022', titulo:'+200 reseñas ★★★★★',   icon:'star',          desc:'Alcanzamos más de 200 reseñas positivas en Google, consolidándonos como referente de repuestos en la zona sur del GBA.' },
+    { año:'2024', titulo:'10 años de experiencia', icon:'military_tech', desc:'Primera opción para cientos de mecánicos y particulares. Seguimos creciendo con el mismo compromiso de siempre.' },
+  ];
+
+  const section  = document.getElementById('scroll-story');
+  const year     = document.getElementById('ss-year');
+  const chip     = document.getElementById('ss-chip');
+  const chipIcon = document.getElementById('ss-chip-icon');
+  const chipYear = document.getElementById('ss-chip-year');
+  const title    = document.getElementById('ss-title');
+  const desc     = document.getElementById('ss-desc');
+  const hint     = document.getElementById('ss-hint');
+  const dots     = document.querySelectorAll('.ss-dot');
+
+  let current = -1;
+
+  function showSlide(i, animate) {
+    if (i === current && !animate) return;
+    current = i;
+    const s = story[i];
+
+    if (animate) {
+      // fade out then in
+      [chip, title, desc].forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(16px)';
+      });
+      year.textContent = s.año;
+      setTimeout(() => {
+        chipIcon.textContent = s.icon;
+        chipYear.textContent = s.año;
+        title.textContent = s.titulo;
+        desc.textContent = s.desc;
+        [chip, title, desc].forEach(el => {
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+        });
+      }, 220);
+    } else {
+      chipIcon.textContent = s.icon;
+      chipYear.textContent = s.año;
+      title.textContent = s.titulo;
+      desc.textContent = s.desc;
+      year.textContent = s.año;
+      [chip, title, desc].forEach(el => {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      });
+    }
+
+    dots.forEach((d, idx) => d.classList.toggle('active', idx === i));
+  }
+
+  let raf = false;
+  function onScroll() {
+    if (raf) return;
+    raf = true;
+    requestAnimationFrame(() => {
+      raf = false;
+      const rect   = section.getBoundingClientRect();
+      const scrollH = section.offsetHeight - window.innerHeight;
+      const scrolled = Math.max(0, -rect.top);
+      const progress = Math.min(1, scrolled / scrollH);
+      const idx = Math.min(story.length - 1, Math.floor(progress * story.length));
+
+      if (scrolled > 80) hint.style.opacity = '0';
+      else hint.style.opacity = '1';
+
+      showSlide(idx, idx !== current);
+    });
+  }
+
+  // Init first slide
+  showSlide(0, false);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
 
 <!-- ═══ CATEGORÍAS ═══════════════════════════════════════════════════════════ -->
 <section class="bg-surface py-20">
@@ -490,7 +635,21 @@ tailwind.config = {
           <li class="flex items-start gap-4">
             <span class="material-symbols-outlined text-primary-container mt-0.5" style="font-variation-settings:'FILL' 1;">check_circle</span>
             <div>
-              <h4 class="font-bold text-base font-headline">Respondemos en Minutos</h4>
+              <h4 class="font-bold text-base font-headline">Envíos en 24 hs a todo el país</h4>
+              <p class="text-secondary text-sm font-body">Despachamos al día siguiente hábil. También podés retirar en el local sin costo adicional.</p>
+            </div>
+          </li>
+          <li class="flex items-start gap-4">
+            <span class="material-symbols-outlined text-primary-container mt-0.5" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <div>
+              <h4 class="font-bold text-base font-headline">Visitanos en el local — Longchamps</h4>
+              <p class="text-secondary text-sm font-body">Vení al local y te asesoramos en persona. Lunes a viernes 8:30–18:30 hs, sábados 8:30–13:30 hs.</p>
+            </div>
+          </li>
+          <li class="flex items-start gap-4">
+            <span class="material-symbols-outlined text-primary-container mt-0.5" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <div>
+              <h4 class="font-bold text-base font-headline">Respondemos en Minutos por WhatsApp</h4>
               <p class="text-secondary text-sm font-body">Atención por WhatsApp de lunes a sábado. Sin formularios, sin esperas innecesarias.</p>
             </div>
           </li>
