@@ -16,7 +16,6 @@
   document.getElementById('admin-loading').classList.add('hidden');
 
   if (!perfil || perfil.rol !== 'admin') {
-    console.warn('Admin guard: perfil =', JSON.stringify(perfil), '| user =', user?.email);
     const guard = document.getElementById('admin-guard');
     guard.classList.remove('hidden');
     const msg = guard.querySelector('p');
@@ -191,49 +190,63 @@
 
     if (productos.length === 0) { tbody.innerHTML = ''; return; }
 
-    tbody.innerHTML = productos.map(p => `
-      <tr class="hover:bg-surface-container-low transition-colors">
+    // Build rows with event delegation (no inline onclick, no XSS via string interpolation)
+    const fragment = document.createDocumentFragment();
+    productos.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-surface-container-low transition-colors';
+      tr.dataset.id = p.id;
+
+      const imgHtml = p.imagen_url
+        ? `<img src="${p.imagen_url}" class="w-full h-full object-cover" loading="lazy"/>`
+        : `<div class="w-full h-full flex items-center justify-center"><span class="material-symbols-outlined text-sm text-outline">inventory_2</span></div>`;
+
+      const precioHtml = p.precio
+        ? `<span class="font-bold text-on-surface font-headline">$${Number(p.precio).toLocaleString('es-AR')}</span>`
+        : `<span class="text-secondary italic text-xs">Sin precio</span>`;
+
+      tr.innerHTML = `
         <td class="px-4 py-3">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-surface-container flex-shrink-0 overflow-hidden border border-outline-variant">
-              ${p.imagen_url
-                ? `<img src="${p.imagen_url}" class="w-full h-full object-cover" loading="lazy"/>`
-                : `<div class="w-full h-full flex items-center justify-center">
-                     <span class="material-symbols-outlined text-sm text-outline">inventory_2</span>
-                   </div>`}
-            </div>
+            <div class="w-10 h-10 rounded-lg bg-surface-container flex-shrink-0 overflow-hidden border border-outline-variant">${imgHtml}</div>
             <div class="min-w-0">
-              <p class="font-bold text-on-surface text-sm truncate max-w-[180px]">${p.nombre}</p>
-              ${p.marca_rep ? `<p class="text-xs text-secondary font-label">${p.marca_rep}</p>` : ''}
-              ${p.badge ? `<span class="text-[10px] font-black font-label uppercase tracking-widest text-primary-container">${p.badge}</span>` : ''}
+              <p class="font-bold text-on-surface text-sm truncate max-w-[180px] js-nombre"></p>
+              <p class="text-xs text-secondary font-label js-marca ${p.marca_rep ? '' : 'hidden'}"></p>
+              <span class="text-[10px] font-black font-label uppercase tracking-widest text-primary-container js-badge ${p.badge ? '' : 'hidden'}"></span>
             </div>
           </div>
         </td>
         <td class="px-4 py-3 hidden md:table-cell">
-          <span class="text-xs bg-surface-container px-2 py-1 rounded-lg font-label text-secondary">${p.categoria}</span>
+          <span class="text-xs bg-surface-container px-2 py-1 rounded-lg font-label text-secondary js-cat"></span>
         </td>
-        <td class="px-4 py-3 text-sm">
-          ${p.precio
-            ? `<span class="font-bold text-on-surface font-headline">$${Number(p.precio).toLocaleString('es-AR')}</span>`
-            : `<span class="text-secondary italic text-xs">Sin precio</span>`}
-        </td>
+        <td class="px-4 py-3 text-sm">${precioHtml}</td>
         <td class="px-4 py-3 text-center">
           <span class="material-symbols-outlined text-sm ${p.destacado ? 'text-primary-container' : 'text-outline-variant'}"
             style="font-variation-settings:'FILL' ${p.destacado ? 1 : 0};">star</span>
         </td>
         <td class="px-4 py-3 text-right">
           <div class="flex items-center justify-end gap-1">
-            <button onclick="openModal('${p.id}')" title="Editar"
+            <button data-action="edit" data-id="${p.id}" title="Editar"
               class="text-secondary hover:text-primary-container transition-colors p-2 rounded-lg hover:bg-surface-container">
               <span class="material-symbols-outlined text-sm">edit</span>
             </button>
-            <button onclick="deleteProducto('${p.id}', '${p.nombre.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" title="Eliminar"
+            <button data-action="delete" data-id="${p.id}" title="Eliminar"
               class="text-secondary hover:text-error transition-colors p-2 rounded-lg hover:bg-surface-container">
               <span class="material-symbols-outlined text-sm">delete</span>
             </button>
           </div>
-        </td>
-      </tr>`).join('');
+        </td>`;
+
+      // Assign text via textContent — XSS-safe
+      tr.querySelector('.js-nombre').textContent = p.nombre;
+      if (p.marca_rep) tr.querySelector('.js-marca').textContent = p.marca_rep;
+      if (p.badge)     tr.querySelector('.js-badge').textContent = p.badge;
+      tr.querySelector('.js-cat').textContent = p.categoria;
+
+      fragment.appendChild(tr);
+    });
+    tbody.innerHTML = '';
+    tbody.appendChild(fragment);
   }
 
   // ── Filtros ───────────────────────────────────────────────────────────────
@@ -290,7 +303,17 @@
     document.body.style.overflow = 'hidden';
     document.getElementById('prod-nombre').focus();
   }
-  window.openModal = openModal;
+  // Event delegation on table — replaces inline onclick handlers
+  document.getElementById('admin-productos-table').addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const { action, id } = btn.dataset;
+    if (action === 'edit')   openModal(id);
+    if (action === 'delete') {
+      const p = allProductos.find(x => x.id === id);
+      if (p) deleteProducto(id, p.nombre);
+    }
+  });
 
   function closeModal() {
     document.getElementById('producto-modal').classList.add('hidden');
@@ -382,13 +405,13 @@
   });
 
   // ── Eliminar ──────────────────────────────────────────────────────────────
-  window.deleteProducto = async (id, nombre) => {
+  async function deleteProducto(id, nombre) {
     if (!confirm(`¿Eliminar "${nombre}"?\nEsta acción no se puede deshacer.`)) return;
     const { error } = await Productos.delete(id);
     if (error) { showToast('Error al eliminar: ' + error.message, 'error'); return; }
     showToast('Producto eliminado');
     await loadProductos();
-  };
+  }
 
   // ── Iniciar ───────────────────────────────────────────────────────────────
   await loadProductos();

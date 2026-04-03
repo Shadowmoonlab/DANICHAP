@@ -304,7 +304,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               </a>
             </div>
             <button
-              data-producto='${JSON.stringify(p).replace(/'/g, "&#39;")}'
+              data-producto-id="${p.id}"
               onclick="agregarAlCarrito(event, this)"
               class="w-full flex items-center justify-center gap-1.5 bg-primary-container/10 text-primary-container border border-primary-container/30 px-3 py-2 rounded-lg font-bold text-xs hover:bg-primary-container hover:text-white transition-all font-label uppercase tracking-wide">
               <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">add_shopping_cart</span>
@@ -391,17 +391,17 @@ async function agregarAlCarrito(event, btn) {
     AuthUI.open('login');
     return;
   }
-  let producto;
-  try { producto = JSON.parse(btn.dataset.producto); } catch { return; }
+  const productoId = btn.dataset.productoId;
+  const producto = PRODUCTOS.find(p => String(p.id) === String(productoId));
+  if (!producto) return;
 
-  // Mapear estructura de data.js al formato esperado por Cart
   const prod = {
-    id:          producto.id || `local-${producto.nombre}`,
-    nombre:      producto.nombre,
-    categoria:   producto.categoria,
-    marca_rep:   producto.marca_rep || null,
-    precio:      producto.precio,
-    imagen_url:  producto.imagen_url || null,
+    id:         producto.id || `local-${producto.nombre}`,
+    nombre:     producto.nombre,
+    categoria:  producto.categoria,
+    marca_rep:  producto.marca_rep || null,
+    precio:     producto.precio,
+    imagen_url: producto.imagen_url || null,
   };
 
   await Cart.add(prod);

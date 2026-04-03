@@ -98,6 +98,10 @@ create policy "storage_insert_admin"
   on storage.objects for insert
   with check (bucket_id = 'productos' and public.is_admin());
 
+create policy "storage_update_admin"
+  on storage.objects for update
+  using (bucket_id = 'productos' and public.is_admin());
+
 create policy "storage_delete_admin"
   on storage.objects for delete
   using (bucket_id = 'productos' and public.is_admin());
