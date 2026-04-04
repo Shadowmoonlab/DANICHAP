@@ -445,7 +445,7 @@ tailwind.config = {
       <!-- RIGHT: Promos column (hero + 2 side stacked) -->
       <div class="md:col-span-1 lg:col-span-8 flex flex-col gap-4">
         <div id="promo-hero" class="min-h-[300px]"><!-- JS renders here --></div>
-        <div id="promos-side" class="grid grid-cols-1 sm:grid-cols-2 gap-4"><!-- JS renders here --></div>
+        <div id="promos-side" class="grid grid-cols-1 sm:grid-cols-2 gap-4 min-h-[120px]"><!-- JS renders here --></div>
       </div>
 
     </div>
@@ -608,10 +608,22 @@ tailwind.config = {
   <div class="max-w-screen-xl mx-auto px-6">
     <div class="grid grid-cols-1 lg:grid-cols-2 items-center gap-16">
       <div class="relative reveal-left">
-        <div class="bg-surface-container rounded-2xl h-80 flex items-center justify-center border border-outline-variant">
-          <div class="text-center">
-            <span class="material-symbols-outlined text-8xl text-outline">storefront</span>
-            <p class="text-secondary font-body text-sm mt-2">Danichap — Longchamps</p>
+        <div class="bg-surface-container rounded-2xl overflow-hidden border border-outline-variant shadow-md">
+          <iframe
+            title="Ubicación Danichap — Longchamps"
+            src="https://maps.google.com/maps?q=Av.+Hip%C3%B3lito+Yrigoyen+19608+Longchamps+Buenos+Aires&t=&z=16&ie=UTF8&iwloc=&output=embed"
+            class="w-full h-72"
+            style="border:0;"
+            allowfullscreen=""
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade">
+          </iframe>
+          <div class="px-5 py-4 flex items-center gap-3 border-t border-outline-variant bg-surface-container-lowest">
+            <span class="material-symbols-outlined text-primary-container text-lg" style="font-variation-settings:'FILL' 1;">location_on</span>
+            <div>
+              <p class="font-headline font-bold text-sm text-on-surface uppercase">Av. Hipólito Yrigoyen 19608</p>
+              <p class="text-secondary text-xs font-body">Longchamps, Buenos Aires · Lun–Vie 8:30–18:30 hs</p>
+            </div>
           </div>
         </div>
         <div class="absolute -bottom-4 -left-4 w-24 h-24 bg-primary-container rounded-2xl -z-10"></div>
@@ -1000,8 +1012,8 @@ document.getElementById('categorias-home').innerHTML = CATEGORIAS.map(c => `
     const cat = CATEGORIAS.find(c => c.slug === p.categoria);
     const wpp = wppLink(p.nombre, '');
     const precioHtml = p.precio
-      ? '<span class="text-xl font-black text-on-surface font-headline">$ ' + Number(p.precio).toLocaleString('es-AR') + '</span>'
-      : '<span class="text-sm font-bold text-tertiary font-body flex items-center gap-1"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>Consultar</span>';
+      ? `<span class="text-xl font-black text-on-surface font-headline">$ ${Number(p.precio).toLocaleString('es-AR')}</span>`
+      : `<span class="text-sm font-bold text-tertiary font-body flex items-center gap-1"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>Consultar</span>`;
     const hasImg = !!p.imagen_url;
     const imagenHtml = hasImg
       ? '<img src="' + p.imagen_url + '" alt="' + p.nombre + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy"/>'
