@@ -159,8 +159,8 @@ const PRODUCTOS = [
   { id:8, nombre:"Guardabarros delantero derecho", categoria:"chaperio", sub:"Guardabarros", marca_rep:"", precio:18500, compatibilidades:["Chevrolet Onix 2013-2019"] },
 
   // MECÁNICA — FRENOS
-  { id:9, nombre:"Pastillas de freno delanteras", categoria:"mecanica", sub:"Frenos / Pastillas", marca_rep:"Brembo", precio:28500, compatibilidades:["Toyota Corolla 2014-2024","Toyota RAV4 2013-2020"] },
-  { id:10, nombre:"Disco de freno ventilado", categoria:"mecanica", sub:"Frenos / Discos", marca_rep:"Brembo", precio:35900, compatibilidades:["Volkswagen Vento 2013-2023","Volkswagen Polo 2010-2023"] },
+  { id:9, nombre:"Pastillas de freno delanteras", categoria:"mecanica", sub:"Frenos / Pastillas", marca_rep:"Brembo", precio:28500, compatibilidades:["Toyota Corolla 2014-2024","Toyota RAV4 2013-2020"], imagen_url:"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop&auto=format", badge:"BREMBO", destacado:true },
+  { id:10, nombre:"Disco de freno ventilado", categoria:"mecanica", sub:"Frenos / Discos", marca_rep:"Brembo", precio:35900, compatibilidades:["Volkswagen Vento 2013-2023","Volkswagen Polo 2010-2023"], imagen_url:"https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=400&h=300&fit=crop&auto=format", badge:"OFERTA", destacado:true },
   { id:11, nombre:"Zapatas de freno traseras", categoria:"mecanica", sub:"Frenos / Zapatas", marca_rep:"Ferodo", precio:null, compatibilidades:["Chevrolet Onix 2013-2019"] },
   { id:12, nombre:"Bomba de freno principal", categoria:"mecanica", sub:"Frenos / Bombas de freno", marca_rep:"ATE", precio:null, compatibilidades:["Ford Focus 2006-2018","Ford Ranger 2012-2020"] },
 
@@ -183,7 +183,7 @@ const PRODUCTOS = [
   { id:24, nombre:"Sensor de temperatura de agua", categoria:"electricidad", sub:"Sensores", marca_rep:"", precio:4200, compatibilidades:["Fiat Palio 2003-2012","Fiat Siena 2003-2012"] },
 
   // LIMPIEZA / LIQUI-MOLY
-  { id:25, nombre:"Aditivo limpia inyectores Liqui-Moly 300ml", categoria:"limpieza", sub:"Aditivos Liqui-Moly", marca_rep:"Liqui-Moly", precio:6900, compatibilidades:["Universal"] },
+  { id:25, nombre:"Aditivo limpia inyectores Liqui-Moly 300ml", categoria:"limpieza", sub:"Aditivos Liqui-Moly", marca_rep:"Liqui-Moly", precio:6900, compatibilidades:["Universal"], imagen_url:"https://images.unsplash.com/photo-1635273051303-6b5bcd65b37f?w=400&h=300&fit=crop&auto=format", badge:"POPULAR", destacado:true },
   { id:26, nombre:"Aceite motor 5W40 Full Synthetic Liqui-Moly 5L", categoria:"limpieza", sub:"Aceites Liqui-Moly", marca_rep:"Liqui-Moly", precio:28900, compatibilidades:["Universal"] },
   { id:27, nombre:"Kit mantenimiento Liqui-Moly (aditivos + limpiadores)", categoria:"limpieza", sub:"Aditivos Liqui-Moly", marca_rep:"Liqui-Moly", precio:null, compatibilidades:["Universal"] },
   { id:28, nombre:"Escobillas limpiaparabrisas par", categoria:"limpieza", sub:"Escobillas limpiaparabrisas", marca_rep:"Bosch", precio:8400, compatibilidades:["Universal — consultar modelo"] },
