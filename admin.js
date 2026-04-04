@@ -54,16 +54,27 @@
   _initCatSelects();
 
   // ── Watermark ─────────────────────────────────────────────────────────────
+  // Target output size — all product images normalized to this
+  const OUTPUT_SIZE = 800;
+
   async function applyWatermark(file) {
     return new Promise((resolve) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = () => {
+        // ── Normalize: center-crop to square, resize to OUTPUT_SIZE ──────────
         const canvas = document.createElement('canvas');
-        canvas.width  = img.naturalWidth;
-        canvas.height = img.naturalHeight;
+        canvas.width  = OUTPUT_SIZE;
+        canvas.height = OUTPUT_SIZE;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
+
+        const srcW = img.naturalWidth;
+        const srcH = img.naturalHeight;
+        const side = Math.min(srcW, srcH);            // square crop side
+        const sx   = Math.round((srcW - side) / 2);  // center-crop X offset
+        const sy   = Math.round((srcH - side) / 2);  // center-crop Y offset
+        // Draw: source crop → full OUTPUT_SIZE canvas
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
         URL.revokeObjectURL(url);
 
         const wSize  = Math.round(Math.min(canvas.width, canvas.height) * 0.22);
