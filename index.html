@@ -608,22 +608,51 @@ tailwind.config = {
   <div class="max-w-screen-xl mx-auto px-6">
     <div class="grid grid-cols-1 lg:grid-cols-2 items-center gap-16">
       <div class="relative reveal-left">
+        <!-- Marcas premium + stats visuales -->
         <div class="bg-surface-container rounded-2xl overflow-hidden border border-outline-variant shadow-md">
-          <iframe
-            title="Ubicación Danichap — Longchamps"
-            src="https://maps.google.com/maps?q=Av.+Hip%C3%B3lito+Yrigoyen+19608+Longchamps+Buenos+Aires&t=&z=16&ie=UTF8&iwloc=&output=embed"
-            class="w-full h-72"
-            style="border:0;"
-            allowfullscreen=""
-            loading="lazy"
-            referrerpolicy="no-referrer-when-downgrade">
-          </iframe>
-          <div class="px-5 py-4 flex items-center gap-3 border-t border-outline-variant bg-surface-container-lowest">
-            <span class="material-symbols-outlined text-primary-container text-lg" style="font-variation-settings:'FILL' 1;">location_on</span>
-            <div>
-              <p class="font-headline font-bold text-sm text-on-surface uppercase">Av. Hipólito Yrigoyen 19608</p>
-              <p class="text-secondary text-xs font-body">Longchamps, Buenos Aires · Lun–Vie 8:30–18:30 hs</p>
+          <!-- Stats 2x2 -->
+          <div class="grid grid-cols-2 gap-px bg-outline-variant">
+            <div class="bg-surface-container-lowest px-6 py-5 flex flex-col gap-1">
+              <span class="font-headline font-black text-4xl text-primary-container leading-none">+10</span>
+              <span class="text-xs font-label uppercase tracking-widest text-secondary">Años de experiencia</span>
             </div>
+            <div class="bg-surface-container-lowest px-6 py-5 flex flex-col gap-1">
+              <span class="font-headline font-black text-4xl text-primary-container leading-none">249</span>
+              <span class="text-xs font-label uppercase tracking-widest text-secondary">Reseñas Google ★4.3</span>
+            </div>
+            <div class="bg-surface-container-lowest px-6 py-5 flex flex-col gap-1">
+              <span class="font-headline font-black text-4xl text-primary-container leading-none">+10K</span>
+              <span class="text-xs font-label uppercase tracking-widest text-secondary">Referencias disponibles</span>
+            </div>
+            <div class="bg-surface-container-lowest px-6 py-5 flex flex-col gap-1">
+              <span class="font-headline font-black text-4xl text-primary-container leading-none">24hs</span>
+              <span class="text-xs font-label uppercase tracking-widest text-secondary">Envíos · Zona Sur: mismo día</span>
+            </div>
+          </div>
+          <!-- Marcas -->
+          <div class="px-6 py-5 border-t border-outline-variant">
+            <p class="text-[10px] font-label uppercase tracking-widest text-secondary mb-4">Marcas originales disponibles</p>
+            <div class="flex flex-wrap gap-2">
+              <span class="bg-surface border border-outline-variant rounded-lg px-3 py-1.5 text-xs font-bold font-headline text-on-surface uppercase tracking-wide">Brembo</span>
+              <span class="bg-surface border border-outline-variant rounded-lg px-3 py-1.5 text-xs font-bold font-headline text-on-surface uppercase tracking-wide">NGK</span>
+              <span class="bg-surface border border-outline-variant rounded-lg px-3 py-1.5 text-xs font-bold font-headline text-on-surface uppercase tracking-wide">Bosch</span>
+              <span class="bg-surface border border-outline-variant rounded-lg px-3 py-1.5 text-xs font-bold font-headline text-on-surface uppercase tracking-wide">Gates</span>
+              <span class="bg-surface border border-outline-variant rounded-lg px-3 py-1.5 text-xs font-bold font-headline text-on-surface uppercase tracking-wide">Liqui-Moly</span>
+              <span class="bg-surface border border-outline-variant rounded-lg px-3 py-1.5 text-xs font-bold font-headline text-on-surface uppercase tracking-wide">Monroe</span>
+              <span class="bg-surface border border-outline-variant rounded-lg px-3 py-1.5 text-xs font-bold font-headline text-on-surface uppercase tracking-wide">SKF</span>
+              <span class="bg-surface border border-outline-variant rounded-lg px-3 py-1.5 text-xs font-bold font-headline text-on-surface uppercase tracking-wide">Valeo</span>
+              <span class="bg-surface border border-outline-variant rounded-lg px-3 py-1.5 text-xs font-bold font-headline text-on-surface uppercase tracking-wide">TRW</span>
+              <span class="bg-primary-container/10 border border-primary-container/30 text-primary-container rounded-lg px-3 py-1.5 text-xs font-bold font-headline uppercase tracking-wide">+100 más</span>
+            </div>
+          </div>
+          <!-- CTA -->
+          <div class="px-6 py-4 bg-surface-container-low border-t border-outline-variant flex items-center justify-between gap-4">
+            <p class="text-xs text-secondary font-body leading-relaxed">Stock permanente · Envíos a todo el país</p>
+            <a href="catalogo.html"
+               class="flex-shrink-0 flex items-center gap-1.5 bg-primary-container text-white px-4 py-2 rounded-xl font-headline font-bold text-xs uppercase tracking-wide hover:opacity-90 transition-opacity">
+              <span class="material-symbols-outlined text-sm">open_in_new</span>
+              Ver catálogo
+            </a>
           </div>
         </div>
         <div class="absolute -bottom-4 -left-4 w-24 h-24 bg-primary-container rounded-2xl -z-10"></div>
