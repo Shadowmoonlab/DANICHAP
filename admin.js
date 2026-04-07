@@ -671,6 +671,7 @@
     if (!categoria) { setFormError('Seleccioná una categoría.'); document.getElementById('prod-categoria').focus(); return; }
 
     const btn  = document.getElementById('btn-save-modal');
+    if (!btn) { setFormError('Error interno: botón no encontrado.'); return; }
     const orig = btn.innerHTML;
     btn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.5);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px;"></span>Guardando…';
     btn.disabled = true;
@@ -747,10 +748,15 @@
   ══════════════════════════════════════════════════════════════════════════ */
   function deleteProducto(id, nombre) {
     showConfirmDialog(`¿Eliminar "${nombre}"? Esta acción no se puede deshacer.`, async () => {
-      const { error } = await Productos.delete(id);
-      if (error) { showToast('Error: ' + error.message, 'error'); return; }
-      showToast(`"${nombre}" eliminado`);
-      await loadProductos();
+      try {
+        const { error } = await Productos.delete(id);
+        if (error) { showToast('Error: ' + error.message, 'error'); return; }
+        showToast(`"${nombre}" eliminado`);
+        await loadProductos();
+      } catch (err) {
+        console.error('[admin] deleteProducto error:', err);
+        showToast('Error inesperado al eliminar: ' + (err.message || err), 'error');
+      }
     });
   }
 
