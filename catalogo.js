@@ -350,12 +350,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const loadingEl = document.getElementById('catalogo-loading');
   const gridEl    = document.getElementById('productos-grid');
 
-  // Cargar productos desde Supabase si hay. Si no, usar los estáticos de data.js
+  // Cargar productos desde Supabase. Merge con compatibilidades estáticas por nombre.
   try {
     if (typeof Productos !== 'undefined') {
       const { data: dbProds } = await Productos.list();
       if (dbProds && dbProds.length > 0) {
-        // Normalizar al formato de PRODUCTOS (añadir compatibilidades/sub si faltan)
+        // Índice de compatibilidades estáticas por nombre (lowercase) para merge
+        const staticIndex = {};
+        PRODUCTOS.forEach(p => {
+          staticIndex[p.nombre.toLowerCase()] = p.compatibilidades || ['Universal'];
+        });
+
         const normalizados = dbProds.map(p => ({
           id: p.id,
           nombre: p.nombre,
@@ -367,10 +372,12 @@ document.addEventListener('DOMContentLoaded', async () => {
           imagen_url: p.imagen_url || null,
           badge: p.badge || null,
           destacado: p.destacado || false,
-          compatibilidades: ['Universal'],
+          stock: p.stock !== false,
+          // Preservar compatibilidades estáticas si el nombre coincide, si no Universal
+          compatibilidades: staticIndex[p.nombre.toLowerCase()] || ['Universal'],
           _fromDB: true,
         }));
-        // Reemplazar el array global
+
         PRODUCTOS.length = 0;
         normalizados.forEach(p => PRODUCTOS.push(p));
       }

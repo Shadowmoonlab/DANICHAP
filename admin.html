@@ -4,6 +4,11 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Admin — DANICHAP</title>
+<!-- Security -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff"/>
+<meta http-equiv="X-Frame-Options" content="DENY"/>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin"/>
+<meta name="robots" content="noindex, nofollow"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -19,12 +24,12 @@ tailwind.config = {
         "surface":"#F2F0EC","surface-container-lowest":"#FAFAF9",
         "surface-container-low":"#ECEAE5","surface-container":"#E2DFD9",
         "surface-container-high":"#D5D2CB","surface-dim":"#C6C3BB",
-        "background":"#F2F0EC","inverse-surface":"#0F172A",
+        "background":"#F2F0EC","inverse-surface":"#0F172A","inverse-on-surface":"#F1F5F9",
         "on-surface":"#111827","secondary":"#4B5563","on-surface-variant":"#6B7280",
         "tertiary":"#1A9850","tertiary-container":"#25D366","on-tertiary-container":"#003b15",
         "outline":"#9CA3AF","outline-variant":"#D1D5DB",
         "surface-variant":"#E2DFD9","surface-container-highest":"#D5D2CB",
-        "error":"#ba1a1a","on-error":"#ffffff",
+        "error":"#ba1a1a","on-error":"#ffffff","error-container":"#ffdad6",
       },
       fontFamily: { "headline":["Space Grotesk"], "body":["Inter"], "label":["Inter"] },
       borderRadius: { "DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem" },
@@ -35,85 +40,122 @@ tailwind.config = {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="supabase.js"></script>
 <script src="auth.js"></script>
+<script src="data.js"></script>
 <style>
   .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align:middle; }
+
+  /* Skeleton pulse */
+  @keyframes skeleton-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+  .skeleton { animation: skeleton-pulse 1.4s ease-in-out infinite; background: #D5D2CB; border-radius: 4px; }
+
+  /* Stats skeleton */
+  .stat-skeleton { background: #D5D2CB; border-radius: 6px; height: 2rem; width: 3rem; animation: skeleton-pulse 1.4s ease-in-out infinite; }
+
+  /* Tbody skeleton rows */
+  .skeleton-row td { padding: 0.75rem 1rem; }
+  .skeleton-cell { height: 12px; border-radius: 4px; background: #D5D2CB; animation: skeleton-pulse 1.4s ease-in-out infinite; }
+
+  /* img-preview centering utility */
+  #img-preview { display: flex; align-items: center; justify-content: center; }
 </style>
 </head>
 <body class="bg-surface font-body text-on-surface min-h-screen">
 
 <!-- Guard (acceso denegado) -->
-<div id="admin-guard" class="hidden fixed inset-0 bg-surface flex items-center justify-center z-[300]">
-  <div class="text-center">
-    <span class="material-symbols-outlined text-6xl text-outline-variant">lock</span>
-    <p class="mt-4 text-secondary font-body">Acceso restringido.</p>
-    <a href="index.html" class="mt-2 inline-block text-primary-container font-bold hover:underline">← Volver al sitio</a>
+<div id="admin-guard" class="hidden fixed inset-0 bg-surface flex items-center justify-center z-[400]">
+  <div class="text-center px-6">
+    <span class="material-symbols-outlined text-6xl text-outline-variant" style="font-variation-settings:'FILL' 1;">lock</span>
+    <p class="mt-4 text-secondary font-body text-sm">Acceso restringido.</p>
+    <a href="index.html" class="mt-3 inline-block text-primary-container font-bold hover:underline font-headline uppercase text-sm">← Volver al sitio</a>
   </div>
 </div>
 
-<!-- Loading -->
-<div id="admin-loading" class="fixed inset-0 bg-surface flex items-center justify-center z-[200]">
+<!-- Loading inicial (ocupa todo; se oculta una vez validado el rol) -->
+<div id="admin-loading" class="fixed inset-0 bg-surface flex items-center justify-center z-[300]">
   <div class="text-center">
     <div class="w-10 h-10 border-4 border-primary-container/30 border-t-primary-container rounded-full animate-spin mx-auto"></div>
-    <p class="mt-4 text-secondary text-sm font-body">Cargando panel…</p>
+    <p class="mt-4 text-secondary text-sm font-body">Verificando acceso…</p>
   </div>
 </div>
 
 <!-- Header -->
-<header class="bg-surface border-b border-outline-variant px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+<header class="bg-surface border-b border-outline-variant px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
   <div class="flex items-center gap-3">
-    <a href="index.html" class="text-secondary hover:text-on-surface transition-colors p-1 rounded-lg hover:bg-surface-container">
-      <span class="material-symbols-outlined">arrow_back</span>
+    <a href="index.html" class="text-secondary hover:text-on-surface transition-colors p-2 rounded-lg hover:bg-surface-container" title="Volver al sitio">
+      <span class="material-symbols-outlined text-xl leading-none">arrow_back</span>
     </a>
     <div class="w-px h-6 bg-outline-variant"></div>
-    <h1 class="font-headline font-black text-base uppercase text-on-surface tracking-tight">Panel Admin</h1>
-    <span class="text-[10px] font-label uppercase tracking-widest text-primary-container bg-primary-container/10 px-2 py-1 rounded-full border border-primary-container/20">DANICHAP</span>
+    <div class="flex items-center gap-2">
+      <svg width="22" height="22" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0">
+        <defs><linearGradient id="hg" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#60A5FA"/><stop offset="100%" stop-color="#2563EB"/></linearGradient></defs>
+        <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(#hg)"/>
+        <path d="M10 28 L28 10" stroke="#F2F0EC" stroke-width="4.5" stroke-linecap="round"/>
+        <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="#F2F0EC" opacity="0.55"/>
+      </svg>
+      <h1 class="font-headline font-black text-sm sm:text-base uppercase text-on-surface tracking-tight">Panel Admin</h1>
+    </div>
+    <span class="hidden sm:inline text-[10px] font-label uppercase tracking-widest text-primary-container bg-primary-container/10 px-2 py-1 rounded-full border border-primary-container/20">DANICHAP</span>
   </div>
-  <div class="flex items-center gap-3">
-    <span id="admin-user-label" class="text-xs text-secondary font-body hidden sm:block"></span>
+  <div class="flex items-center gap-2 sm:gap-3">
+    <span id="admin-user-label" class="text-xs text-secondary font-body hidden sm:block truncate max-w-[140px]"></span>
     <button id="admin-logout"
-      class="flex items-center gap-1.5 text-secondary hover:text-error text-sm font-body transition-colors px-3 py-2 rounded-lg hover:bg-surface-container">
-      <span class="material-symbols-outlined text-sm">logout</span>
+      class="flex items-center gap-1.5 text-secondary hover:text-error text-sm font-body transition-colors px-2 sm:px-3 py-2 rounded-lg hover:bg-surface-container">
+      <span class="material-symbols-outlined text-sm leading-none">logout</span>
       <span class="hidden sm:inline">Salir</span>
     </button>
   </div>
 </header>
 
 <!-- Main -->
-<main class="max-w-screen-xl mx-auto px-4 sm:px-6 py-8">
+<main class="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
   <!-- Stats -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-    <div class="bg-surface border border-outline-variant rounded-2xl p-5 shadow-sm">
-      <div class="text-3xl font-black font-headline text-primary-container" id="stat-total">—</div>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+    <div class="bg-surface border border-outline-variant rounded-2xl p-4 sm:p-5 shadow-sm">
+      <div class="text-2xl sm:text-3xl font-black font-headline text-primary-container min-h-[2rem] flex items-center" id="stat-total">
+        <span class="stat-skeleton w-10 h-7 block"></span>
+      </div>
       <div class="text-xs font-label uppercase tracking-wide text-secondary mt-1">Productos</div>
     </div>
-    <div class="bg-surface border border-outline-variant rounded-2xl p-5 shadow-sm">
-      <div class="text-3xl font-black font-headline text-primary-container" id="stat-destacados">—</div>
+    <div class="bg-surface border border-outline-variant rounded-2xl p-4 sm:p-5 shadow-sm">
+      <div class="text-2xl sm:text-3xl font-black font-headline text-primary-container min-h-[2rem] flex items-center" id="stat-destacados">
+        <span class="stat-skeleton w-10 h-7 block"></span>
+      </div>
       <div class="text-xs font-label uppercase tracking-wide text-secondary mt-1">Destacados</div>
     </div>
-    <div class="bg-surface border border-outline-variant rounded-2xl p-5 shadow-sm">
-      <div class="text-3xl font-black font-headline text-primary-container" id="stat-sin-precio">—</div>
+    <div class="bg-surface border border-outline-variant rounded-2xl p-4 sm:p-5 shadow-sm">
+      <div class="text-2xl sm:text-3xl font-black font-headline text-primary-container min-h-[2rem] flex items-center" id="stat-sin-precio">
+        <span class="stat-skeleton w-10 h-7 block"></span>
+      </div>
       <div class="text-xs font-label uppercase tracking-wide text-secondary mt-1">Sin precio</div>
     </div>
-    <div class="bg-surface border border-outline-variant rounded-2xl p-5 shadow-sm">
-      <div class="text-3xl font-black font-headline text-primary-container" id="stat-categorias">—</div>
+    <div class="bg-surface border border-outline-variant rounded-2xl p-4 sm:p-5 shadow-sm">
+      <div class="text-2xl sm:text-3xl font-black font-headline text-primary-container min-h-[2rem] flex items-center" id="stat-categorias">
+        <span class="stat-skeleton w-10 h-7 block"></span>
+      </div>
       <div class="text-xs font-label uppercase tracking-wide text-secondary mt-1">Categorías</div>
     </div>
   </div>
 
   <!-- Toolbar -->
-  <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
-    <div class="flex gap-2 w-full sm:w-auto">
-      <input id="admin-search" type="text" placeholder="Buscar producto…"
-        class="bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary-container transition-colors w-full sm:w-56"/>
+  <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between mb-4 sm:mb-5">
+    <div class="flex gap-2 flex-1 sm:flex-none">
+      <div class="relative flex-1 sm:w-56">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-base text-outline pointer-events-none leading-none">search</span>
+        <input id="admin-search" type="text" placeholder="Buscar producto…"
+          class="w-full bg-surface border border-outline-variant rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+      </div>
       <select id="admin-filter-cat"
-        class="bg-surface border border-outline-variant rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary-container transition-colors">
-        <option value="">Todas las cats.</option>
+        class="bg-surface border border-outline-variant rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary-container transition-colors min-w-0 flex-shrink-0">
+        <option value="">Todas</option>
       </select>
     </div>
     <button id="btn-nuevo-producto"
-      class="flex-shrink-0 flex items-center gap-2 bg-primary-container text-white px-5 py-2.5 rounded-xl font-bold text-sm font-headline uppercase hover:opacity-90 transition-opacity shadow-sm">
-      <span class="material-symbols-outlined text-sm">add</span>
+      class="flex items-center justify-center gap-2 bg-primary-container text-white px-5 py-2.5 rounded-xl font-bold text-sm font-headline uppercase hover:opacity-90 active:scale-95 transition-all shadow-sm w-full sm:w-auto">
+      <span class="material-symbols-outlined text-sm leading-none">add</span>
       Nuevo producto
     </button>
   </div>
@@ -121,139 +163,233 @@ tailwind.config = {
   <!-- Tabla -->
   <div class="bg-surface border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
     <div class="overflow-x-auto">
-      <table class="w-full text-sm min-w-[600px]">
+      <table class="w-full text-sm min-w-[580px]">
         <thead class="bg-surface-container-low border-b border-outline-variant">
           <tr>
-            <th class="text-left px-4 py-3 font-label font-bold uppercase tracking-wide text-secondary text-xs">Producto</th>
+            <th class="text-left px-4 py-3 font-label font-bold uppercase tracking-wide text-secondary text-xs w-[40%]">Producto</th>
             <th class="text-left px-4 py-3 font-label font-bold uppercase tracking-wide text-secondary text-xs hidden md:table-cell">Categoría</th>
             <th class="text-left px-4 py-3 font-label font-bold uppercase tracking-wide text-secondary text-xs">Precio</th>
-            <th class="text-center px-4 py-3 font-label font-bold uppercase tracking-wide text-secondary text-xs">★</th>
-            <th class="text-right px-4 py-3 font-label font-bold uppercase tracking-wide text-secondary text-xs">Acciones</th>
+            <th class="text-center px-4 py-3 font-label font-bold uppercase tracking-wide text-secondary text-xs w-16">Estado</th>
+            <th class="text-right px-4 py-3 font-label font-bold uppercase tracking-wide text-secondary text-xs w-24">Acciones</th>
           </tr>
         </thead>
-        <tbody id="admin-productos-table" class="divide-y divide-outline-variant"></tbody>
+        <!-- Skeleton rows visibles antes de que carguen los datos -->
+        <tbody id="admin-productos-table" class="divide-y divide-outline-variant">
+          <tr class="skeleton-row">
+            <td><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg skeleton flex-shrink-0"></div><div class="space-y-1.5 flex-1"><div class="skeleton-cell w-32"></div><div class="skeleton-cell w-20 opacity-60"></div></div></div></td>
+            <td class="hidden md:table-cell"><div class="skeleton-cell w-20"></div></td>
+            <td><div class="skeleton-cell w-16"></div></td>
+            <td><div class="skeleton-cell w-8 mx-auto"></div></td>
+            <td><div class="skeleton-cell w-16 ml-auto"></div></td>
+          </tr>
+          <tr class="skeleton-row">
+            <td><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg skeleton flex-shrink-0"></div><div class="space-y-1.5 flex-1"><div class="skeleton-cell w-40"></div><div class="skeleton-cell w-24 opacity-60"></div></div></div></td>
+            <td class="hidden md:table-cell"><div class="skeleton-cell w-24"></div></td>
+            <td><div class="skeleton-cell w-20"></div></td>
+            <td><div class="skeleton-cell w-8 mx-auto"></div></td>
+            <td><div class="skeleton-cell w-16 ml-auto"></div></td>
+          </tr>
+          <tr class="skeleton-row">
+            <td><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg skeleton flex-shrink-0"></div><div class="space-y-1.5 flex-1"><div class="skeleton-cell w-28"></div><div class="skeleton-cell w-16 opacity-60"></div></div></div></td>
+            <td class="hidden md:table-cell"><div class="skeleton-cell w-16"></div></td>
+            <td><div class="skeleton-cell w-14"></div></td>
+            <td><div class="skeleton-cell w-8 mx-auto"></div></td>
+            <td><div class="skeleton-cell w-16 ml-auto"></div></td>
+          </tr>
+        </tbody>
       </table>
     </div>
+    <!-- Empty state: oculto por defecto, JS lo muestra -->
     <div id="admin-empty" class="hidden py-16 text-center">
-      <span class="material-symbols-outlined text-5xl text-outline-variant">inventory_2</span>
-      <p class="text-secondary font-body text-sm mt-3">No hay productos.</p>
-      <button id="btn-nuevo-empty" class="mt-2 text-primary-container font-bold hover:underline text-sm font-headline uppercase">Crear el primero</button>
+      <span class="material-symbols-outlined text-5xl text-outline-variant" style="font-variation-settings:'FILL' 0;">inventory_2</span>
+      <p class="text-secondary font-body text-sm mt-3">No hay productos todavía.</p>
+      <button id="btn-nuevo-empty" class="mt-3 inline-flex items-center gap-1.5 text-primary-container font-bold hover:underline text-sm font-headline uppercase">
+        <span class="material-symbols-outlined text-sm leading-none">add_circle</span>
+        Crear el primero
+      </button>
     </div>
   </div>
 </main>
 
-<!-- MODAL Producto -->
-<div id="producto-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" id="modal-overlay"></div>
-  <div class="relative bg-surface rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto border border-outline-variant z-10">
-    <!-- Modal header -->
-    <div class="flex items-center justify-between px-6 py-5 border-b border-outline-variant sticky top-0 bg-surface z-10">
-      <h2 id="modal-title" class="font-headline font-black text-lg uppercase text-on-surface">Nuevo Producto</h2>
-      <button id="modal-close" class="text-secondary hover:text-on-surface transition-colors p-1">
-        <span class="material-symbols-outlined">close</span>
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL — Crear / Editar Producto
+     z-index: 250 (entre loading z-300 que ya se ocultó y el confirm dialog z-350)
+══════════════════════════════════════════════════════════════════════════ -->
+<div id="producto-modal" class="hidden fixed inset-0 z-[250] flex items-start sm:items-center justify-center p-0 sm:p-4">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="modal-overlay"></div>
+  <!-- Panel -->
+  <div class="relative bg-surface rounded-none sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl h-full sm:h-auto sm:max-h-[92vh] overflow-y-auto border-0 sm:border border-outline-variant z-10 flex flex-col">
+
+    <!-- Modal header — sticky -->
+    <div class="flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 border-b border-outline-variant sticky top-0 bg-surface z-10 flex-shrink-0">
+      <h2 id="modal-title" class="font-headline font-black text-base sm:text-lg uppercase text-on-surface tracking-tight">Nuevo Producto</h2>
+      <button id="modal-close"
+        class="text-secondary hover:text-on-surface hover:bg-surface-container transition-colors p-2 rounded-lg -mr-1"
+        aria-label="Cerrar modal">
+        <span class="material-symbols-outlined text-xl leading-none">close</span>
       </button>
     </div>
+
     <!-- Formulario -->
-    <form id="form-producto" class="px-6 py-6 space-y-5">
+    <form id="form-producto" class="px-4 sm:px-6 py-5 sm:py-6 space-y-5 flex-1 overflow-y-auto">
       <input type="hidden" id="prod-id"/>
 
+      <!-- Nombre -->
       <div>
-        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Nombre *</label>
-        <input type="text" id="prod-nombre" required
-          class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+        <label for="prod-nombre" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">
+          Nombre <span class="text-error">*</span>
+        </label>
+        <input type="text" id="prod-nombre" name="nombre" required autocomplete="off"
+          class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline"
+          placeholder="Ej: Pastillas de freno delanteras Brembo"/>
       </div>
 
+      <!-- Categoría + Subcategoría -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Categoría *</label>
-          <select id="prod-categoria" required
-            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors text-on-surface">
+          <label for="prod-categoria" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">
+            Categoría <span class="text-error">*</span>
+          </label>
+          <select id="prod-categoria" name="categoria" required
+            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors text-on-surface">
             <option value="">— Seleccioná una categoría —</option>
           </select>
         </div>
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Subcategoría</label>
-          <select id="prod-subcategoria"
-            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors text-on-surface disabled:opacity-50" disabled>
-            <option value="">— Seleccioná primero una categoría —</option>
+          <label for="prod-subcategoria" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Subcategoría</label>
+          <select id="prod-subcategoria" name="subcategoria"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors text-on-surface disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+            <option value="">— Elegí primero una categoría —</option>
           </select>
         </div>
       </div>
 
+      <!-- Marca + Badge -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Marca</label>
-          <input type="text" id="prod-marca"
-            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"
+          <label for="prod-marca" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Marca</label>
+          <input type="text" id="prod-marca" name="marca_rep" autocomplete="off"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline"
             placeholder="Ej: Bosch, NGK, Brembo"/>
         </div>
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Badge</label>
-          <input type="text" id="prod-badge"
-            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"
-            placeholder="Ej: OFERTA, NUEVO"/>
+          <label for="prod-badge" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">
+            Badge
+            <span class="ml-1 normal-case font-normal text-secondary/70">(ej: OFERTA, NUEVO)</span>
+          </label>
+          <input type="text" id="prod-badge" name="badge" autocomplete="off" maxlength="20"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline uppercase"
+            placeholder="OFERTA"/>
         </div>
       </div>
 
+      <!-- Precio + Precio anterior -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Precio ($)</label>
-          <input type="number" id="prod-precio" min="0" step="1"
-            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"
-            placeholder="Dejar vacío = consultar"/>
+          <label for="prod-precio" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Precio ($)</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary text-sm font-bold pointer-events-none">$</span>
+            <input type="number" id="prod-precio" name="precio" min="0" step="0.01"
+              class="w-full bg-surface-container-low border border-outline-variant rounded-xl pl-8 pr-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline"
+              placeholder="Vacío = Consultar"/>
+          </div>
         </div>
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Precio anterior ($)</label>
-          <input type="number" id="prod-precio-antes" min="0" step="1"
-            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+          <label for="prod-precio-antes" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Precio anterior ($)</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary text-sm font-bold pointer-events-none">$</span>
+            <input type="number" id="prod-precio-antes" name="precio_antes" min="0" step="0.01"
+              class="w-full bg-surface-container-low border border-outline-variant rounded-xl pl-8 pr-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline"
+              placeholder="Precio tachado"/>
+          </div>
         </div>
       </div>
 
+      <!-- Descripción -->
       <div>
-        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Descripción</label>
-        <textarea id="prod-descripcion" rows="3"
-          class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors resize-none"></textarea>
+        <label for="prod-descripcion" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Descripción</label>
+        <textarea id="prod-descripcion" name="descripcion" rows="3"
+          class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors resize-none placeholder:text-outline"
+          placeholder="Descripción del producto, compatibilidades, notas…"></textarea>
       </div>
 
       <!-- Imagen -->
       <div>
-        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Imagen</label>
+        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-2">Imagen del producto</label>
         <div class="flex gap-4 items-start">
+
+          <!-- Preview: fondo blanco + watermark decorativo siempre visible -->
           <div id="img-preview"
-            class="w-20 h-20 rounded-xl bg-surface-container-low border border-outline-variant flex items-center justify-center flex-shrink-0 overflow-hidden">
-            <span class="material-symbols-outlined text-3xl text-outline">image</span>
+            class="relative w-24 h-24 rounded-xl bg-white border-2 border-dashed border-outline-variant flex-shrink-0 overflow-hidden shadow-sm"
+            style="display:flex; align-items:center; justify-content:center;">
+            <!-- Placeholder icon (estado inicial — se reemplaza por JS) -->
+            <span id="img-placeholder" class="material-symbols-outlined text-3xl text-outline-variant" style="line-height:1; position:relative; z-index:1;">image</span>
+            <!-- Watermark overlay — siempre encima, pointer-events:none -->
+            <div class="wm-overlay absolute bottom-0 right-0 p-1.5 flex flex-col items-end gap-0.5 pointer-events-none select-none" style="z-index:2;">
+              <span style="font-family:'Space Grotesk',sans-serif; font-weight:900; font-size:6px; letter-spacing:0.15em; text-transform:uppercase; color:rgba(255,255,255,0.75); text-shadow:0 1px 2px rgba(0,0,0,0.6); line-height:1;">DANICHAP</span>
+              <svg width="12" height="12" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:0.7; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));">
+                <defs><linearGradient id="wm2" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#93c5fd"/></linearGradient></defs>
+                <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(#wm2)"/>
+                <path d="M10 28 L28 10" stroke="rgba(15,23,42,0.7)" stroke-width="4.5" stroke-linecap="round"/>
+                <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="rgba(242,240,236,0.6)"/>
+              </svg>
+            </div>
           </div>
-          <div class="flex-1 space-y-2">
-            <input type="file" id="prod-imagen" accept="image/*"
-              class="w-full text-sm text-secondary file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary-container/10 file:text-primary-container hover:file:bg-primary-container/20 transition-colors cursor-pointer"/>
+
+          <div class="flex-1 min-w-0 space-y-2">
+            <!-- File upload -->
+            <label class="flex items-center gap-2 px-4 py-2.5 bg-primary-container/10 border border-primary-container/30 rounded-xl cursor-pointer hover:bg-primary-container/20 transition-colors group">
+              <span class="material-symbols-outlined text-sm text-primary-container leading-none">upload</span>
+              <span class="text-xs font-bold text-primary-container font-headline uppercase">Subir imagen</span>
+              <input type="file" id="prod-imagen" accept="image/*" class="sr-only"/>
+            </label>
+
+            <!-- URL manual -->
             <input type="text" id="prod-imagen-url" placeholder="O pegar URL de imagen…"
-              class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+              class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline"/>
+
+            <p class="text-[10px] text-secondary font-body leading-snug">
+              Se recortará a cuadrado 800×800px y recibirá la <span class="font-bold text-primary-container">marca de agua DANICHAP</span> automáticamente.
+            </p>
           </div>
         </div>
       </div>
 
-      <!-- Switches -->
-      <div class="flex gap-6 pt-1">
-        <label class="flex items-center gap-2 cursor-pointer select-none">
-          <input type="checkbox" id="prod-destacado" class="w-4 h-4 rounded accent-[#2563EB]"/>
-          <span class="text-sm font-body text-on-surface">Destacado</span>
-        </label>
-        <label class="flex items-center gap-2 cursor-pointer select-none">
-          <input type="checkbox" id="prod-stock" checked class="w-4 h-4 rounded accent-[#2563EB]"/>
+      <!-- Switches — Stock + Destacado -->
+      <div class="flex flex-wrap gap-4 pt-1 pb-1">
+        <label class="flex items-center gap-2.5 cursor-pointer select-none group">
+          <div class="relative">
+            <input type="checkbox" id="prod-stock" checked class="sr-only peer"/>
+            <div class="w-9 h-5 bg-outline-variant rounded-full peer-checked:bg-tertiary transition-colors"></div>
+            <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-4"></div>
+          </div>
           <span class="text-sm font-body text-on-surface">En stock</span>
+        </label>
+        <label class="flex items-center gap-2.5 cursor-pointer select-none group">
+          <div class="relative">
+            <input type="checkbox" id="prod-destacado" class="sr-only peer"/>
+            <div class="w-9 h-5 bg-outline-variant rounded-full peer-checked:bg-primary-container transition-colors"></div>
+            <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-4"></div>
+          </div>
+          <span class="text-sm font-body text-on-surface">Destacado</span>
         </label>
       </div>
 
-      <p id="form-error" class="text-error text-xs hidden font-body"></p>
+      <!-- Error message (usar style display en vez de hidden+flex para evitar conflicto Tailwind) -->
+      <div id="form-error" style="display:none" class="items-center gap-2 bg-error-container border border-error/20 rounded-xl px-4 py-3">
+        <span class="material-symbols-outlined text-error text-base leading-none flex-shrink-0" style="font-variation-settings:'FILL' 1;">error</span>
+        <p class="text-error text-xs font-body" id="form-error-text"></p>
+      </div>
 
-      <!-- Botones -->
+      <!-- Botones footer -->
       <div class="flex gap-3 justify-end pt-3 border-t border-outline-variant">
         <button type="button" id="btn-cancel-modal"
-          class="px-5 py-2.5 border border-outline-variant rounded-xl text-sm font-body text-secondary hover:bg-surface-container transition-colors">
+          class="px-5 py-2.5 border border-outline-variant rounded-xl text-sm font-body text-secondary hover:bg-surface-container active:scale-95 transition-all">
           Cancelar
         </button>
         <button type="submit" id="btn-save-modal"
-          class="px-6 py-2.5 bg-primary-container text-white rounded-xl text-sm font-bold font-headline uppercase hover:opacity-90 transition-opacity">
+          class="min-w-[100px] px-6 py-2.5 bg-primary-container text-white rounded-xl text-sm font-bold font-headline uppercase hover:opacity-90 active:scale-95 transition-all shadow-sm">
           Guardar
         </button>
       </div>

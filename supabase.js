@@ -58,6 +58,12 @@ const Productos = {
     const { data, error } = await q.order('created_at', { ascending: false });
     return { data: data || [], error };
   },
+  // Admin-only: all products regardless of stock
+  async listAll() {
+    const { data, error } = await _supabase
+      .from('productos').select('*').order('created_at', { ascending: false });
+    return { data: data || [], error };
+  },
   async get(id) {
     const { data } = await _supabase
       .from('productos').select('*').eq('id', id).single();
@@ -75,10 +81,16 @@ const Productos = {
     return _supabase.from('productos').delete().eq('id', id);
   },
   async uploadImagen(file) {
-    const ext  = file.name.split('.').pop();
+    // Always use .jpg for watermarked files (applyWatermark outputs JPEG)
+    const ext  = file.type === 'image/jpeg' ? 'jpg'
+               : file.type === 'image/png'  ? 'png'
+               : (file.name.split('.').pop() || 'jpg');
     const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await _supabase.storage
-      .from('productos').upload(path, file, { upsert: false });
+      .from('productos').upload(path, file, {
+        upsert: false,
+        contentType: file.type || 'image/jpeg',
+      });
     if (error) return { url: null, error };
     const { data } = _supabase.storage.from('productos').getPublicUrl(path);
     return { url: data.publicUrl, error: null };
