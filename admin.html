@@ -60,6 +60,12 @@ tailwind.config = {
 
   /* img-preview centering utility */
   #img-preview { display: flex; align-items: center; justify-content: center; }
+
+  /* Badge chips */
+  .badge-chip.selected { outline: 2px solid #2563EB; outline-offset: 1px; background: #EFF6FF; }
+  .badge-chip[data-badge="OFERTA"].selected  { outline-color: #EA580C; background: #FFF7ED; }
+  .badge-chip[data-badge="NUEVO"].selected   { outline-color: #16A34A; background: #F0FDF4; }
+  .badge-chip[data-badge="POPULAR"].selected { outline-color: #2563EB; background: #EFF6FF; }
 </style>
 </head>
 <body class="bg-surface font-body text-on-surface min-h-screen">
@@ -127,10 +133,10 @@ tailwind.config = {
       <div class="text-xs font-label uppercase tracking-wide text-secondary mt-1">Destacados</div>
     </div>
     <div class="bg-surface border border-outline-variant rounded-2xl p-4 sm:p-5 shadow-sm">
-      <div class="text-2xl sm:text-3xl font-black font-headline text-primary-container min-h-[2rem] flex items-center" id="stat-sin-precio">
+      <div class="text-2xl sm:text-3xl font-black font-headline text-error min-h-[2rem] flex items-center" id="stat-sin-stock">
         <span class="stat-skeleton w-10 h-7 block"></span>
       </div>
-      <div class="text-xs font-label uppercase tracking-wide text-secondary mt-1">Sin precio</div>
+      <div class="text-xs font-label uppercase tracking-wide text-secondary mt-1">Sin stock</div>
     </div>
     <div class="bg-surface border border-outline-variant rounded-2xl p-4 sm:p-5 shadow-sm">
       <div class="text-2xl sm:text-3xl font-black font-headline text-primary-container min-h-[2rem] flex items-center" id="stat-categorias">
@@ -237,10 +243,13 @@ tailwind.config = {
 
       <!-- Nombre -->
       <div>
-        <label for="prod-nombre" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">
-          Nombre <span class="text-error">*</span>
-        </label>
-        <input type="text" id="prod-nombre" name="nombre" required autocomplete="off"
+        <div class="flex items-center justify-between mb-1.5">
+          <label for="prod-nombre" class="block text-xs font-bold uppercase tracking-wide text-secondary">
+            Nombre <span class="text-error">*</span>
+          </label>
+          <span id="nombre-counter" class="text-[10px] text-secondary/60 font-body">0/80</span>
+        </div>
+        <input type="text" id="prod-nombre" name="nombre" required autocomplete="off" maxlength="80"
           class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline"
           placeholder="Ej: Pastillas de freno delanteras Brembo"/>
       </div>
@@ -274,13 +283,16 @@ tailwind.config = {
             placeholder="Ej: Bosch, NGK, Brembo"/>
         </div>
         <div>
-          <label for="prod-badge" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">
-            Badge
-            <span class="ml-1 normal-case font-normal text-secondary/70">(ej: OFERTA, NUEVO)</span>
+          <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">
+            Badge <span class="ml-1 normal-case font-normal text-secondary/70">— etiqueta visible en catálogo</span>
           </label>
-          <input type="text" id="prod-badge" name="badge" autocomplete="off" maxlength="20"
-            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline uppercase"
-            placeholder="OFERTA"/>
+          <input type="hidden" id="prod-badge" name="badge"/>
+          <div id="badge-chips" class="flex flex-wrap gap-2">
+            <button type="button" data-badge="" class="badge-chip px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide border transition-all border-outline-variant text-secondary hover:border-primary-container/50 bg-surface-container-low selected">Ninguno</button>
+            <button type="button" data-badge="OFERTA" class="badge-chip px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide border transition-all border-orange-300 text-orange-600 hover:bg-orange-50 bg-surface-container-low">Oferta</button>
+            <button type="button" data-badge="NUEVO" class="badge-chip px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide border transition-all border-green-300 text-green-700 hover:bg-green-50 bg-surface-container-low">Nuevo</button>
+            <button type="button" data-badge="POPULAR" class="badge-chip px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide border transition-all border-blue-300 text-blue-600 hover:bg-blue-50 bg-surface-container-low">Popular</button>
+          </div>
         </div>
       </div>
 
@@ -292,8 +304,9 @@ tailwind.config = {
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary text-sm font-bold pointer-events-none">$</span>
             <input type="number" id="prod-precio" name="precio" min="0" step="0.01"
               class="w-full bg-surface-container-low border border-outline-variant rounded-xl pl-8 pr-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline"
-              placeholder="Vacío = Consultar"/>
+              placeholder="Dejar vacío si se consulta"/>
           </div>
+          <p id="precio-hint" class="mt-1 text-[10px] text-secondary leading-snug">Si no ponés precio → el producto muestra <strong class="text-green-700">Consultar por WhatsApp</strong></p>
         </div>
         <div>
           <label for="prod-precio-antes" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Precio anterior ($)</label>
@@ -308,8 +321,11 @@ tailwind.config = {
 
       <!-- Descripción -->
       <div>
-        <label for="prod-descripcion" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Descripción</label>
-        <textarea id="prod-descripcion" name="descripcion" rows="3"
+        <div class="flex items-center justify-between mb-1.5">
+          <label for="prod-descripcion" class="block text-xs font-bold uppercase tracking-wide text-secondary">Descripción</label>
+          <span id="desc-counter" class="text-[10px] text-secondary/60 font-body">0/300</span>
+        </div>
+        <textarea id="prod-descripcion" name="descripcion" rows="3" maxlength="300"
           class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors resize-none placeholder:text-outline"
           placeholder="Descripción del producto, compatibilidades, notas…"></textarea>
       </div>

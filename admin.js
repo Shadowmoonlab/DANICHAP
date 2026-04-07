@@ -159,55 +159,90 @@
   initCatSelect();
 
   /* ══════════════════════════════════════════════════════════════════════════
-     WATERMARK (canvas 800×800, crop centrado, logo DANICHAP)
+     WATERMARK (canvas 800×800, crop centrado, patrón diagonal DANICHAP)
+     Estrategia: patrón diagonal repetido en toda la imagen (sutil, 12% opac)
+     + marca fija esquina inferior derecha (logo + texto, 28% opac).
+     El patrón diagonal hace imposible recortar la marca sin distorsionar la imagen.
   ══════════════════════════════════════════════════════════════════════════ */
   async function applyWatermark(file) {
     return new Promise(resolve => {
       const SIZE = 800;
       const img  = new Image();
-      const blob = URL.createObjectURL(file);
-      img.onerror = () => { URL.revokeObjectURL(blob); resolve(file); };
+      const bUrl = URL.createObjectURL(file);
+      img.onerror = () => { URL.revokeObjectURL(bUrl); resolve(file); };
       img.onload  = () => {
-        URL.revokeObjectURL(blob);
+        URL.revokeObjectURL(bUrl);
         const canvas = document.createElement('canvas');
         canvas.width = canvas.height = SIZE;
         const ctx  = canvas.getContext('2d');
+
+        // ── 1. Dibujar imagen (crop cuadrado centrado) ───────────────────────
         const side = Math.min(img.naturalWidth, img.naturalHeight);
         const sx   = (img.naturalWidth  - side) / 2 | 0;
         const sy   = (img.naturalHeight - side) / 2 | 0;
         ctx.drawImage(img, sx, sy, side, side, 0, 0, SIZE, SIZE);
 
-        const ws = (SIZE * 0.22) | 0;
-        const mg = (ws * 0.18)   | 0;
-        ctx.save();
-        ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 6;
-        ctx.globalAlpha = 0.30; ctx.fillStyle = '#fff';
-        ctx.font = `900 ${(ws * 0.22)|0}px "Space Grotesk",sans-serif`;
-        ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
-        ctx.fillText('DANICHAP', SIZE - mg, SIZE - mg);
+        // ── 2. Patrón diagonal repetido en toda la imagen ────────────────────
+        // Crear un tile offscreen con el texto rotado -30°
+        const TILE = 200;
+        const tile = document.createElement('canvas');
+        tile.width = tile.height = TILE;
+        const tc = tile.getContext('2d');
+        tc.translate(TILE / 2, TILE / 2);
+        tc.rotate(-Math.PI / 6); // -30°
+        tc.font = '600 13px "Space Grotesk",sans-serif';
+        tc.fillStyle = 'rgba(255,255,255,0.55)';
+        tc.textAlign = 'center';
+        tc.textBaseline = 'middle';
+        tc.shadowColor = 'rgba(0,0,0,0.35)';
+        tc.shadowBlur  = 3;
+        tc.fillText('DANICHAP', 0, 0);
 
-        // data URI evita tainted canvas en Firefox/Safari (vs createObjectURL)
+        // Aplicar patrón al canvas principal
+        ctx.save();
+        const pat = ctx.createPattern(tile, 'repeat');
+        ctx.globalAlpha = 0.12;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = pat;
+        ctx.fillRect(0, 0, SIZE, SIZE);
+        ctx.restore();
+
+        // ── 3. Marca fija esquina inferior derecha: logo + texto ─────────────
+        const ws = (SIZE * 0.18) | 0;
+        const mg = 14;
         const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${ws}" height="${ws}" viewBox="0 0 38 38">
           <defs><linearGradient id="g" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#93c5fd"/></linearGradient></defs>
           <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(%23g)"/>
-          <path d="M10 28L28 10" stroke="rgba(15,23,42,.6)" stroke-width="4.5" stroke-linecap="round"/>
+          <path d="M10 28L28 10" stroke="rgba(15,23,42,.5)" stroke-width="4.5" stroke-linecap="round"/>
           <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="rgba(242,240,236,.55)"/>
         </svg>`;
         const svgImg = new Image();
         const finish = () => {
           ctx.restore();
-          canvas.toBlob(b => resolve(b ? new File([b],'product.jpg',{type:'image/jpeg'}) : file), 'image/jpeg', 0.92);
+          canvas.toBlob(b => resolve(b ? new File([b], 'product.jpg', { type: 'image/jpeg' }) : file), 'image/jpeg', 0.92);
         };
         svgImg.onload = () => {
-          ctx.globalAlpha = 0.34; ctx.shadowBlur = 8;
-          ctx.drawImage(svgImg, SIZE - mg - ws, SIZE - mg - ws - (ws*.28|0), ws, ws);
+          ctx.save();
+          ctx.globalAlpha = 0.28;
+          ctx.shadowColor = 'rgba(0,0,0,.55)';
+          ctx.shadowBlur  = 5;
+          // Logo arriba del texto
+          ctx.drawImage(svgImg, SIZE - mg - ws, SIZE - mg - ws - 18, ws, ws);
+          // Texto
+          ctx.font = `900 ${(ws * 0.24) | 0}px "Space Grotesk",sans-serif`;
+          ctx.fillStyle = '#ffffff';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'bottom';
+          ctx.shadowBlur = 4;
+          ctx.fillText('DANICHAP', SIZE - mg, SIZE - mg);
           finish();
         };
         svgImg.onerror = finish;
+        ctx.save(); // guardamos estado antes del logo (finish() hace restore)
         svgImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
       };
-      img.src = blob;
+      img.src = bUrl;
     });
   }
 
@@ -285,7 +320,7 @@
     };
     set('stat-total',      allProductos.length);
     set('stat-destacados', allProductos.filter(p => p.destacado).length);
-    set('stat-sin-precio', allProductos.filter(p => !p.precio).length);
+    set('stat-sin-stock',  allProductos.filter(p => p.stock === false).length);
     set('stat-categorias', new Set(allProductos.map(p => p.categoria)).size);
   }
 
@@ -364,6 +399,10 @@
         </td>
         <td class="px-4 py-3 text-right">
           <div class="flex items-center justify-end gap-0.5">
+            <button data-action="duplicate" data-id="${p.id}" title="Duplicar producto"
+              class="p-2 rounded-lg text-[#4B5563] hover:text-[#1A9850] hover:bg-[#E2DFD9] transition-colors hidden sm:inline-flex">
+              <span class="material-symbols-outlined text-sm leading-none">content_copy</span>
+            </button>
             <button data-action="edit" data-id="${p.id}" title="Editar"
               class="p-2 rounded-lg text-[#4B5563] hover:text-[#2563EB] hover:bg-[#E2DFD9] transition-colors">
               <span class="material-symbols-outlined text-sm leading-none">edit</span>
@@ -470,6 +509,12 @@
     }, 0);
 
     document.getElementById('prod-imagen').value = '';
+    setBadgeChip(p?.badge || '');
+    // Actualizar contadores
+    ['prod-nombre', 'prod-descripcion'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.dispatchEvent(new Event('input'));
+    });
     setFormError(null);
     setImgPreview(p?.imagen_url || null);
 
@@ -507,6 +552,8 @@
     const { action, id } = btn.dataset;
     if (action === 'edit') {
       openModal(id);
+    } else if (action === 'duplicate') {
+      duplicateProducto(id);
     } else if (action === 'delete') {
       const prod = allProductos.find(x => x.id === id);
       if (!prod) return;
@@ -614,6 +661,76 @@
       showToast(`"${nombre}" eliminado`);
       await loadProductos();
     });
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     BADGE CHIPS
+  ══════════════════════════════════════════════════════════════════════════ */
+  function initBadgeChips() {
+    const chips = document.querySelectorAll('.badge-chip');
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        chips.forEach(c => c.classList.remove('selected', 'ring-2', 'ring-primary-container'));
+        chip.classList.add('selected', 'ring-2', 'ring-primary-container');
+        document.getElementById('prod-badge').value = chip.dataset.badge;
+      });
+    });
+  }
+  initBadgeChips();
+
+  function setBadgeChip(val) {
+    const chips = document.querySelectorAll('.badge-chip');
+    chips.forEach(c => c.classList.remove('selected', 'ring-2', 'ring-primary-container'));
+    const match = [...chips].find(c => c.dataset.badge === (val || ''));
+    if (match) match.classList.add('selected', 'ring-2', 'ring-primary-container');
+    document.getElementById('prod-badge').value = val || '';
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     CONTADORES DE CARACTERES
+  ══════════════════════════════════════════════════════════════════════════ */
+  function initCounters() {
+    const pairs = [
+      { inputId: 'prod-nombre',      counterId: 'nombre-counter', max: 80  },
+      { inputId: 'prod-descripcion', counterId: 'desc-counter',   max: 300 },
+    ];
+    pairs.forEach(({ inputId, counterId, max }) => {
+      const el  = document.getElementById(inputId);
+      const ctr = document.getElementById(counterId);
+      if (!el || !ctr) return;
+      const update = () => {
+        const len = el.value.length;
+        ctr.textContent = `${len}/${max}`;
+        ctr.style.color = len > max * 0.9 ? '#ba1a1a' : '';
+      };
+      el.addEventListener('input', update);
+    });
+  }
+  initCounters();
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     DUPLICAR PRODUCTO
+  ══════════════════════════════════════════════════════════════════════════ */
+  async function duplicateProducto(id) {
+    const orig = allProductos.find(x => x.id === id);
+    if (!orig || orig._static) { showToast('No se puede duplicar este producto.', 'error'); return; }
+    const payload = {
+      nombre:       orig.nombre + ' (copia)',
+      categoria:    orig.categoria,
+      subcategoria: orig.subcategoria  || null,
+      marca_rep:    orig.marca_rep     || null,
+      badge:        orig.badge         || null,
+      precio:       orig.precio        ?? null,
+      precio_antes: orig.precio_antes  ?? null,
+      descripcion:  orig.descripcion   || null,
+      imagen_url:   orig.imagen_url    || null,
+      destacado:    false,
+      stock:        orig.stock         ?? true,
+    };
+    const { error } = await Productos.create(payload);
+    if (error) { showToast('Error al duplicar: ' + error.message, 'error'); return; }
+    showToast('Producto duplicado — editalo para ajustar los cambios');
+    await loadProductos();
   }
 
   /* ══════════════════════════════════════════════════════════════════════════
