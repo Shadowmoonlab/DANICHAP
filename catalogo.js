@@ -257,11 +257,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     grid.innerHTML = lista.map(p => renderCard(p)).join('');
   }
 
+  // Store para el modal de detalle — evita pasar objetos complejos inline en onclick
+  if (!window._prodStore) window._prodStore = {};
+
   function renderCard(p) {
+    // Registrar en store para acceso seguro desde el modal
+    window._prodStore[p.id] = p;
+
     const vehiculo = buildVehiculoStr();
     const wpp = wppLink(p.nombre, vehiculo);
     const cat = CATEGORIAS.find(c => c.slug === p.categoria);
     const subLabel = p.sub ? (p.sub.includes('/') ? p.sub.split('/').pop().trim() : p.sub) : '';
+
+    // Todas las fotos del producto
+    const allPhotos = [];
+    if (p.imagen_url) allPhotos.push(p.imagen_url);
+    if (p.imagenes?.length) allPhotos.push(...p.imagenes.filter(u => u !== p.imagen_url));
+    const hasMulti = allPhotos.length > 1;
 
     const precioHtml = p.precio !== null
       ? `<div class="flex items-baseline gap-2">
@@ -276,23 +288,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     const compat = p.compatibilidades?.[0] || 'Universal';
     const masCompat = (p.compatibilidades?.length || 0) > 1 ? ` <span class="text-secondary">+${p.compatibilidades.length - 1}</span>` : '';
 
-    const imagenHtml = p.imagen_url
-      ? `<img src="${p.imagen_url}" alt="${p.nombre}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>`
+    // Carrusel en miniatura: data-idx lleva el índice actual de foto por tarjeta
+    const imgAreaId = `card-imgs-${p.id}`;
+    const photoCount = allPhotos.length;
+
+    const imagenHtml = photoCount > 0
+      ? `<div id="${imgAreaId}" class="w-full h-full relative overflow-hidden">
+           <div class="card-slides flex h-full" style="width:${photoCount*100}%;transition:transform .3s ease">
+             ${allPhotos.map(url => `<div style="width:${100/photoCount}%;flex-shrink:0;"><img src="${url}" alt="" class="w-full h-full object-cover"/></div>`).join('')}
+           </div>
+           ${hasMulti ? `
+           <button onclick="cardPrev(event,'${imgAreaId}',${photoCount})" class="absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10">
+             <span class="material-symbols-outlined leading-none" style="font-size:16px;">chevron_left</span>
+           </button>
+           <button onclick="cardNext(event,'${imgAreaId}',${photoCount})" class="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10">
+             <span class="material-symbols-outlined leading-none" style="font-size:16px;">chevron_right</span>
+           </button>
+           <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+             ${allPhotos.map((_,i) => `<span class="card-dot w-1.5 h-1.5 rounded-full ${i===0?'bg-white':'bg-white/40'}"></span>`).join('')}
+           </div>` : ''}
+         </div>`
       : `<span class="material-symbols-outlined text-7xl text-surface-dim group-hover:scale-110 transition-transform duration-500">${cat ? cat.icon : 'build'}</span>`;
 
     return `
       <div class="bg-surface-container-lowest rounded-xl overflow-hidden group hover:shadow-lg transition-all duration-300 border border-surface-container flex flex-col">
-        <div class="relative h-40 bg-surface-container-low flex items-center justify-center overflow-hidden">
+        <div class="relative h-40 bg-surface-container-low flex items-center justify-center overflow-hidden cursor-pointer" onclick="if(typeof openProductDetail==='function'&&window._prodStore)openProductDetail(window._prodStore['${p.id}'])">
           ${imagenHtml}
-          ${p.badge ? `<span class="absolute top-3 right-3 bg-primary-container text-white text-[10px] font-black px-2 py-1 uppercase tracking-widest font-label rounded">${p.badge}</span>` : ''}
-          ${p.marca_rep ? `<span class="absolute top-3 left-3 bg-inverse-surface text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest font-label rounded">${p.marca_rep}</span>` : ''}
+          ${p.badge ? `<span class="absolute top-3 right-3 bg-primary-container text-white text-[10px] font-black px-2 py-1 uppercase tracking-widest font-label rounded z-20">${p.badge}</span>` : ''}
+          ${p.marca_rep ? `<span class="absolute top-3 left-3 bg-inverse-surface text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest font-label rounded z-20">${p.marca_rep}</span>` : ''}
+          ${hasMulti ? `<span class="absolute bottom-1.5 right-2 text-[9px] font-bold text-white/80 z-20 font-label">${photoCount} fotos</span>` : ''}
         </div>
         <div class="p-4 flex flex-col flex-1">
           <div class="flex items-center gap-1 mb-1">
             <span class="text-[10px] font-bold uppercase tracking-widest text-secondary font-label">${cat ? cat.label : ''}</span>
             ${p.sub ? `<span class="text-[10px] text-secondary font-label">· ${subLabel}</span>` : ''}
           </div>
-          <h3 class="font-headline font-bold text-sm uppercase mb-2 leading-tight">${p.nombre}</h3>
+          <h3 class="font-headline font-bold text-sm uppercase mb-2 leading-tight cursor-pointer hover:text-primary-container transition-colors" onclick="if(typeof openProductDetail==='function'&&window._prodStore)openProductDetail(window._prodStore['${p.id}'])">${p.nombre}</h3>
           <p class="text-xs text-tertiary font-body mb-4">✓ ${compat}${masCompat}</p>
           <div class="mt-auto space-y-2">
             <div class="flex items-center justify-between gap-2">
@@ -314,6 +345,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
       </div>`;
   }
+
+  // Carrusel en tarjeta — navegación local por card
+  window.cardNav = function(e, id, total, dir) {
+    e.stopPropagation();
+    const wrap = document.getElementById(id);
+    if (!wrap) return;
+    const slidesEl = wrap.querySelector('.card-slides');
+    const dots     = wrap.querySelectorAll('.card-dot');
+    let idx = parseInt(wrap.dataset.idx || '0') + dir;
+    idx = ((idx % total) + total) % total;
+    wrap.dataset.idx = idx;
+    slidesEl.style.transform = `translateX(-${idx * (100 / total)}%)`;
+    dots.forEach((d, i) => { d.style.background = i === idx ? 'white' : 'rgba(255,255,255,.4)'; });
+  };
+  window.cardPrev = (e, id, total) => window.cardNav(e, id, total, -1);
+  window.cardNext = (e, id, total) => window.cardNav(e, id, total, +1);
 
   function actualizarBadge() {
     const badge = document.getElementById('filtros-badge');
@@ -370,9 +417,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           precio: p.precio ? Number(p.precio) : null,
           precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
           imagen_url: p.imagen_url || null,
+          imagenes: Array.isArray(p.imagenes) ? p.imagenes : [],
           badge: p.badge || null,
           destacado: p.destacado || false,
           stock: p.stock !== false,
+          descripcion: p.descripcion || null,
           // Preservar compatibilidades estáticas si el nombre coincide, si no Universal
           compatibilidades: staticIndex[p.nombre.toLowerCase()] || ['Universal'],
           _fromDB: true,

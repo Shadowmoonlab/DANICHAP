@@ -381,5 +381,293 @@ tailwind.config = {
   </button>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════════════════
+     MODAL DETALLE PRODUCTO
+     z-index: 200 (debajo del carrito z-150… wait: carrito es z-150, este z-200 va encima)
+══════════════════════════════════════════════════════════════════════ -->
+<div id="prod-detail-modal" class="hidden fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="prod-detail-overlay"></div>
+  <div class="relative bg-surface rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto border-0 sm:border border-outline-variant z-10 flex flex-col">
+
+    <!-- Header sticky -->
+    <div class="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-outline-variant sticky top-0 bg-surface z-10 flex-shrink-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <span id="pd-badge" class="hidden text-[10px] font-black uppercase tracking-widest bg-primary-container text-white px-2 py-0.5 rounded-full"></span>
+        <h2 id="pd-nombre" class="font-headline font-black text-base sm:text-lg uppercase text-on-surface leading-tight truncate"></h2>
+      </div>
+      <button id="prod-detail-close" class="text-secondary hover:text-on-surface hover:bg-surface-container transition-colors p-2 rounded-lg -mr-1 flex-shrink-0" aria-label="Cerrar">
+        <span class="material-symbols-outlined text-xl leading-none">close</span>
+      </button>
+    </div>
+
+    <!-- Contenido -->
+    <div class="flex flex-col sm:flex-row gap-0 sm:gap-6 p-4 sm:p-6 flex-1">
+
+      <!-- Carrusel de imágenes -->
+      <div class="w-full sm:w-64 flex-shrink-0 mb-4 sm:mb-0">
+        <div class="relative w-full aspect-square rounded-2xl overflow-hidden bg-surface-container-low border border-outline-variant">
+          <div id="pd-slides" class="flex h-full transition-transform duration-300"></div>
+          <!-- Flechas -->
+          <button id="pd-prev" class="hidden absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10">
+            <span class="material-symbols-outlined text-base leading-none">chevron_left</span>
+          </button>
+          <button id="pd-next" class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10">
+            <span class="material-symbols-outlined text-base leading-none">chevron_right</span>
+          </button>
+          <!-- Indicadores -->
+          <div id="pd-dots" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10"></div>
+        </div>
+        <!-- Miniaturas -->
+        <div id="pd-thumbs" class="flex gap-1.5 mt-2 overflow-x-auto pb-1"></div>
+      </div>
+
+      <!-- Datos del producto -->
+      <div class="flex-1 min-w-0 space-y-3">
+        <!-- Categoría + marca -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <span id="pd-cat" class="text-[10px] font-bold uppercase tracking-widest text-secondary bg-surface-container px-2 py-1 rounded-lg"></span>
+          <span id="pd-marca" class="hidden text-[10px] font-bold uppercase tracking-widest text-secondary bg-surface-container px-2 py-1 rounded-lg"></span>
+        </div>
+
+        <!-- Precio -->
+        <div id="pd-precio-wrap" class="flex items-baseline gap-3">
+          <span id="pd-precio" class="font-headline font-black text-2xl text-on-surface"></span>
+          <span id="pd-precio-antes" class="hidden text-sm text-secondary line-through font-body"></span>
+        </div>
+
+        <!-- Descripción -->
+        <p id="pd-descripcion" class="text-sm text-secondary font-body leading-relaxed hidden"></p>
+
+        <!-- Compatibilidad -->
+        <div id="pd-compat-wrap" class="hidden">
+          <p class="text-[10px] font-bold uppercase tracking-wide text-secondary mb-1">Compatibilidades</p>
+          <p id="pd-compat" class="text-xs text-on-surface font-body leading-relaxed"></p>
+        </div>
+
+        <!-- CTAs -->
+        <div class="flex flex-col gap-2 pt-2">
+          <a id="pd-wpp-btn" href="#" target="_blank" rel="noopener"
+            class="flex items-center justify-center gap-2 bg-tertiary-container text-on-tertiary-container py-3 rounded-xl font-bold font-headline uppercase text-sm hover:bg-tertiary transition-colors">
+            <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">chat</span>
+            Consultar por WhatsApp
+          </a>
+          <button id="pd-cart-btn" data-id=""
+            class="flex items-center justify-center gap-2 bg-primary-container/10 text-primary-container border border-primary-container/30 py-3 rounded-xl font-bold font-headline uppercase text-sm hover:bg-primary-container hover:text-white transition-all">
+            <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">add_shopping_cart</span>
+            Agregar al carrito
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Modal detalle producto ─────────────────────────────────────────────────
+(function() {
+  let _slides = [];
+  let _idx    = 0;
+
+  function openDetail(p) {
+    _slides = [];
+    if (p.imagen_url) _slides.push(p.imagen_url);
+    if (p.imagenes?.length) _slides.push(...p.imagenes.filter(u => u !== p.imagen_url));
+    _idx = 0;
+
+    // Nombre y badge
+    const nombreEl = document.getElementById('pd-nombre');
+    if (nombreEl) nombreEl.textContent = p.nombre || '';
+
+    const badgeEl = document.getElementById('pd-badge');
+    if (badgeEl) {
+      if (p.badge) { badgeEl.textContent = p.badge; badgeEl.classList.remove('hidden'); }
+      else          badgeEl.classList.add('hidden');
+    }
+
+    // Categoría + marca
+    const catEl = document.getElementById('pd-cat');
+    if (catEl) catEl.textContent = p.categoria || '';
+
+    const marcaEl = document.getElementById('pd-marca');
+    if (marcaEl) {
+      if (p.marca_rep) { marcaEl.textContent = p.marca_rep; marcaEl.classList.remove('hidden'); }
+      else              marcaEl.classList.add('hidden');
+    }
+
+    // Precio
+    const precioEl = document.getElementById('pd-precio');
+    const antesEl  = document.getElementById('pd-precio-antes');
+    if (precioEl) {
+      precioEl.textContent = p.precio
+        ? `$ ${Number(p.precio).toLocaleString('es-AR')}`
+        : 'Consultar precio por WhatsApp';
+      precioEl.className = p.precio
+        ? 'font-headline font-black text-2xl text-on-surface'
+        : 'font-body text-base text-tertiary font-bold flex items-center gap-1';
+    }
+    if (antesEl) {
+      if (p.precio_antes) { antesEl.textContent = `$ ${Number(p.precio_antes).toLocaleString('es-AR')}`; antesEl.classList.remove('hidden'); }
+      else                  antesEl.classList.add('hidden');
+    }
+
+    // Descripción
+    const descEl = document.getElementById('pd-descripcion');
+    if (descEl) {
+      if (p.descripcion) { descEl.textContent = p.descripcion; descEl.classList.remove('hidden'); }
+      else                descEl.classList.add('hidden');
+    }
+
+    // Compatibilidades
+    const compatWrap = document.getElementById('pd-compat-wrap');
+    const compatEl   = document.getElementById('pd-compat');
+    if (compatWrap && compatEl) {
+      if (p.compatibilidades?.length) {
+        compatEl.textContent = p.compatibilidades.join(' · ');
+        compatWrap.classList.remove('hidden');
+      } else {
+        compatWrap.classList.add('hidden');
+      }
+    }
+
+    // WhatsApp
+    const wppBtn = document.getElementById('pd-wpp-btn');
+    if (wppBtn) {
+      const msg = `Hola DANICHAP! Me interesa este producto:\n*${p.nombre}*${p.precio ? `\nPrecio: $${Number(p.precio).toLocaleString('es-AR')}` : ''}\n¿Tienen stock?`;
+      wppBtn.href = `https://wa.me/541175200352?text=${encodeURIComponent(msg)}`;
+    }
+
+    // Carrito
+    const cartBtn = document.getElementById('pd-cart-btn');
+    if (cartBtn) {
+      cartBtn.dataset.id = p.id;
+      cartBtn.onclick = async () => {
+        if (typeof agregarAlCarrito === 'function') {
+          await agregarAlCarrito({ preventDefault: () => {} }, cartBtn);
+        }
+      };
+    }
+
+    // Carrusel
+    _renderSlides();
+
+    // Mostrar modal
+    const modal = document.getElementById('prod-detail-modal');
+    if (modal) { modal.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+  }
+
+  function _renderSlides() {
+    const cont  = document.getElementById('pd-slides');
+    const dots  = document.getElementById('pd-dots');
+    const thumbs = document.getElementById('pd-thumbs');
+    const prev  = document.getElementById('pd-prev');
+    const next  = document.getElementById('pd-next');
+    if (!cont) return;
+
+    const hasMult = _slides.length > 1;
+
+    // Slides
+    cont.innerHTML = '';
+    cont.style.width = `${_slides.length * 100}%`;
+    _slides.forEach(url => {
+      const slide = document.createElement('div');
+      slide.style.cssText = `width:${100 / _slides.length}%;flex-shrink:0;`;
+      const img = document.createElement('img');
+      img.src = url; img.alt = ''; img.className = 'w-full h-full object-cover';
+      slide.appendChild(img);
+      cont.appendChild(slide);
+    });
+
+    // Sin imágenes: placeholder
+    if (_slides.length === 0) {
+      cont.innerHTML = '<div class="w-full h-full flex items-center justify-center"><span class="material-symbols-outlined text-6xl text-surface-dim">inventory_2</span></div>';
+    }
+
+    // Mover al índice actual
+    _goTo(_idx, false);
+
+    // Dots
+    if (dots) {
+      dots.innerHTML = '';
+      if (hasMult) _slides.forEach((_, i) => {
+        const dot = document.createElement('button');
+        dot.className = `w-2 h-2 rounded-full transition-colors ${i === _idx ? 'bg-white' : 'bg-white/40'}`;
+        dot.addEventListener('click', () => _goTo(i));
+        dots.appendChild(dot);
+      });
+    }
+
+    // Thumbs
+    if (thumbs) {
+      thumbs.innerHTML = '';
+      if (hasMult) _slides.forEach((url, i) => {
+        const th = document.createElement('button');
+        th.className = `w-12 h-12 rounded-lg overflow-hidden border-2 transition-colors flex-shrink-0 ${i === _idx ? 'border-primary-container' : 'border-transparent'}`;
+        th.addEventListener('click', () => _goTo(i));
+        const img = document.createElement('img');
+        img.src = url; img.alt = ''; img.className = 'w-full h-full object-cover';
+        th.appendChild(img);
+        thumbs.appendChild(th);
+      });
+    }
+
+    // Flechas
+    if (prev) prev.classList.toggle('hidden', !hasMult);
+    if (next) next.classList.toggle('hidden', !hasMult);
+  }
+
+  function _goTo(i, animate = true) {
+    _idx = Math.max(0, Math.min(i, _slides.length - 1));
+    const cont = document.getElementById('pd-slides');
+    if (cont) {
+      cont.style.transition = animate ? 'transform 0.3s ease' : 'none';
+      cont.style.transform  = `translateX(-${_idx * (100 / _slides.length)}%)`;
+    }
+    // Actualizar dots
+    document.querySelectorAll('#pd-dots button').forEach((d, i) => {
+      d.className = `w-2 h-2 rounded-full transition-colors ${i === _idx ? 'bg-white' : 'bg-white/40'}`;
+    });
+    // Actualizar thumbs
+    document.querySelectorAll('#pd-thumbs button').forEach((t, i) => {
+      t.className = `w-12 h-12 rounded-lg overflow-hidden border-2 transition-colors flex-shrink-0 ${i === _idx ? 'border-primary-container' : 'border-transparent'}`;
+    });
+  }
+
+  // Flechas
+  document.getElementById('pd-prev')?.addEventListener('click', () => _goTo(_idx - 1));
+  document.getElementById('pd-next')?.addEventListener('click', () => _goTo(_idx + 1));
+
+  // Swipe táctil
+  let _tx = 0;
+  const slidesEl = document.getElementById('pd-slides');
+  if (slidesEl) {
+    slidesEl.addEventListener('touchstart', e => { _tx = e.touches[0].clientX; }, { passive: true });
+    slidesEl.addEventListener('touchend',   e => {
+      const dx = e.changedTouches[0].clientX - _tx;
+      if (Math.abs(dx) > 40) _goTo(dx < 0 ? _idx + 1 : _idx - 1);
+    }, { passive: true });
+  }
+
+  // Cerrar modal
+  document.getElementById('prod-detail-overlay')?.addEventListener('click', closeDetail);
+  document.getElementById('prod-detail-close')?.addEventListener('click', closeDetail);
+
+  function closeDetail() {
+    const modal = document.getElementById('prod-detail-modal');
+    if (modal) { modal.classList.add('hidden'); document.body.style.overflow = ''; }
+  }
+
+  document.addEventListener('keydown', e => {
+    const modal = document.getElementById('prod-detail-modal');
+    if (modal?.classList.contains('hidden')) return;
+    if (e.key === 'Escape')     closeDetail();
+    if (e.key === 'ArrowLeft')  _goTo(_idx - 1);
+    if (e.key === 'ArrowRight') _goTo(_idx + 1);
+  });
+
+  // Exponer globalmente para que catalogo.js lo llame
+  window.openProductDetail = openDetail;
+})();
+</script>
+
 </body>
 </html>

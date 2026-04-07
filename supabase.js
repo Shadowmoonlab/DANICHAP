@@ -95,6 +95,16 @@ const Productos = {
     const { data } = _supabase.storage.from('productos').getPublicUrl(path);
     return { url: data.publicUrl, error: null };
   },
+
+  // Subir múltiples imágenes, retorna array de URLs
+  async uploadImagenes(files) {
+    const results = [];
+    for (const file of files) {
+      const { url, error } = await Productos.uploadImagen(file);
+      if (!error && url) results.push(url);
+    }
+    return results;
+  },
 };
 
 /* ── Carrito DB ───────────────────────────────────────────────────────────── */

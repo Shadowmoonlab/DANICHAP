@@ -159,12 +159,19 @@
   initCatSelect();
 
   /* ══════════════════════════════════════════════════════════════════════════
-     WATERMARK (canvas 800×800, crop centrado, patrón diagonal DANICHAP)
-     Estrategia: patrón diagonal repetido en toda la imagen (sutil, 12% opac)
-     + marca fija esquina inferior derecha (logo + texto, 28% opac).
-     El patrón diagonal hace imposible recortar la marca sin distorsionar la imagen.
+     WATERMARK (canvas 800×800, crop centrado)
+     Estrategia:
+       1. Texto diagonal "DANICHAP" repetido en toda la imagen (sutil, 10% opac)
+       2. Logo SVG + texto en esquina inferior derecha (28% opac)
+     Fix vs versión anterior:
+       - Esperar document.fonts.ready para que Space Grotesk esté disponible en canvas
+       - Tile sin shadowBlur (evita sangrado en bordes del tile = falsos logos en esquinas)
+       - Save/restore stack correcto (una sola capa, no anidada)
   ══════════════════════════════════════════════════════════════════════════ */
   async function applyWatermark(file) {
+    // Esperar fuente antes de dibujar en canvas
+    await document.fonts.ready;
+
     return new Promise(resolve => {
       const SIZE = 800;
       const img  = new Image();
@@ -174,7 +181,7 @@
         URL.revokeObjectURL(bUrl);
         const canvas = document.createElement('canvas');
         canvas.width = canvas.height = SIZE;
-        const ctx  = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d');
 
         // ── 1. Dibujar imagen (crop cuadrado centrado) ───────────────────────
         const side = Math.min(img.naturalWidth, img.naturalHeight);
@@ -182,64 +189,74 @@
         const sy   = (img.naturalHeight - side) / 2 | 0;
         ctx.drawImage(img, sx, sy, side, side, 0, 0, SIZE, SIZE);
 
-        // ── 2. Patrón diagonal repetido en toda la imagen ────────────────────
-        // Crear un tile offscreen con el texto rotado -30°
-        const TILE = 200;
+        // ── 2. Patrón diagonal — texto en tile SIN shadowBlur ───────────────
+        // shadowBlur sangra fuera del tile bounds → al repetir aparece en esquinas
+        const TILE = 220;
         const tile = document.createElement('canvas');
         tile.width = tile.height = TILE;
         const tc = tile.getContext('2d');
+        tc.save();
         tc.translate(TILE / 2, TILE / 2);
-        tc.rotate(-Math.PI / 6); // -30°
-        tc.font = '600 13px "Space Grotesk",sans-serif';
-        tc.fillStyle = 'rgba(255,255,255,0.55)';
-        tc.textAlign = 'center';
+        tc.rotate(-Math.PI / 5.5); // ~-33°
+        tc.font = '700 14px "Space Grotesk",sans-serif';
+        tc.fillStyle = 'rgba(255,255,255,0.7)';
+        tc.textAlign  = 'center';
         tc.textBaseline = 'middle';
-        tc.shadowColor = 'rgba(0,0,0,0.35)';
-        tc.shadowBlur  = 3;
+        // NO shadowBlur aquí — evita artefactos en bordes del tile
         tc.fillText('DANICHAP', 0, 0);
+        tc.restore();
 
-        // Aplicar patrón al canvas principal
         ctx.save();
-        const pat = ctx.createPattern(tile, 'repeat');
-        ctx.globalAlpha = 0.12;
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.fillStyle = pat;
+        ctx.globalAlpha = 0.10;
+        ctx.fillStyle = ctx.createPattern(tile, 'repeat');
         ctx.fillRect(0, 0, SIZE, SIZE);
         ctx.restore();
 
-        // ── 3. Marca fija esquina inferior derecha: logo + texto ─────────────
-        const ws = (SIZE * 0.18) | 0;
-        const mg = 14;
+        // ── 3. Marca fija esquina inferior derecha ───────────────────────────
+        const ws  = (SIZE * 0.16) | 0;  // logo width
+        const mg  = 16;
+        const fs  = Math.max(11, (ws * 0.22) | 0); // font-size texto
+
         const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${ws}" height="${ws}" viewBox="0 0 38 38">
-          <defs><linearGradient id="g" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#93c5fd"/></linearGradient></defs>
-          <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(%23g)"/>
+          <defs><linearGradient id="wg" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#93c5fd"/>
+          </linearGradient></defs>
+          <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(%23wg)"/>
           <path d="M10 28L28 10" stroke="rgba(15,23,42,.5)" stroke-width="4.5" stroke-linecap="round"/>
           <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="rgba(242,240,236,.55)"/>
         </svg>`;
+
         const svgImg = new Image();
-        const finish = () => {
-          ctx.restore();
-          canvas.toBlob(b => resolve(b ? new File([b], 'product.jpg', { type: 'image/jpeg' }) : file), 'image/jpeg', 0.92);
-        };
-        svgImg.onload = () => {
+
+        const drawCorner = () => {
           ctx.save();
-          ctx.globalAlpha = 0.28;
-          ctx.shadowColor = 'rgba(0,0,0,.55)';
-          ctx.shadowBlur  = 5;
-          // Logo arriba del texto
-          ctx.drawImage(svgImg, SIZE - mg - ws, SIZE - mg - ws - 18, ws, ws);
-          // Texto
-          ctx.font = `900 ${(ws * 0.24) | 0}px "Space Grotesk",sans-serif`;
-          ctx.fillStyle = '#ffffff';
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'bottom';
-          ctx.shadowBlur = 4;
+          ctx.globalAlpha   = 0.28;
+          ctx.shadowColor   = 'rgba(0,0,0,0.6)';
+          ctx.shadowBlur    = 6;
+          ctx.shadowOffsetX = 1;
+          ctx.shadowOffsetY = 1;
+
+          // Texto "DANICHAP" en la parte baja
+          ctx.font          = `900 ${fs}px "Space Grotesk",sans-serif`;
+          ctx.fillStyle     = '#ffffff';
+          ctx.textAlign     = 'right';
+          ctx.textBaseline  = 'bottom';
           ctx.fillText('DANICHAP', SIZE - mg, SIZE - mg);
-          finish();
+
+          // Logo encima del texto
+          if (svgImg.complete && svgImg.naturalWidth > 0) {
+            ctx.drawImage(svgImg, SIZE - mg - ws, SIZE - mg - fs - 6 - ws, ws, ws);
+          }
+          ctx.restore();
+
+          canvas.toBlob(
+            b => resolve(b ? new File([b], 'product.jpg', { type: 'image/jpeg' }) : file),
+            'image/jpeg', 0.92
+          );
         };
-        svgImg.onerror = finish;
-        ctx.save(); // guardamos estado antes del logo (finish() hace restore)
+
+        svgImg.onload  = drawCorner;
+        svgImg.onerror = drawCorner; // dibuja igual, solo sin logo
         svgImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
       };
       img.src = bUrl;
@@ -449,29 +466,80 @@
   document.getElementById('admin-filter-cat')?.addEventListener('change', filtrar);
 
   /* ══════════════════════════════════════════════════════════════════════════
-     PREVIEW IMAGEN
+     GALERÍA MULTI-FOTO (admin modal)
+     _galleryUrls: array de URLs ya guardadas en Supabase (al editar)
+     _galleryFiles: array de File pendientes de subir (al guardar)
   ══════════════════════════════════════════════════════════════════════════ */
-  function setImgPreview(url) {
-    const wrap = document.getElementById('img-preview');
-    if (!wrap) return;
-    // Quitar img o ph previos; preservar overlay watermark
-    wrap.querySelectorAll('img,.preview-ph').forEach(el => el.remove());
-    const overlay = wrap.querySelector('div.wm-overlay');
-    const ph0 = document.getElementById('img-placeholder');
+  let _galleryUrls  = []; // URLs existentes (de Supabase)
+  let _galleryFiles = []; // Files nuevos a subir
 
-    if (url) {
-      if (ph0) ph0.style.display = 'none';
-      const img = document.createElement('img');
-      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;';
-      img.alt = ''; img.src = url;
-      img.onerror = () => {
-        img.remove();
-        if (ph0) { ph0.style.display = ''; ph0.textContent = 'broken_image'; ph0.style.color='#ba1a1a'; }
-      };
-      overlay ? wrap.insertBefore(img, overlay) : wrap.appendChild(img);
+  function _renderGallery() {
+    const gallery = document.getElementById('img-gallery');
+    const counter = document.getElementById('img-count-label');
+    if (!gallery) return;
+
+    const total = _galleryUrls.length + _galleryFiles.length;
+    if (counter) counter.textContent = `${total} foto(s)`;
+
+    gallery.innerHTML = '';
+
+    // Miniaturas de URLs ya guardadas
+    _galleryUrls.forEach((url, i) => {
+      const wrap = _makeThumb(null, url, i, 'url');
+      gallery.appendChild(wrap);
+    });
+
+    // Miniaturas de archivos nuevos (preview local)
+    _galleryFiles.forEach((file, i) => {
+      const wrap = _makeThumb(file, null, i, 'file');
+      gallery.appendChild(wrap);
+    });
+  }
+
+  function _makeThumb(file, url, index, type) {
+    const wrap = document.createElement('div');
+    wrap.className = 'relative w-20 h-20 rounded-xl overflow-hidden border-2 border-outline-variant bg-surface-container-low flex-shrink-0';
+    if (index === 0 && type === 'url') wrap.title = 'Foto principal';
+
+    const img = document.createElement('img');
+    img.className = 'w-full h-full object-cover';
+    img.alt = '';
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => { img.src = e.target.result; };
+      reader.readAsDataURL(file);
     } else {
-      if (ph0) { ph0.style.display = ''; ph0.textContent = 'image'; ph0.style.color = ''; }
+      img.src = url;
     }
+
+    // Badge "principal" en la primera foto de URLs guardadas
+    if (index === 0 && type === 'url') {
+      const badge = document.createElement('div');
+      badge.className = 'absolute top-0 left-0 right-0 text-center bg-primary-container/80 text-white text-[9px] font-bold py-0.5 uppercase tracking-wide';
+      badge.textContent = 'Principal';
+      wrap.appendChild(badge);
+    }
+
+    // Botón eliminar miniatura
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center hover:bg-error transition-colors';
+    del.innerHTML = '<span class="material-symbols-outlined leading-none" style="font-size:12px;">close</span>';
+    del.addEventListener('click', () => {
+      if (type === 'url') _galleryUrls.splice(index, 1);
+      else                _galleryFiles.splice(index, 1);
+      _renderGallery();
+    });
+
+    wrap.append(img, del);
+    return wrap;
+  }
+
+  function _initGallery(urls) {
+    _galleryUrls  = urls ? [...urls] : [];
+    _galleryFiles = [];
+    _renderGallery();
   }
 
   /* ══════════════════════════════════════════════════════════════════════════
@@ -496,7 +564,6 @@
     document.getElementById('prod-precio').value             = p?.precio      != null ? p.precio : '';
     document.getElementById('prod-precio-antes').value       = p?.precio_antes != null ? p.precio_antes : '';
     document.getElementById('prod-descripcion').value        = p?.descripcion  || '';
-    document.getElementById('prod-imagen-url').value         = p?.imagen_url   || '';
     document.getElementById('prod-stock').checked            = p?.stock        ?? true;
     document.getElementById('prod-destacado').checked        = p?.destacado    || false;
 
@@ -508,7 +575,10 @@
       if (sub) sub.value = p?.subcategoria || '';
     }, 0);
 
-    document.getElementById('prod-imagen').value = '';
+    // Reset input de archivos
+    const imgInput = document.getElementById('prod-imagenes');
+    if (imgInput) imgInput.value = '';
+
     setBadgeChip(p?.badge || '');
     // Actualizar contadores
     ['prod-nombre', 'prod-descripcion'].forEach(id => {
@@ -516,7 +586,12 @@
       if (el) el.dispatchEvent(new Event('input'));
     });
     setFormError(null);
-    setImgPreview(p?.imagen_url || null);
+
+    // Inicializar galería con fotos existentes del producto
+    const existingUrls = [];
+    if (p?.imagen_url) existingUrls.push(p.imagen_url);
+    if (p?.imagenes?.length) existingUrls.push(...p.imagenes.filter(u => u !== p.imagen_url));
+    _initGallery(existingUrls);
 
     document.getElementById('producto-modal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
@@ -563,23 +638,14 @@
   });
 
   /* ══════════════════════════════════════════════════════════════════════════
-     PREVIEW — file input
+     GALERÍA — file input (multi)
   ══════════════════════════════════════════════════════════════════════════ */
-  document.getElementById('prod-imagen')?.addEventListener('change', e => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    document.getElementById('prod-imagen-url').value = '';
-    const reader = new FileReader();
-    reader.onload = ev => setImgPreview(ev.target.result);
-    reader.readAsDataURL(file);
-  });
-
-  // Preview URL con debounce
-  let _urlTimer = null;
-  document.getElementById('prod-imagen-url')?.addEventListener('input', e => {
-    clearTimeout(_urlTimer);
-    const url = e.target.value.trim();
-    _urlTimer = setTimeout(() => setImgPreview(url || null), 400);
+  document.getElementById('prod-imagenes')?.addEventListener('change', e => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    _galleryFiles.push(...files);
+    e.target.value = ''; // reset para poder volver a elegir
+    _renderGallery();
   });
 
   /* ══════════════════════════════════════════════════════════════════════════
@@ -608,20 +674,26 @@
       document.head.appendChild(s);
     }
 
-    // Upload imagen
-    let imagenUrl = document.getElementById('prod-imagen-url').value.trim() || null;
-    const fi = document.getElementById('prod-imagen');
-    if (fi?.files?.[0]) {
+    // ── Upload fotos nuevas con watermark ────────────────────────────────────
+    let allUrls = [..._galleryUrls]; // empezar con las ya guardadas
+
+    if (_galleryFiles.length > 0) {
       try {
-        const processed = await applyWatermark(fi.files[0]);
-        const { url, error: ue } = await Productos.uploadImagen(processed);
-        if (ue) throw ue;
-        imagenUrl = url;
+        for (const file of _galleryFiles) {
+          const processed = await applyWatermark(file);
+          const { url, error: ue } = await Productos.uploadImagen(processed);
+          if (ue) throw ue;
+          allUrls.push(url);
+        }
       } catch (err) {
         setFormError('Error al subir imagen: ' + (err.message || err));
         btn.innerHTML = orig; btn.disabled = false; return;
       }
     }
+
+    // Foto principal = primera del array; resto = imagenes[]
+    const imagenUrl  = allUrls[0] || null;
+    const imagenesExtra = allUrls.slice(1);
 
     const payload = {
       nombre,
@@ -633,6 +705,7 @@
       precio_antes: parseFloat(document.getElementById('prod-precio-antes').value)  || null,
       descripcion:  document.getElementById('prod-descripcion').value.trim()        || null,
       imagen_url:   imagenUrl,
+      imagenes:     imagenesExtra,
       destacado:    document.getElementById('prod-destacado').checked,
       stock:        document.getElementById('prod-stock').checked,
     };

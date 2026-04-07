@@ -330,46 +330,29 @@ tailwind.config = {
           placeholder="Descripción del producto, compatibilidades, notas…"></textarea>
       </div>
 
-      <!-- Imagen -->
+      <!-- Imágenes — multi-foto -->
       <div>
-        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-2">Imagen del producto</label>
-        <div class="flex gap-4 items-start">
-
-          <!-- Preview: fondo blanco + watermark decorativo siempre visible -->
-          <div id="img-preview"
-            class="relative w-24 h-24 rounded-xl bg-white border-2 border-dashed border-outline-variant flex-shrink-0 overflow-hidden shadow-sm"
-            style="display:flex; align-items:center; justify-content:center;">
-            <!-- Placeholder icon (estado inicial — se reemplaza por JS) -->
-            <span id="img-placeholder" class="material-symbols-outlined text-3xl text-outline-variant" style="line-height:1; position:relative; z-index:1;">image</span>
-            <!-- Watermark overlay — siempre encima, pointer-events:none -->
-            <div class="wm-overlay absolute bottom-0 right-0 p-1.5 flex flex-col items-end gap-0.5 pointer-events-none select-none" style="z-index:2;">
-              <span style="font-family:'Space Grotesk',sans-serif; font-weight:900; font-size:6px; letter-spacing:0.15em; text-transform:uppercase; color:rgba(255,255,255,0.75); text-shadow:0 1px 2px rgba(0,0,0,0.6); line-height:1;">DANICHAP</span>
-              <svg width="12" height="12" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:0.7; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));">
-                <defs><linearGradient id="wm2" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#93c5fd"/></linearGradient></defs>
-                <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(#wm2)"/>
-                <path d="M10 28 L28 10" stroke="rgba(15,23,42,0.7)" stroke-width="4.5" stroke-linecap="round"/>
-                <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="rgba(242,240,236,0.6)"/>
-              </svg>
-            </div>
-          </div>
-
-          <div class="flex-1 min-w-0 space-y-2">
-            <!-- File upload -->
-            <label class="flex items-center gap-2 px-4 py-2.5 bg-primary-container/10 border border-primary-container/30 rounded-xl cursor-pointer hover:bg-primary-container/20 transition-colors group">
-              <span class="material-symbols-outlined text-sm text-primary-container leading-none">upload</span>
-              <span class="text-xs font-bold text-primary-container font-headline uppercase">Subir imagen</span>
-              <input type="file" id="prod-imagen" accept="image/*" class="sr-only"/>
-            </label>
-
-            <!-- URL manual -->
-            <input type="text" id="prod-imagen-url" placeholder="O pegar URL de imagen…"
-              class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline"/>
-
-            <p class="text-[10px] text-secondary font-body leading-snug">
-              Se recortará a cuadrado 800×800px y recibirá la <span class="font-bold text-primary-container">marca de agua DANICHAP</span> automáticamente.
-            </p>
-          </div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="block text-xs font-bold uppercase tracking-wide text-secondary">
+            Fotos del producto
+            <span class="ml-1 normal-case font-normal text-secondary/70">— la primera es la principal</span>
+          </label>
+          <span class="text-[10px] text-secondary/60 font-body" id="img-count-label">0 foto(s)</span>
         </div>
+
+        <!-- Galería de miniaturas (JS la rellena) -->
+        <div id="img-gallery" class="flex flex-wrap gap-2 mb-3 min-h-0"></div>
+
+        <!-- Botón agregar foto -->
+        <label class="flex items-center gap-2 px-4 py-2.5 bg-primary-container/10 border border-dashed border-primary-container/40 rounded-xl cursor-pointer hover:bg-primary-container/15 transition-colors">
+          <span class="material-symbols-outlined text-sm text-primary-container leading-none">add_photo_alternate</span>
+          <span class="text-xs font-bold text-primary-container font-headline uppercase">Agregar foto(s)</span>
+          <input type="file" id="prod-imagenes" accept="image/*" multiple class="sr-only"/>
+        </label>
+
+        <p class="mt-1.5 text-[10px] text-secondary font-body leading-snug">
+          Podés subir varias fotos. Se recortarán a 800×800px con la <span class="font-bold text-primary-container">marca de agua DANICHAP</span>.
+        </p>
       </div>
 
       <!-- Switches — Stock + Destacado -->
