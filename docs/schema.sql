@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- DANICHAP — Schema Supabase
+-- DANICHAP — Schema Supabase (COMPLETO — incluye todas las migraciones)
 -- Pegar completo en: Supabase Dashboard → SQL Editor → New query → Run
 -- ═══════════════════════════════════════════════════════════════════════════
 
@@ -61,6 +61,20 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure handle_new_user();
 
+-- ── Trigger: auto-actualizar updated_at ──────────────────────────────────
+create or replace function set_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_productos_updated_at on productos;
+create trigger trg_productos_updated_at
+  before update on productos
+  for each row execute function set_updated_at();
+
 -- ── RLS: productos ────────────────────────────────────────────────────────
 alter table productos enable row level security;
 
@@ -106,14 +120,27 @@ alter table perfiles enable row level security;
 create policy "Usuario ve su perfil"
   on perfiles for select using (auth.uid() = id);
 
+-- Función security definer para evitar recursión infinita en policy admin
+create or replace function is_admin()
+returns boolean language sql security definer stable as $$
+  select exists (
+    select 1 from public.perfiles
+    where id = auth.uid() and rol = 'admin'
+  )
+$$;
+
 create policy "Admin ve todos los perfiles"
   on perfiles for select
-  using (
-    exists (select 1 from perfiles p where p.id = auth.uid() and p.rol = 'admin')
-  );
+  using (is_admin());
 
 create policy "Usuario actualiza su perfil"
-  on perfiles for update using (auth.uid() = id);
+  on perfiles for update
+  using (auth.uid() = id)
+  with check (
+    -- No puede cambiar su propio rol a 'admin' (solo admin puede hacerlo)
+    rol = (select rol from perfiles where id = auth.uid())
+    or is_admin()
+  );
 
 -- ── Storage bucket para imágenes de productos ─────────────────────────────
 insert into storage.buckets (id, name, public)
@@ -139,6 +166,14 @@ create policy "Admin elimina imágenes"
   );
 
 -- ── Índices de rendimiento ────────────────────────────────────────────────
-create index if not exists idx_productos_categoria  on productos(categoria);
-create index if not exists idx_productos_destacado  on productos(destacado) where destacado = true;
-create index if not exists idx_carrito_user_id      on carrito(user_id);
+create index if not exists idx_productos_categoria    on productos(categoria);
+create index if not exists idx_productos_destacado    on productos(destacado) where destacado = true;
+create index if not exists idx_carrito_user_id        on carrito(user_id);
+create index if not exists idx_productos_stock        on productos(stock) where stock = true;
+create index if not exists idx_productos_stock_created on productos(stock, created_at desc);
+
+-- ── Migraciones: columnas agregadas post-v1 ───────────────────────────────
+-- (Ya incluidas arriba en la definición de tabla. Estas líneas son por si
+-- la tabla ya existe y solo falta agregar las columnas.)
+alter table productos add column if not exists imagenes       text[]  default '{}';
+alter table productos add column if not exists stock_cantidad integer default null;
