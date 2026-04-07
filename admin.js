@@ -186,18 +186,17 @@
         ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
         ctx.fillText('DANICHAP', SIZE - mg, SIZE - mg);
 
-        const svgBlob = new Blob([`<svg xmlns="http://www.w3.org/2000/svg" width="${ws}" height="${ws}" viewBox="0 0 38 38">
+        // data URI evita tainted canvas en Firefox/Safari (vs createObjectURL)
+        const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${ws}" height="${ws}" viewBox="0 0 38 38">
           <defs><linearGradient id="g" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#93c5fd"/></linearGradient></defs>
-          <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(#g)"/>
+          <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(%23g)"/>
           <path d="M10 28L28 10" stroke="rgba(15,23,42,.6)" stroke-width="4.5" stroke-linecap="round"/>
           <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="rgba(242,240,236,.55)"/>
-        </svg>`], { type:'image/svg+xml' });
-        const svgUrl = URL.createObjectURL(svgBlob);
+        </svg>`;
         const svgImg = new Image();
         const finish = () => {
           ctx.restore();
-          URL.revokeObjectURL(svgUrl);
           canvas.toBlob(b => resolve(b ? new File([b],'product.jpg',{type:'image/jpeg'}) : file), 'image/jpeg', 0.92);
         };
         svgImg.onload = () => {
@@ -206,7 +205,7 @@
           finish();
         };
         svgImg.onerror = finish;
-        svgImg.src = svgUrl;
+        svgImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
       };
       img.src = blob;
     });
