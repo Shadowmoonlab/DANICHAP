@@ -438,6 +438,11 @@ tailwind.config = {
         <!-- Descripción -->
         <p id="pd-descripcion" class="text-sm text-secondary font-body leading-relaxed hidden"></p>
 
+        <!-- Stock cantidad -->
+        <div id="pd-stock-wrap" class="hidden">
+          <span id="pd-stock-badge" class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full"></span>
+        </div>
+
         <!-- Compatibilidad -->
         <div id="pd-compat-wrap" class="hidden">
           <p class="text-[10px] font-bold uppercase tracking-wide text-secondary mb-1">Compatibilidades</p>
@@ -518,6 +523,27 @@ tailwind.config = {
     }
 
     // Compatibilidades
+    // Stock cantidad
+    const stockWrap  = document.getElementById('pd-stock-wrap');
+    const stockBadge = document.getElementById('pd-stock-badge');
+    if (stockWrap && stockBadge) {
+      if (p.stock_cantidad != null) {
+        stockWrap.classList.remove('hidden');
+        if (p.stock_cantidad === 0) {
+          stockBadge.textContent = 'Sin stock';
+          stockBadge.className = 'inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-red-50 text-red-600 border border-red-200';
+        } else if (p.stock_cantidad <= 5) {
+          stockBadge.textContent = `⚡ Últimas ${p.stock_cantidad} unidades disponibles`;
+          stockBadge.className = 'inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-200';
+        } else {
+          stockBadge.textContent = `✓ ${p.stock_cantidad} unidades en stock`;
+          stockBadge.className = 'inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-200';
+        }
+      } else {
+        stockWrap.classList.add('hidden');
+      }
+    }
+
     const compatWrap = document.getElementById('pd-compat-wrap');
     const compatEl   = document.getElementById('pd-compat');
     if (compatWrap && compatEl) {

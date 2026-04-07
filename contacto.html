@@ -31,8 +31,8 @@
     "addressCountry": "AR"
   },
   "openingHoursSpecification": [
-    { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"], "opens": "08:00", "closes": "18:00" },
-    { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "08:00", "closes": "13:00" }
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"], "opens": "08:30", "closes": "18:30" },
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "08:30", "closes": "13:30" }
   ],
   "contactPoint": {
     "@type": "ContactPoint",
@@ -589,41 +589,5 @@ timelineContainer.innerHTML = `
 `;
 </script>
 
-<script>
-// Nav activo: Nosotros activo cuando hay #nosotros en la URL o al entrar desde ese link
-(function(){
-  const nosotrosLink = document.getElementById('nav-nosotros-link');
-  const contactoLink = document.getElementById('nav-contacto-link');
-  const activeClass = ['text-primary-container','border-b-2','border-primary-container','pb-1'];
-  const inactiveClass = ['text-secondary','hover:text-on-surface','transition-colors'];
-
-  function setActive(el) {
-    [nosotrosLink, contactoLink].forEach(a => {
-      if (!a) return;
-      a.classList.remove(...activeClass);
-      a.classList.add(...inactiveClass);
-    });
-    if (el) {
-      el.classList.add(...activeClass);
-      el.classList.remove(...inactiveClass);
-    }
-  }
-
-  // Si llegamos con #nosotros, activar Nosotros; de lo contrario Contacto
-  if (window.location.hash === '#nosotros') {
-    setActive(nosotrosLink);
-  }
-
-  // Cambiar activo al hacer scroll
-  const nosotrosSection = document.getElementById('nosotros');
-  if (nosotrosSection && contactoLink && nosotrosLink) {
-    window.addEventListener('scroll', () => {
-      const top = nosotrosSection.getBoundingClientRect().top;
-      if (top <= 80) setActive(nosotrosLink);
-      else setActive(contactoLink);
-    }, { passive: true });
-  }
-})();
-</script>
 </body>
 </html>

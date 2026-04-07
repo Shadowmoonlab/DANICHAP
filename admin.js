@@ -79,9 +79,9 @@
     if (!wrap) return;
     if (msg) {
       if (txt) txt.textContent = msg;
-      wrap.style.display = 'flex';
+      wrap.classList.remove('hidden');
     } else {
-      wrap.style.display = 'none';
+      wrap.classList.add('hidden');
       if (txt) txt.textContent = '';
     }
   }
@@ -389,9 +389,15 @@
         ? `<span class="font-bold text-[#111827] font-headline">$${Number(p.precio).toLocaleString('es-AR')}</span>`
         : `<span class="text-[#4B5563] italic text-xs">Consultar</span>`;
 
-      // Stock dot
-      const stockColor = p.stock !== false ? '#1A9850' : '#ba1a1a';
-      const stockTitle = p.stock !== false ? 'En stock' : 'Sin stock';
+      // Stock dot + cantidad
+      const sinStock   = p.stock === false || p.stock_cantidad === 0;
+      const stockColor = sinStock ? '#ba1a1a' : '#1A9850';
+      const stockTitle = sinStock ? 'Sin stock'
+        : p.stock_cantidad != null ? `${p.stock_cantidad} uds.`
+        : 'En stock';
+      const stockLabel = p.stock_cantidad != null
+        ? (p.stock_cantidad === 0 ? 'Sin stock' : `${p.stock_cantidad} uds.`)
+        : (sinStock ? 'Sin stock' : '');
 
       tr.innerHTML = `
         <td class="px-4 py-3">
@@ -409,8 +415,11 @@
         </td>
         <td class="px-4 py-3 text-sm">${precioHtml}</td>
         <td class="px-4 py-3 text-center">
-          <div class="flex items-center justify-center gap-1.5">
-            <span class="inline-block w-2 h-2 rounded-full" style="background:${stockColor}" title="${stockTitle}"></span>
+          <div class="flex flex-col items-center gap-0.5">
+            <div class="flex items-center gap-1">
+              <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background:${stockColor}" title="${stockTitle}"></span>
+              ${stockLabel ? `<span class="text-[10px] font-bold" style="color:${stockColor}">${stockLabel}</span>` : ''}
+            </div>
             <span class="material-symbols-outlined text-sm leading-none" style="color:${p.destacado?'#2563EB':'#D1D5DB'};font-variation-settings:'FILL' ${p.destacado?1:0};">star</span>
           </div>
         </td>
@@ -566,6 +575,7 @@
     document.getElementById('prod-descripcion').value        = p?.descripcion  || '';
     document.getElementById('prod-stock').checked            = p?.stock        ?? true;
     document.getElementById('prod-destacado').checked        = p?.destacado    || false;
+    document.getElementById('prod-stock-cantidad').value     = p?.stock_cantidad != null ? p.stock_cantidad : '';
 
     const catSel = document.getElementById('prod-categoria');
     catSel.value = p?.categoria || '';
@@ -695,19 +705,27 @@
     const imagenUrl  = allUrls[0] || null;
     const imagenesExtra = allUrls.slice(1);
 
+    const precioVal      = document.getElementById('prod-precio').value.trim();
+    const precioAntesVal = document.getElementById('prod-precio-antes').value.trim();
+    const cantVal        = document.getElementById('prod-stock-cantidad').value.trim();
+    const stockCheck     = document.getElementById('prod-stock').checked;
+    const cantNum        = cantVal !== '' ? parseInt(cantVal, 10) : null;
+
     const payload = {
       nombre,
       categoria,
-      subcategoria: document.getElementById('prod-subcategoria').value.trim() || null,
-      marca_rep:    document.getElementById('prod-marca').value.trim()        || null,
-      badge:        document.getElementById('prod-badge').value.trim().toUpperCase() || null,
-      precio:       parseFloat(document.getElementById('prod-precio').value)        || null,
-      precio_antes: parseFloat(document.getElementById('prod-precio-antes').value)  || null,
-      descripcion:  document.getElementById('prod-descripcion').value.trim()        || null,
-      imagen_url:   imagenUrl,
-      imagenes:     imagenesExtra,
-      destacado:    document.getElementById('prod-destacado').checked,
-      stock:        document.getElementById('prod-stock').checked,
+      subcategoria:    document.getElementById('prod-subcategoria').value.trim() || null,
+      marca_rep:       document.getElementById('prod-marca').value.trim()        || null,
+      badge:           document.getElementById('prod-badge').value.trim().toUpperCase() || null,
+      precio:          precioVal      ? parseFloat(precioVal)      : null,
+      precio_antes:    precioAntesVal ? parseFloat(precioAntesVal) : null,
+      descripcion:     document.getElementById('prod-descripcion').value.trim() || null,
+      imagen_url:      imagenUrl,
+      imagenes:        imagenesExtra,
+      stock_cantidad:  cantNum,
+      // Si cantidad = 0 → sin stock automáticamente
+      stock:           cantNum === 0 ? false : stockCheck,
+      destacado:       document.getElementById('prod-destacado').checked,
     };
 
     const isEditing = Boolean(editingId);
@@ -743,8 +761,8 @@
     const chips = document.querySelectorAll('.badge-chip');
     chips.forEach(chip => {
       chip.addEventListener('click', () => {
-        chips.forEach(c => c.classList.remove('selected', 'ring-2', 'ring-primary-container'));
-        chip.classList.add('selected', 'ring-2', 'ring-primary-container');
+        chips.forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
         document.getElementById('prod-badge').value = chip.dataset.badge;
       });
     });
@@ -752,11 +770,13 @@
   initBadgeChips();
 
   function setBadgeChip(val) {
+    const v = val || '';
     const chips = document.querySelectorAll('.badge-chip');
-    chips.forEach(c => c.classList.remove('selected', 'ring-2', 'ring-primary-container'));
-    const match = [...chips].find(c => c.dataset.badge === (val || ''));
-    if (match) match.classList.add('selected', 'ring-2', 'ring-primary-container');
-    document.getElementById('prod-badge').value = val || '';
+    chips.forEach(c => c.classList.remove('selected'));
+    const match = [...chips].find(c => c.dataset.badge === v);
+    if (match) match.classList.add('selected');
+    const input = document.getElementById('prod-badge');
+    if (input) input.value = v;
   }
 
   /* ══════════════════════════════════════════════════════════════════════════
@@ -788,22 +808,28 @@
     const orig = allProductos.find(x => x.id === id);
     if (!orig || orig._static) { showToast('No se puede duplicar este producto.', 'error'); return; }
     const payload = {
-      nombre:       orig.nombre + ' (copia)',
-      categoria:    orig.categoria,
-      subcategoria: orig.subcategoria  || null,
-      marca_rep:    orig.marca_rep     || null,
-      badge:        orig.badge         || null,
-      precio:       orig.precio        ?? null,
-      precio_antes: orig.precio_antes  ?? null,
-      descripcion:  orig.descripcion   || null,
-      imagen_url:   orig.imagen_url    || null,
-      destacado:    false,
-      stock:        orig.stock         ?? true,
+      nombre:         orig.nombre + ' (copia)',
+      categoria:      orig.categoria,
+      subcategoria:   orig.subcategoria  || null,
+      marca_rep:      orig.marca_rep     || null,
+      badge:          orig.badge         || null,
+      precio:         orig.precio        ?? null,
+      precio_antes:   orig.precio_antes  ?? null,
+      descripcion:    orig.descripcion   || null,
+      imagen_url:     orig.imagen_url    || null,
+      imagenes:       Array.isArray(orig.imagenes) ? orig.imagenes : [],
+      stock_cantidad: orig.stock_cantidad ?? null,
+      destacado:      false,
+      stock:          orig.stock         ?? true,
     };
-    const { error } = await Productos.create(payload);
-    if (error) { showToast('Error al duplicar: ' + error.message, 'error'); return; }
-    showToast('Producto duplicado — editalo para ajustar los cambios');
-    await loadProductos();
+    try {
+      const { error } = await Productos.create(payload);
+      if (error) { showToast('Error al duplicar: ' + error.message, 'error'); return; }
+      showToast('Producto duplicado — editalo para ajustar los cambios');
+      await loadProductos();
+    } catch (err) {
+      showToast('Error inesperado: ' + (err.message || err), 'error');
+    }
   }
 
   /* ══════════════════════════════════════════════════════════════════════════

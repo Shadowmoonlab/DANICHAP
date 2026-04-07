@@ -14,7 +14,9 @@ create table if not exists productos (
   precio_antes   numeric(10,2),
   descripcion    text,
   imagen_url     text,
+  imagenes       text[] default '{}',      -- fotos adicionales (multi-foto)
   stock          boolean default true,
+  stock_cantidad integer default null,     -- null=ilimitado, 0=sin stock, N=unidades
   destacado      boolean default false,
   badge          text,
   created_at     timestamptz default now(),

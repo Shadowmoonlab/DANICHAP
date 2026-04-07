@@ -1,4 +1,24 @@
 // catalogo.js — Lógica del catálogo Danichap
+
+// ── Funciones globales para carrusel de tarjetas ─────────────────────────────
+// Deben estar en scope global ANTES de que el HTML las referencie via onclick
+window._prodStore = {};
+
+window.cardNav = function(e, id, total, dir) {
+  e.stopPropagation();
+  const wrap = document.getElementById(id);
+  if (!wrap) return;
+  const slidesEl = wrap.querySelector('.card-slides');
+  const dots     = wrap.querySelectorAll('.card-dot');
+  let idx = parseInt(wrap.dataset.idx || '0') + dir;
+  idx = ((idx % total) + total) % total;
+  wrap.dataset.idx = idx;
+  slidesEl.style.transform = `translateX(-${idx * (100 / total)}%)`;
+  dots.forEach((d, i) => { d.style.background = i === idx ? 'white' : 'rgba(255,255,255,.4)'; });
+};
+window.cardPrev = (e, id, total) => window.cardNav(e, id, total, -1);
+window.cardNext = (e, id, total) => window.cardNav(e, id, total, +1);
+
 document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Estado ──────────────────────────────────────────────────────────────────
@@ -257,11 +277,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     grid.innerHTML = lista.map(p => renderCard(p)).join('');
   }
 
-  // Store para el modal de detalle — evita pasar objetos complejos inline en onclick
-  if (!window._prodStore) window._prodStore = {};
-
   function renderCard(p) {
-    // Registrar en store para acceso seguro desde el modal
+    // Registrar en store para acceso seguro desde onclick del modal
     window._prodStore[p.id] = p;
 
     const vehiculo = buildVehiculoStr();
@@ -287,6 +304,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const compat = p.compatibilidades?.[0] || 'Universal';
     const masCompat = (p.compatibilidades?.length || 0) > 1 ? ` <span class="text-secondary">+${p.compatibilidades.length - 1}</span>` : '';
+
+    // Badge de stock bajo (≤5 unidades) — urgencia para el cliente
+    const stockBadge = (p.stock_cantidad != null && p.stock_cantidad > 0 && p.stock_cantidad <= 5)
+      ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full font-label">
+           <span class="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block"></span>
+           Últimas ${p.stock_cantidad} uds.
+         </span>`
+      : '';
 
     // Carrusel en miniatura: data-idx lleva el índice actual de foto por tarjeta
     const imgAreaId = `card-imgs-${p.id}`;
@@ -326,6 +351,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <h3 class="font-headline font-bold text-sm uppercase mb-2 leading-tight cursor-pointer hover:text-primary-container transition-colors" onclick="if(typeof openProductDetail==='function'&&window._prodStore)openProductDetail(window._prodStore['${p.id}'])">${p.nombre}</h3>
           <p class="text-xs text-tertiary font-body mb-4">✓ ${compat}${masCompat}</p>
           <div class="mt-auto space-y-2">
+            ${stockBadge}
             <div class="flex items-center justify-between gap-2">
               ${precioHtml}
               <a href="${wpp}" target="_blank" rel="noopener"
@@ -345,22 +371,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
       </div>`;
   }
-
-  // Carrusel en tarjeta — navegación local por card
-  window.cardNav = function(e, id, total, dir) {
-    e.stopPropagation();
-    const wrap = document.getElementById(id);
-    if (!wrap) return;
-    const slidesEl = wrap.querySelector('.card-slides');
-    const dots     = wrap.querySelectorAll('.card-dot');
-    let idx = parseInt(wrap.dataset.idx || '0') + dir;
-    idx = ((idx % total) + total) % total;
-    wrap.dataset.idx = idx;
-    slidesEl.style.transform = `translateX(-${idx * (100 / total)}%)`;
-    dots.forEach((d, i) => { d.style.background = i === idx ? 'white' : 'rgba(255,255,255,.4)'; });
-  };
-  window.cardPrev = (e, id, total) => window.cardNav(e, id, total, -1);
-  window.cardNext = (e, id, total) => window.cardNav(e, id, total, +1);
 
   function actualizarBadge() {
     const badge = document.getElementById('filtros-badge');
@@ -421,6 +431,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           badge: p.badge || null,
           destacado: p.destacado || false,
           stock: p.stock !== false,
+          stock_cantidad: p.stock_cantidad ?? null,
           descripcion: p.descripcion || null,
           // Preservar compatibilidades estáticas si el nombre coincide, si no Universal
           compatibilidades: staticIndex[p.nombre.toLowerCase()] || ['Universal'],

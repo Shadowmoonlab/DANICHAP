@@ -355,28 +355,45 @@ tailwind.config = {
         </p>
       </div>
 
-      <!-- Switches — Stock + Destacado -->
-      <div class="flex flex-wrap gap-4 pt-1 pb-1">
-        <label class="flex items-center gap-2.5 cursor-pointer select-none group">
-          <div class="relative">
-            <input type="checkbox" id="prod-stock" checked class="sr-only peer"/>
-            <div class="w-9 h-5 bg-outline-variant rounded-full peer-checked:bg-tertiary transition-colors"></div>
-            <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-4"></div>
+      <!-- Stock + Cantidad + Destacado -->
+      <div class="space-y-3 pt-1 pb-1">
+        <!-- Fila switches -->
+        <div class="flex flex-wrap gap-4">
+          <label class="flex items-center gap-2.5 cursor-pointer select-none group">
+            <div class="relative">
+              <input type="checkbox" id="prod-stock" checked class="sr-only peer"/>
+              <div class="w-9 h-5 bg-outline-variant rounded-full peer-checked:bg-tertiary transition-colors"></div>
+              <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-4"></div>
+            </div>
+            <span class="text-sm font-body text-on-surface">En stock</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer select-none group">
+            <div class="relative">
+              <input type="checkbox" id="prod-destacado" class="sr-only peer"/>
+              <div class="w-9 h-5 bg-outline-variant rounded-full peer-checked:bg-primary-container transition-colors"></div>
+              <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-4"></div>
+            </div>
+            <span class="text-sm font-body text-on-surface">Destacado</span>
+          </label>
+        </div>
+        <!-- Campo cantidad en stock -->
+        <div id="stock-cantidad-wrap">
+          <label for="prod-stock-cantidad" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">
+            Unidades disponibles
+            <span class="ml-1 normal-case font-normal text-secondary/70">— dejá vacío si es ilimitado</span>
+          </label>
+          <div class="relative w-40">
+            <input type="number" id="prod-stock-cantidad" min="0" step="1"
+              class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline"
+              placeholder="Ej: 5"/>
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-secondary font-body">uds.</span>
           </div>
-          <span class="text-sm font-body text-on-surface">En stock</span>
-        </label>
-        <label class="flex items-center gap-2.5 cursor-pointer select-none group">
-          <div class="relative">
-            <input type="checkbox" id="prod-destacado" class="sr-only peer"/>
-            <div class="w-9 h-5 bg-outline-variant rounded-full peer-checked:bg-primary-container transition-colors"></div>
-            <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-4"></div>
-          </div>
-          <span class="text-sm font-body text-on-surface">Destacado</span>
-        </label>
+          <p class="mt-1 text-[10px] text-secondary font-body">Si ponés <strong>0</strong> → el producto se marca automáticamente sin stock</p>
+        </div>
       </div>
 
-      <!-- Error message (usar style display en vez de hidden+flex para evitar conflicto Tailwind) -->
-      <div id="form-error" style="display:none" class="items-center gap-2 bg-error-container border border-error/20 rounded-xl px-4 py-3">
+      <!-- Error message -->
+      <div id="form-error" class="hidden flex items-center gap-2 bg-error-container border border-error/20 rounded-xl px-4 py-3">
         <span class="material-symbols-outlined text-error text-base leading-none flex-shrink-0" style="font-variation-settings:'FILL' 1;">error</span>
         <p class="text-error text-xs font-body" id="form-error-text"></p>
       </div>
