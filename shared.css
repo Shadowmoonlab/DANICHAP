@@ -3,6 +3,12 @@
 /* ── Logo SVG global ─────────────────────────────────────────────────────── */
 .danichap-logo-icon { display:inline-block; vertical-align:middle; }
 
+/* ── Logo image — remove white background on any surface ─────────────────── */
+img[src*="danichaplogo"] {
+  mix-blend-mode: multiply;
+  background: transparent;
+}
+
 /* ── Navy glow (logo colores) ─────────────────────────────────────────────── */
 .amber-glow {
   filter: drop-shadow(0 0 12px rgba(0,30,75,0.55));
