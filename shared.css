@@ -137,3 +137,110 @@
 .reveal-delay-3 { transition-delay: 0.30s; }
 .reveal-delay-4 { transition-delay: 0.40s; }
 .reveal-delay-5 { transition-delay: 0.50s; }
+
+/* ── Product card premium hover ──────────────────────────────────────────── */
+.product-card {
+  transition: transform 0.22s cubic-bezier(0.16,1,0.3,1),
+              box-shadow 0.22s cubic-bezier(0.16,1,0.3,1),
+              border-color 0.22s ease;
+  will-change: transform;
+}
+.product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,30,75,0.13), 0 2px 8px rgba(0,30,75,0.06);
+  border-color: rgba(0,30,75,0.25);
+}
+.product-card:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+/* ── Category card hover ─────────────────────────────────────────────────── */
+.cat-card {
+  transition: transform 0.2s cubic-bezier(0.16,1,0.3,1),
+              box-shadow 0.2s ease,
+              background-color 0.2s ease;
+}
+.cat-card:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 8px 24px rgba(0,30,75,0.10);
+}
+
+/* ── Nav active indicator ─────────────────────────────────────────────────── */
+.nav-link-active {
+  position: relative;
+}
+.nav-link-active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #001e4b;
+  border-radius: 1px;
+}
+
+/* ── Focus ring accesible ──────────────────────────────────────────────────── */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #1a5aaa;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ── Skeleton loading shimmer ──────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #E2DFD9 25%, #ECEAE5 50%, #E2DFD9 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ── WhatsApp FAB pulse on mobile ────────────────────────────────────────── */
+@keyframes fab-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(37,211,102,0.4), 0 0 0 0 rgba(37,211,102,0.3); }
+  50%       { box-shadow: 0 4px 20px rgba(37,211,102,0.4), 0 0 0 8px rgba(37,211,102,0); }
+}
+@media (max-width: 768px) {
+  .wpp-fab {
+    animation: fab-pulse 2.5s ease infinite;
+  }
+}
+
+/* ── Badge tags premium ────────────────────────────────────────────────────── */
+.badge-nuevo    { background: rgba(0,30,75,0.08); color: #001e4b; border: 1px solid rgba(0,30,75,0.2); }
+.badge-oferta   { background: rgba(225,0,15,0.08); color: #c0000d; border: 1px solid rgba(225,0,15,0.25); }
+.badge-stock    { background: rgba(26,152,80,0.08); color: #166534; border: 1px solid rgba(26,152,80,0.25); }
+.badge-agotado  { background: rgba(100,100,100,0.08); color: #555; border: 1px solid rgba(0,0,0,0.12); }
+
+/* ── Input search premium ──────────────────────────────────────────────────── */
+#search-text:focus {
+  border-color: #001e4b;
+  box-shadow: 0 0 0 3px rgba(0,30,75,0.08);
+}
+
+/* ── Sidebar category active ───────────────────────────────────────────────── */
+.cat-btn-active {
+  background: rgba(0,30,75,0.08);
+  color: #001e4b;
+  font-weight: 700;
+  border-left: 3px solid #001e4b;
+}
+
+/* ── Smooth page scroll ────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Print optimizations (for PDF guide) ────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+  body { font-size: 11pt; }
+  a { color: inherit; text-decoration: none; }
+}

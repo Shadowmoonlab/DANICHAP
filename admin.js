@@ -36,39 +36,7 @@
   let allProductos = [];   // todos los productos (Supabase o estáticos)
   let editingId    = null; // id del producto en edición, null = crear nuevo
 
-  /* ══════════════════════════════════════════════════════════════════════════
-     TOAST
-  ══════════════════════════════════════════════════════════════════════════ */
-  function showToast(msg, type = 'success') {
-    let t = document.getElementById('admin-toast');
-    if (!t) {
-      t = document.createElement('div');
-      t.id = 'admin-toast';
-      t.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[600] px-5 py-3 rounded-xl font-bold text-sm font-headline uppercase tracking-wide shadow-xl flex items-center gap-2 transition-all duration-300 opacity-0 translate-y-4 pointer-events-none';
-      document.body.appendChild(t);
-    }
-    t.classList.remove('bg-[#0F172A]','text-[#F1F5F9]','bg-[#ba1a1a]','text-white');
-    if (type === 'success') t.classList.add('bg-[#0F172A]','text-[#F1F5F9]');
-    else                    t.classList.add('bg-[#ba1a1a]','text-white');
-
-    t.innerHTML = '';
-    const ico = document.createElement('span');
-    ico.className = 'material-symbols-outlined text-base leading-none';
-    ico.style.fontVariationSettings = "'FILL' 1";
-    ico.textContent = type === 'success' ? 'check_circle' : 'error';
-    t.appendChild(ico);
-    t.appendChild(document.createTextNode(' ' + msg));
-
-    requestAnimationFrame(() => {
-      t.classList.remove('opacity-0','translate-y-4');
-      t.classList.add('opacity-100','translate-y-0');
-    });
-    clearTimeout(t._t);
-    t._t = setTimeout(() => {
-      t.classList.add('opacity-0','translate-y-4');
-      t.classList.remove('opacity-100','translate-y-0');
-    }, 3000);
-  }
+  /* showToast — delegado a toast.js (global) */
 
   /* ══════════════════════════════════════════════════════════════════════════
      FORM ERROR

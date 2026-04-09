@@ -336,7 +336,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       : `<span class="material-symbols-outlined text-7xl text-surface-dim group-hover:scale-110 transition-transform duration-500">${cat ? cat.icon : 'build'}</span>`;
 
     return `
-      <div class="bg-surface-container-lowest rounded-xl overflow-hidden group hover:shadow-lg transition-all duration-300 border border-surface-container flex flex-col">
+      <div class="product-card bg-surface-container-lowest rounded-xl overflow-hidden group border border-surface-container flex flex-col">
         <div class="relative h-40 bg-surface-container-low flex items-center justify-center overflow-hidden cursor-pointer" onclick="if(typeof openProductDetail==='function'&&window._prodStore)openProductDetail(window._prodStore['${p.id}'])">
           ${imagenHtml}
           ${p.badge ? `<span class="absolute top-3 right-3 bg-primary-container text-white text-[10px] font-black px-2 py-1 uppercase tracking-widest font-label rounded z-20">${p.badge}</span>` : ''}

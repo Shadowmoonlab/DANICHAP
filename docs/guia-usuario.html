@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Guía de Usuario — DANICHAP</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #001e4b;
+    --navy-mid: #0a3270;
+    --navy-hi: #1a5aaa;
+    --red: #e1000f;
+    --green: #25D366;
+    --surface: #F2F0EC;
+    --text: #111827;
+    --muted: #4B5563;
+    --border: #D1D5DB;
+  }
+
+  html { font-size: 11pt; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text);
+    background: white;
+    line-height: 1.55;
+  }
+
+  /* ── Page layout ── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 14mm 16mm 12mm;
+    position: relative;
+    page-break-after: always;
+    background: white;
+    overflow: hidden;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  /* ── Header ── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2.5px solid var(--navy);
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand-logo {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+  }
+  .brand-text { line-height: 1.1; }
+  .brand-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 900;
+    font-size: 16pt;
+    color: var(--navy);
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+  }
+  .brand-sub {
+    font-size: 6.5pt;
+    font-weight: 600;
+    color: var(--navy-mid);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .page-label {
+    font-size: 7pt;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: right;
+    line-height: 1.4;
+  }
+  .page-label strong { color: var(--red); }
+
+  /* ── Section headings ── */
+  .section-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 900;
+    font-size: 13pt;
+    color: var(--navy);
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    flex-shrink: 0;
+  }
+  .section-title .num {
+    font-size: 10pt;
+    color: var(--navy-hi);
+    font-weight: 700;
+  }
+
+  /* ── Cards ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: #FAFAF9;
+  }
+  .card-navy {
+    border-left: 3px solid var(--navy);
+  }
+  .card-red {
+    border-left: 3px solid var(--red);
+  }
+  .card-green {
+    border-left: 3px solid var(--green);
+  }
+  .card h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 9.5pt;
+    color: var(--navy);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .card h4 .icon {
+    font-size: 13px;
+    opacity: 0.7;
+  }
+  .card p, .card li {
+    font-size: 8.5pt;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .card ul { padding-left: 14px; }
+  .card ul li { margin-bottom: 2px; }
+
+  /* ── Steps ── */
+  .steps { display: flex; gap: 0; margin-bottom: 12px; }
+  .step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+  }
+  .step:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -8px;
+    top: 10px;
+    color: var(--navy-hi);
+    font-size: 10pt;
+    font-weight: 700;
+  }
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: white;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 900;
+    font-size: 9pt;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 5px;
+    flex-shrink: 0;
+  }
+  .step-label {
+    font-size: 7.5pt;
+    font-weight: 600;
+    color: var(--navy);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1.3;
+  }
+  .step-sub {
+    font-size: 7pt;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+
+  /* ── Info strip ── */
+  .info-strip {
+    background: var(--navy);
+    color: white;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 8.5pt;
+  }
+  .info-strip strong { font-weight: 700; font-size: 9.5pt; }
+  .info-strip .icon-wrap {
+    font-size: 18px;
+    opacity: 0.9;
+    flex-shrink: 0;
+  }
+
+  /* ── Category grid ── */
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .cat-item {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 6px;
+    text-align: center;
+    background: #FAFAF9;
+  }
+  .cat-item .cat-icon { font-size: 16px; display: block; margin-bottom: 3px; }
+  .cat-item .cat-label {
+    font-size: 7pt;
+    font-weight: 600;
+    color: var(--navy);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+  }
+
+  /* ── Highlight box ── */
+  .highlight {
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    border-radius: 8px;
+    padding: 9px 12px;
+    margin-bottom: 10px;
+    font-size: 8.5pt;
+    color: var(--navy-mid);
+    line-height: 1.5;
+  }
+  .highlight strong { color: var(--navy); }
+
+  /* ── WA box ── */
+  .wa-box {
+    background: #F0FDF4;
+    border: 1.5px solid #86EFAC;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .wa-circle {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+    color: white;
+  }
+  .wa-content { flex: 1; }
+  .wa-content strong {
+    font-size: 9pt;
+    font-weight: 700;
+    color: #14532D;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .wa-content p {
+    font-size: 7.5pt;
+    color: #166534;
+    line-height: 1.4;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 11px 0;
+  }
+
+  /* ── Footer ── */
+  .page-footer {
+    position: absolute;
+    bottom: 10mm;
+    left: 16mm;
+    right: 16mm;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--border);
+    padding-top: 6px;
+  }
+  .page-footer p {
+    font-size: 7pt;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .page-footer .page-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 8pt;
+    color: var(--navy);
+  }
+
+  /* ── Badge pill ── */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 7pt;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .pill-navy { background: rgba(0,30,75,0.08); color: var(--navy); border: 1px solid rgba(0,30,75,0.2); }
+  .pill-red  { background: rgba(225,0,15,0.07); color: var(--red); border: 1px solid rgba(225,0,15,0.2); }
+  .pill-green { background: rgba(37,211,102,0.1); color: #14532D; border: 1px solid rgba(37,211,102,0.3); }
+
+  /* ── Print ── */
+  @media print {
+    @page { size: A4; margin: 0; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { page-break-after: always; margin: 0; }
+  }
+  @media screen {
+    body { background: #e8e8e8; }
+    .page { margin: 20px auto; box-shadow: 0 4px 40px rgba(0,0,0,.15); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PÁGINA 1 — Catálogo, Filtros, Carrito y WhatsApp
+═══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="page-header">
+    <div class="brand">
+      <img src="../docs/img/danichaplogo-transparent.png" alt="DANICHAP" class="brand-logo"/>
+      <div class="brand-text">
+        <div class="brand-name">DANICHAP</div>
+        <div class="brand-sub">Repuestos · Longchamps, Zona Sur</div>
+      </div>
+    </div>
+    <div class="page-label">
+      <strong>Guía de Usuario</strong><br/>
+      danichap.com.ar · 011 7520-0352
+    </div>
+  </header>
+
+  <!-- INTRO STRIP -->
+  <div class="info-strip">
+    <div class="icon-wrap">🔧</div>
+    <div>
+      <strong>¿Cómo usar la web de DANICHAP?</strong><br/>
+      Esta guía te explica en 2 páginas todas las funciones disponibles: catálogo, filtros, consulta por WhatsApp y más.
+    </div>
+  </div>
+
+  <!-- SECCIÓN 1 — CATÁLOGO -->
+  <div class="section-title"><span class="dot"></span><span class="num">01</span> El Catálogo de Repuestos</div>
+
+  <div class="highlight">
+    <strong>Acceso:</strong> Desde la página principal hacé clic en <em>"Ver Catálogo"</em> o entrá directamente a <strong>danichap.com.ar/catalogo.html</strong>. Encontrarás más de 10.000 referencias de repuestos multimarca organizadas por categoría.
+  </div>
+
+  <!-- Categorías -->
+  <div style="font-size:8pt;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Categorías disponibles</div>
+  <div class="cat-grid">
+    <div class="cat-item"><span class="cat-icon">🛞</span><div class="cat-label">Frenos</div></div>
+    <div class="cat-item"><span class="cat-icon">💡</span><div class="cat-label">Iluminación</div></div>
+    <div class="cat-item"><span class="cat-icon">⚙️</span><div class="cat-label">Mecánica</div></div>
+    <div class="cat-item"><span class="cat-icon">🌡️</span><div class="cat-label">Refrigeración</div></div>
+    <div class="cat-item"><span class="cat-icon">⚡</span><div class="cat-label">Electricidad</div></div>
+    <div class="cat-item"><span class="cat-icon">🔒</span><div class="cat-label">Cerraduras</div></div>
+    <div class="cat-item"><span class="cat-icon">🛢️</span><div class="cat-label">Lubricantes</div></div>
+    <div class="cat-item"><span class="cat-icon">🔩</span><div class="cat-label">Accesorios</div></div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- SECCIÓN 2 — FILTROS -->
+  <div class="section-title"><span class="dot"></span><span class="num">02</span> Filtros de Búsqueda</div>
+
+  <div class="grid-2" style="margin-bottom:10px;">
+    <div class="card card-navy">
+      <h4><span class="icon">🚗</span> Filtrar por Vehículo</h4>
+      <ul>
+        <li>Seleccioná tu <strong>Marca</strong> de auto</li>
+        <li>Elegí el <strong>Modelo</strong> (Gol, Corolla, etc.)</li>
+        <li>Seleccioná la <strong>Versión</strong> y el <strong>Año</strong></li>
+        <li>Presioná <strong>"Buscar repuestos"</strong></li>
+      </ul>
+      <p style="margin-top:6px; font-size:7.5pt; color:#1a5aaa; font-weight:600;">Marcas disponibles: Toyota, VW, Ford, Chevrolet, Renault, Peugeot, Fiat, Honda, Nissan, Citroën y más.</p>
+    </div>
+    <div class="card card-navy">
+      <h4><span class="icon">🔍</span> Búsqueda por Texto</h4>
+      <ul>
+        <li>Escribí el nombre del repuesto en la barra de búsqueda</li>
+        <li>Podés buscar por nombre, marca o categoría</li>
+        <li>El resultado se actualiza en tiempo real</li>
+        <li>Usá el ícono ✕ para limpiar la búsqueda</li>
+      </ul>
+      <p style="margin-top:6px; font-size:7.5pt; color:#1a5aaa; font-weight:600;">Ejemplos: "pastillas freno", "bujías NGK", "faro delantero Corolla"</p>
+    </div>
+  </div>
+
+  <!-- Steps de búsqueda -->
+  <div style="font-size:8pt;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:7px;">Flujo recomendado de búsqueda</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-label">Elegí tu<br/>vehículo</div>
+      <div class="step-sub">Marca, modelo<br/>y año</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-label">Filtrá por<br/>categoría</div>
+      <div class="step-sub">Frenos, electricidad<br/>mecánica, etc.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-label">Buscá por<br/>nombre</div>
+      <div class="step-sub">Si sabés el nombre<br/>del repuesto</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-label">Consultá por<br/>WhatsApp</div>
+      <div class="step-sub">Precio y stock<br/>en minutos</div>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- SECCIÓN 3 — BADGES Y TAGS -->
+  <div class="section-title" style="margin-bottom:8px;"><span class="dot"></span><span class="num">03</span> Etiquetas e Indicadores</div>
+
+  <div class="grid-3" style="margin-bottom:10px;">
+    <div class="card">
+      <h4>Badges de producto</h4>
+      <p>Cada tarjeta puede mostrar:</p>
+      <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:4px;">
+        <span class="pill pill-navy">Nuevo</span>
+        <span class="pill pill-red">Oferta</span>
+        <span class="pill pill-green">En stock</span>
+      </div>
+      <p style="margin-top:5px; font-size:7.5pt;">La etiqueta <strong>Brembo / NGK / Bosch</strong> indica la marca del fabricante.</p>
+    </div>
+    <div class="card">
+      <h4>Stock disponible</h4>
+      <p>Si ves <em>"Últimas N uds."</em> en naranja, significa que el stock es limitado. Consultá rápido para asegurarte el repuesto.</p>
+      <p style="margin-top:5px; font-size:7.5pt;">Hacé clic en la foto para ver el detalle completo con todas las imágenes disponibles.</p>
+    </div>
+    <div class="card">
+      <h4>Precio</h4>
+      <p>Si aparece el precio, es el valor actual. Si dice <em>"Precio por WhatsApp"</em>, consultanos para recibir la cotización al momento.</p>
+      <p style="margin-top:5px; font-size:7.5pt;">Los precios se actualizan regularmente desde el panel de administración.</p>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- SECCIÓN 4 — CARRITO -->
+  <div class="section-title" style="margin-bottom:8px;"><span class="dot"></span><span class="num">04</span> Carrito y Envío por WhatsApp</div>
+
+  <div class="grid-2">
+    <div class="card card-green">
+      <h4><span class="icon">🛒</span> Cómo usar el Carrito</h4>
+      <ul>
+        <li>Hacé clic en <strong>"Agregar al carrito"</strong> en cualquier producto</li>
+        <li>El ícono del carrito en el menú muestra la cantidad de ítems</li>
+        <li>Hacé clic en el carrito para ver todos tus productos seleccionados</li>
+        <li>Podés cambiar cantidades o eliminar ítems antes de enviar</li>
+      </ul>
+    </div>
+    <div class="card card-green">
+      <h4><span class="icon">📲</span> Enviar Pedido por WhatsApp</h4>
+      <ul>
+        <li>Una vez que cargaste tus productos, abrí el carrito</li>
+        <li>Presioná <strong>"Enviar por WhatsApp"</strong></li>
+        <li>Se abre WhatsApp con un mensaje listo con todos tus productos</li>
+        <li>Nuestro equipo responde en minutos con precio y stock</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="page-footer">
+    <p>DANICHAP · Av. Hipólito Yrigoyen 19608, Longchamps · 011 7520-0352</p>
+    <span class="page-num">1 / 2</span>
+  </footer>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PÁGINA 2 — WhatsApp, Horarios, Admin, Marcas
+═══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="page-header">
+    <div class="brand">
+      <img src="../docs/img/danichaplogo-transparent.png" alt="DANICHAP" class="brand-logo"/>
+      <div class="brand-text">
+        <div class="brand-name">DANICHAP</div>
+        <div class="brand-sub">Repuestos · Longchamps, Zona Sur</div>
+      </div>
+    </div>
+    <div class="page-label">
+      <strong>Guía de Usuario</strong><br/>
+      danichap.com.ar · 011 7520-0352
+    </div>
+  </header>
+
+  <!-- SECCIÓN 5 — WHATSAPP -->
+  <div class="section-title"><span class="dot"></span><span class="num">05</span> Consultas Directas por WhatsApp</div>
+
+  <div class="wa-box">
+    <div class="wa-circle">💬</div>
+    <div class="wa-content">
+      <strong>Respondemos en minutos · Lunes a Sábado</strong>
+      <p>No necesitás el carrito. Podés escribirnos directamente con el nombre del repuesto, tu marca de auto y modelo. Nuestro equipo técnico te responde con precio, stock y disponibilidad al momento.</p>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:10px;">
+    <div class="card">
+      <h4><span class="icon">📦</span> Consulta de producto</h4>
+      <p>En cada tarjeta del catálogo hay un botón <strong>"Consultar"</strong> en verde. Al tocarlo, se abre WhatsApp con un mensaje pre-escrito que incluye el nombre del repuesto y tu vehículo seleccionado. Solo tenés que enviarlo.</p>
+    </div>
+    <div class="card">
+      <h4><span class="icon">🔎</span> No encontrás tu repuesto</h4>
+      <p>Si el repuesto no aparece en el catálogo, usá el botón <strong>"¿No encontrás tu repuesto?"</strong> al pie del catálogo. Tenemos acceso a más de 10.000 referencias. También podés escribirnos libremente por WhatsApp.</p>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- SECCIÓN 6 — ATENCIÓN AL CLIENTE -->
+  <div class="section-title"><span class="dot"></span><span class="num">06</span> Atención al Cliente · Pre y Post Venta</div>
+
+  <div class="grid-2" style="margin-bottom:10px;">
+    <div class="card card-navy">
+      <h4><span class="icon">🧰</span> Pre-Venta</h4>
+      <ul>
+        <li>Identificamos el repuesto exacto para tu auto</li>
+        <li>Te explicamos diferencias entre marcas y calidades</li>
+        <li>Verificamos compatibilidad y stock antes de cerrar</li>
+        <li>Respondemos tus dudas sin costo y sin presión</li>
+      </ul>
+    </div>
+    <div class="card card-navy">
+      <h4><span class="icon">✅</span> Post-Venta</h4>
+      <ul>
+        <li>Garantía en todos los productos</li>
+        <li>Seguimiento de tu compra por WhatsApp</li>
+        <li>Asistencia técnica si hay algún inconveniente</li>
+        <li>Soporte ante cualquier eventualidad</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- SECCIÓN 7 — HORARIOS Y UBICACIÓN -->
+  <div class="section-title"><span class="dot"></span><span class="num">07</span> Horarios y Cómo Llegar</div>
+
+  <div class="grid-3" style="margin-bottom:10px;">
+    <div class="card">
+      <h4><span class="icon">🕗</span> Lunes a Viernes</h4>
+      <p style="font-size:14pt; font-weight:900; color:var(--navy); font-family:'Space Grotesk',sans-serif; line-height:1.1; margin:4px 0;">8:30–18:30</p>
+      <p>Atención en el local y por WhatsApp</p>
+    </div>
+    <div class="card">
+      <h4><span class="icon">🕗</span> Sábado</h4>
+      <p style="font-size:14pt; font-weight:900; color:var(--navy); font-family:'Space Grotesk',sans-serif; line-height:1.1; margin:4px 0;">8:30–13:30</p>
+      <p>Atención en el local y por WhatsApp</p>
+    </div>
+    <div class="card">
+      <h4><span class="icon">📍</span> Ubicación</h4>
+      <p><strong>Av. Hipólito Yrigoyen 19608</strong></p>
+      <p>Longchamps, Buenos Aires</p>
+      <p style="margin-top:4px; font-size:7.5pt; color:var(--navy-hi);">Ver en Google Maps desde danichap.com.ar</p>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- SECCIÓN 8 — MARCAS -->
+  <div class="section-title" style="margin-bottom:8px;"><span class="dot"></span><span class="num">08</span> Marcas Originales Disponibles</div>
+
+  <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+    <span class="pill pill-navy">Brembo</span>
+    <span class="pill pill-navy">NGK</span>
+    <span class="pill pill-navy">Bosch</span>
+    <span class="pill pill-navy">Gates</span>
+    <span class="pill pill-navy">Liqui-Moly</span>
+    <span class="pill pill-navy">Monroe</span>
+    <span class="pill pill-navy">SKF</span>
+    <span class="pill pill-navy">Valeo</span>
+    <span class="pill pill-navy">TRW</span>
+    <span class="pill pill-navy">Mahle</span>
+    <span class="pill pill-navy">Sachs</span>
+    <span class="pill pill-navy">KYB</span>
+    <span class="pill pill-navy">Mann Filter</span>
+    <span class="pill pill-navy">Ferodo</span>
+    <span class="pill pill-navy">Continental</span>
+    <span class="pill pill-navy" style="background:rgba(0,30,75,0.14);">+100 marcas más</span>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- SECCIÓN 9 — ENVÍOS -->
+  <div class="section-title" style="margin-bottom:8px;"><span class="dot"></span><span class="num">09</span> Envíos y Retiro en Local</div>
+
+  <div class="grid-3" style="margin-bottom:10px;">
+    <div class="card card-red">
+      <h4><span class="icon">🚚</span> Zona Sur GBA</h4>
+      <p>Entrega en el <strong>mismo día</strong> en Longchamps y alrededores. Coordinamos por WhatsApp antes de despachar.</p>
+    </div>
+    <div class="card card-red">
+      <h4><span class="icon">📦</span> Todo el País</h4>
+      <p>Despachamos al día hábil siguiente. Usamos Andreani, OCA o el servicio que prefieras. Te enviamos el tracking.</p>
+    </div>
+    <div class="card card-red">
+      <h4><span class="icon">🏪</span> Retiro en Local</h4>
+      <p>Podés pasar a retirar tu pedido en el local en Longchamps durante el horario comercial, sin cargo adicional.</p>
+    </div>
+  </div>
+
+  <!-- CTA FINAL -->
+  <div class="wa-box" style="background:var(--navy); border:none;">
+    <div class="wa-circle" style="background:rgba(255,255,255,0.15);">📱</div>
+    <div class="wa-content" style="color:white;">
+      <strong style="color:white; font-size:10pt;">¿Dudas? Escribinos por WhatsApp ahora</strong>
+      <p style="color:rgba(255,255,255,0.7);">Nuestro equipo responde de lunes a sábado en minutos. Número: <strong style="color:white;">011 7520-0352</strong> — También podés escanear el código QR de nuestro WhatsApp en el local.</p>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="page-footer">
+    <p>© 2025 DANICHAP · Todos los derechos reservados · danichap.com.ar</p>
+    <span class="page-num">2 / 2</span>
+  </footer>
+</div>
+
+</body>
+</html>

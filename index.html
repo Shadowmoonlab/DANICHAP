@@ -126,6 +126,7 @@ tailwind.config = {
 </script>
 <!-- Supabase + módulos -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="toast.js"></script>
 <script src="supabase.js"></script>
 <script src="auth.js"></script>
 <script src="cart.js"></script>
@@ -141,7 +142,7 @@ tailwind.config = {
   <div class="flex justify-between items-center px-6 py-4 max-w-screen-xl mx-auto">
     <!-- Logo -->
     <a href="index.html" class="flex items-center gap-3 group">
-      <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="38" height="38" class="amber-glow-sm rounded-sm object-cover" style="width:38px;height:38px;"/>
+      <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="38" height="38" class="amber-glow-sm rounded-sm object-contain" style="width:38px;height:38px;"/>
       <div class="flex flex-col leading-none">
         <span class="text-xl font-black tracking-[-0.04em] text-on-surface font-headline uppercase">DANICHAP</span>
         <span class="text-[9px] font-bold tracking-[0.22em] uppercase font-label text-primary-container">REPUESTOS · LONGCHAMPS</span>
@@ -911,7 +912,7 @@ tailwind.config = {
   <div class="grid grid-cols-1 md:grid-cols-3 gap-12 px-6 py-16 max-w-screen-xl mx-auto">
     <div>
       <div class="flex items-center gap-3 mb-4">
-        <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="30" height="30" class="rounded-sm object-cover" style="width:30px;height:30px;"/>
+        <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="30" height="30" class="rounded-sm object-contain" style="width:30px;height:30px;"/>
         <div class="flex flex-col leading-none">
           <span class="text-lg font-black text-on-surface font-headline tracking-[-0.04em] uppercase">DANICHAP</span>
           <span class="text-[8px] font-bold tracking-[0.2em] uppercase font-label text-primary-container">REPUESTOS · LONGCHAMPS</span>
@@ -952,12 +953,12 @@ tailwind.config = {
       </ul>
     </div>
   </div>
-  <div class="border-t border-outline-variant pt-8 pb-24 px-6 flex flex-col items-center gap-2 text-center">
+  <div class="border-t border-outline-variant pb-24 px-6 flex flex-col items-center gap-1.5 text-center" style="background:linear-gradient(to bottom,transparent,rgba(0,30,75,0.04));padding-top:20px;">
     <a href="https://www.manadigital.website" target="_blank" rel="noopener"
-       class="font-headline font-black text-2xl uppercase tracking-widest hover:opacity-75 transition-opacity"
+       class="font-headline font-bold text-xs uppercase tracking-[0.18em] hover:opacity-60 transition-opacity"
        style="color:#e1000f;">MANADIGITAL</a>
-    <p class="text-[10px] text-secondary/50 font-label uppercase tracking-widest">Diseño &amp; Desarrollo Web</p>
-    <p class="text-[10px] text-secondary/40 font-body mt-1">© 2025 DANICHAP · Todos los derechos reservados.</p>
+    <p class="text-[9px] text-secondary/40 font-label uppercase tracking-widest">Diseño &amp; Desarrollo Web</p>
+    <p class="text-[9px] text-secondary/30 font-body mt-0.5">© 2025 DANICHAP · Todos los derechos reservados.</p>
   </div>
 </footer>
 
