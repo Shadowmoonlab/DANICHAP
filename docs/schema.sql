@@ -30,7 +30,7 @@ create table if not exists perfiles (
   telefono   text,
   rol        text default 'cliente' check (rol in ('cliente', 'admin')),
   created_at timestamptz default now()
-);
+);P
 
 -- ── Tabla carrito ─────────────────────────────────────────────────────────
 create table if not exists carrito (
@@ -177,3 +177,30 @@ create index if not exists idx_productos_stock_created on productos(stock, creat
 -- la tabla ya existe y solo falta agregar las columnas.)
 alter table productos add column if not exists imagenes       text[]  default '{}';
 alter table productos add column if not exists stock_cantidad integer default null;
+
+-- ── RLS adicional: perfiles INSERT (para trigger handle_new_user) ──────────
+-- El trigger corre como security definer, pero por buenas prácticas:
+create policy "Sistema crea perfil al registrarse"
+  on perfiles for insert
+  with check (id = auth.uid());
+
+-- ── RLS adicional: storage objects UPDATE ────────────────────────────────
+create policy "Admin actualiza imágenes"
+  on storage.objects for update
+  using (
+    bucket_id = 'productos' and
+    exists (select 1 from public.perfiles where id = auth.uid() and rol = 'admin')
+  )
+  with check (
+    bucket_id = 'productos' and
+    exists (select 1 from public.perfiles where id = auth.uid() and rol = 'admin')
+  );
+
+-- ── Verificación de RLS activo ────────────────────────────────────────────
+-- Ejecutar para confirmar que todas las tablas tienen RLS habilitado:
+-- SELECT schemaname, tablename, rowsecurity
+-- FROM pg_tables
+-- WHERE schemaname = 'public'
+-- ORDER BY tablename;
+-- (rowsecurity debe ser true en: carrito, perfiles, productos)
+
