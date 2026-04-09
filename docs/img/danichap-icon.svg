@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgG" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#001e4b"/>
+      <stop offset="100%" stop-color="#0f1e4b"/>
+    </linearGradient>
+    <linearGradient id="dG" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f0f0f0"/>
+      <stop offset="100%" stop-color="#d0d8e8"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="url(#bgG)"/>
+  <!-- D letterform -->
+  <path d="M100 120 h140 c88 0 160 60 160 136 s-72 136-160 136 H100 Z" fill="url(#dG)"/>
+  <!-- Inner cutout -->
+  <path d="M148 172 h90 c52 0 94 36 94 84 s-42 84-94 84 H148 Z" fill="#001e4b"/>
+  <!-- Red speed accent bar -->
+  <rect x="100" y="340" width="300" height="16" rx="8" fill="#e1000f"/>
+  <!-- Red dot accent -->
+  <circle cx="420" cy="120" r="28" fill="#e1000f"/>
+</svg>

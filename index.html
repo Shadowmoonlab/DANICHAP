@@ -8,17 +8,27 @@
 <meta name="keywords" content="repuestos automotrices, Longchamps, Buenos Aires, frenos, Brembo, NGK, Bosch, Liqui-Moly, iluminación, mecánica"/>
 <meta name="author" content="DANICHAP"/>
 <link rel="canonical" href="https://danichap.com.ar/"/>
+<!-- Favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="docs/img/favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="docs/img/favicon-16.png"/>
+<link rel="apple-touch-icon" sizes="180x180" href="docs/img/favicon-180.png"/>
+<link rel="icon" type="image/svg+xml" href="docs/img/danichap-icon.svg"/>
+<meta name="theme-color" content="#001e4b"/>
 <!-- Open Graph -->
 <meta property="og:type"        content="website"/>
 <meta property="og:url"         content="https://danichap.com.ar/"/>
 <meta property="og:title"       content="DANICHAP — Repuestos Automotrices Longchamps"/>
 <meta property="og:description" content="Repuestos automotrices de calidad en Longchamps. Frenos, iluminación, mecánica. Marcas premium. Consultá por WhatsApp."/>
+<meta property="og:image"       content="https://danichap.com.ar/docs/img/favicon-512.png"/>
+<meta property="og:image:width" content="512"/>
+<meta property="og:image:height" content="512"/>
 <meta property="og:locale"      content="es_AR"/>
 <meta property="og:site_name"   content="DANICHAP"/>
 <!-- Twitter Card -->
 <meta name="twitter:card"        content="summary"/>
 <meta name="twitter:title"       content="DANICHAP — Repuestos Automotrices"/>
 <meta name="twitter:description" content="Repuestos automotrices en Longchamps, Buenos Aires. Consultá por WhatsApp."/>
+<meta name="twitter:image"       content="https://danichap.com.ar/docs/img/favicon-512.png"/>
 <!-- Structured Data: LocalBusiness -->
 <script type="application/ld+json">
 {
@@ -61,12 +71,16 @@ tailwind.config = {
   theme: {
     extend: {
       colors: {
-        /* ── Palette v3 — slate-navy + stone ─────────── */
-        "primary":"#1E3A5F",               /* deep navy (text/icons on light) */
-        "primary-container":"#2563EB",     /* main CTA blue */
-        "primary-hi":"#60A5FA",            /* highlight/accent blue */
+        /* ── Palette v4 — logo navy + red ─────────── */
+        "primary":"#001e4b",               /* deep navy del logo */
+        "primary-container":"#0a3270",     /* navy CTA */
+        "primary-hi":"#1a5aaa",            /* highlight azul */
         "on-primary":"#ffffff",
-        "on-primary-container":"#EFF6FF",
+        "on-primary-container":"#dce8ff",
+        /* accent rojo del logo */
+        "accent":"#e1000f",
+        "accent-container":"#ff3322",
+        "on-accent":"#ffffff",
         /* surfaces — warm stone tones */
         "surface":"#F2F0EC",               /* warm stone canvas */
         "surface-container-lowest":"#FAFAF9",
@@ -75,10 +89,10 @@ tailwind.config = {
         "surface-container-high":"#D5D2CB",
         "surface-dim":"#C6C3BB",
         "background":"#F2F0EC",
-        /* dark / inverse — deep navy */
-        "inverse-surface":"#0F172A",
-        "inverse-surface-mid":"#1E293B",
-        "inverse-surface-soft":"#334155",
+        /* dark / inverse — deep navy del logo */
+        "inverse-surface":"#001e4b",
+        "inverse-surface-mid":"#0a2d5e",
+        "inverse-surface-soft":"#1a4080",
         "inverse-on-surface":"#F1F5F9",
         /* text */
         "on-surface":"#111827",
@@ -99,8 +113,8 @@ tailwind.config = {
         "secondary-container":"#ECEAE5",
         "on-secondary-container":"#1F2937",
         "error":"#ba1a1a","on-error":"#ffffff","error-container":"#ffdad6",
-        "inverse-primary":"#60A5FA","surface-tint":"#2563EB",
-        "primary-fixed":"#DBEAFE","on-secondary-fixed":"#111827","surface-bright":"#FAFAF9",
+        "inverse-primary":"#1a5aaa","surface-tint":"#0a3270",
+        "primary-fixed":"#dce8ff","on-secondary-fixed":"#111827","surface-bright":"#FAFAF9",
         "on-secondary":"#ffffff","tertiary-fixed":"#7ffc97","tertiary-fixed-dim":"#62df7d",
         "on-tertiary-fixed":"#002109","on-tertiary-fixed-variant":"#005320",
       },
@@ -127,20 +141,7 @@ tailwind.config = {
   <div class="flex justify-between items-center px-6 py-4 max-w-screen-xl mx-auto">
     <!-- Logo -->
     <a href="index.html" class="flex items-center gap-3 group">
-      <svg class="amber-glow-sm" width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="amberG" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#60A5FA"/>
-            <stop offset="100%" stop-color="#2563EB"/>
-          </linearGradient>
-        </defs>
-        <!-- D shape -->
-        <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(#amberG)"/>
-        <!-- Speed slash cutout -->
-        <path d="M10 28 L28 10" stroke="#F2F0EC" stroke-width="4.5" stroke-linecap="round"/>
-        <!-- Inner hollow -->
-        <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="#F2F0EC" opacity="0.55"/>
-      </svg>
+      <img src="docs/img/danichaplogo.jfif" alt="DANICHAP" width="38" height="38" class="amber-glow-sm rounded-sm object-cover" style="width:38px;height:38px;"/>
       <div class="flex flex-col leading-none">
         <span class="text-xl font-black tracking-[-0.04em] text-on-surface font-headline uppercase">DANICHAP</span>
         <span class="text-[9px] font-bold tracking-[0.22em] uppercase font-label text-primary-container">REPUESTOS · LONGCHAMPS</span>
@@ -910,12 +911,7 @@ tailwind.config = {
   <div class="grid grid-cols-1 md:grid-cols-3 gap-12 px-6 py-16 max-w-screen-xl mx-auto">
     <div>
       <div class="flex items-center gap-3 mb-4">
-        <svg width="30" height="30" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs><linearGradient id="amberGF" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#60A5FA"/><stop offset="100%" stop-color="#2563EB"/></linearGradient></defs>
-          <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(#amberGF)"/>
-          <path d="M10 28 L28 10" stroke="#F2F0EC" stroke-width="4.5" stroke-linecap="round"/>
-          <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="#F2F0EC" opacity="0.55"/>
-        </svg>
+        <img src="docs/img/danichaplogo.jfif" alt="DANICHAP" width="30" height="30" class="rounded-sm object-cover" style="width:30px;height:30px;"/>
         <div class="flex flex-col leading-none">
           <span class="text-lg font-black text-on-surface font-headline tracking-[-0.04em] uppercase">DANICHAP</span>
           <span class="text-[8px] font-bold tracking-[0.2em] uppercase font-label text-primary-container">REPUESTOS · LONGCHAMPS</span>

@@ -9,6 +9,10 @@
 <meta http-equiv="X-Frame-Options" content="DENY"/>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin"/>
 <meta name="robots" content="noindex, nofollow"/>
+<!-- Favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="docs/img/favicon-32.png"/>
+<link rel="icon" type="image/svg+xml" href="docs/img/danichap-icon.svg"/>
+<meta name="theme-color" content="#001e4b"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -19,12 +23,13 @@ tailwind.config = {
   theme: {
     extend: {
       colors: {
-        "primary":"#1E3A5F","primary-container":"#2563EB","primary-hi":"#60A5FA",
-        "on-primary":"#ffffff","on-primary-container":"#EFF6FF",
+        "primary":"#001e4b","primary-container":"#0a3270","primary-hi":"#1a5aaa",
+        "on-primary":"#ffffff","on-primary-container":"#dce8ff",
+        "accent":"#e1000f","accent-container":"#ff3322","on-accent":"#ffffff",
         "surface":"#F2F0EC","surface-container-lowest":"#FAFAF9",
         "surface-container-low":"#ECEAE5","surface-container":"#E2DFD9",
         "surface-container-high":"#D5D2CB","surface-dim":"#C6C3BB",
-        "background":"#F2F0EC","inverse-surface":"#0F172A","inverse-on-surface":"#F1F5F9",
+        "background":"#F2F0EC","inverse-surface":"#001e4b","inverse-on-surface":"#F1F5F9",
         "on-surface":"#111827","secondary":"#4B5563","on-surface-variant":"#6B7280",
         "tertiary":"#1A9850","tertiary-container":"#25D366","on-tertiary-container":"#003b15",
         "outline":"#9CA3AF","outline-variant":"#D1D5DB",
@@ -62,10 +67,10 @@ tailwind.config = {
   #img-preview { display: flex; align-items: center; justify-content: center; }
 
   /* Badge chips */
-  .badge-chip.selected { outline: 2px solid #2563EB; outline-offset: 1px; background: #EFF6FF; }
+  .badge-chip.selected { outline: 2px solid #001e4b; outline-offset: 1px; background: #dce8ff; }
   .badge-chip[data-badge="OFERTA"].selected  { outline-color: #EA580C; background: #FFF7ED; }
   .badge-chip[data-badge="NUEVO"].selected   { outline-color: #16A34A; background: #F0FDF4; }
-  .badge-chip[data-badge="POPULAR"].selected { outline-color: #2563EB; background: #EFF6FF; }
+  .badge-chip[data-badge="POPULAR"].selected { outline-color: #001e4b; background: #dce8ff; }
 </style>
 </head>
 <body class="bg-surface font-body text-on-surface min-h-screen">
@@ -95,12 +100,7 @@ tailwind.config = {
     </a>
     <div class="w-px h-6 bg-outline-variant"></div>
     <div class="flex items-center gap-2">
-      <svg width="22" height="22" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0">
-        <defs><linearGradient id="hg" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#60A5FA"/><stop offset="100%" stop-color="#2563EB"/></linearGradient></defs>
-        <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(#hg)"/>
-        <path d="M10 28 L28 10" stroke="#F2F0EC" stroke-width="4.5" stroke-linecap="round"/>
-        <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="#F2F0EC" opacity="0.55"/>
-      </svg>
+      <img src="docs/img/danichaplogo.jfif" alt="DANICHAP" width="22" height="22" class="rounded-sm object-cover flex-shrink-0" style="width:22px;height:22px;"/>
       <h1 class="font-headline font-black text-sm sm:text-base uppercase text-on-surface tracking-tight">Panel Admin</h1>
     </div>
     <span class="hidden sm:inline text-[10px] font-label uppercase tracking-widest text-primary-container bg-primary-container/10 px-2 py-1 rounded-full border border-primary-container/20">DANICHAP</span>

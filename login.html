@@ -4,6 +4,12 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Ingresar — DANICHAP</title>
+<!-- Favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="docs/img/favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="docs/img/favicon-16.png"/>
+<link rel="apple-touch-icon" sizes="180x180" href="docs/img/favicon-180.png"/>
+<link rel="icon" type="image/svg+xml" href="docs/img/danichap-icon.svg"/>
+<meta name="theme-color" content="#001e4b"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -12,8 +18,9 @@
 tailwind.config = {
   darkMode:"class",
   theme:{extend:{colors:{
-    "primary":"#1E3A5F","primary-container":"#2563EB","primary-hi":"#60A5FA",
-    "on-primary":"#ffffff","on-primary-container":"#EFF6FF",
+    "primary":"#001e4b","primary-container":"#0a3270","primary-hi":"#1a5aaa",
+    "on-primary":"#ffffff","on-primary-container":"#dce8ff",
+    "accent":"#e1000f","accent-container":"#ff3322","on-accent":"#ffffff",
     "surface":"#F2F0EC","surface-container-lowest":"#FAFAF9",
     "surface-container-low":"#ECEAE5","surface-container":"#E2DFD9",
     "on-surface":"#111827","secondary":"#4B5563",
@@ -36,16 +43,7 @@ tailwind.config = {
 <div class="w-full max-w-sm">
   <!-- Logo -->
   <a href="index.html" class="flex items-center justify-center gap-3 mb-10 group">
-    <svg width="36" height="36" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="lg" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#60A5FA"/><stop offset="100%" stop-color="#2563EB"/>
-        </linearGradient>
-      </defs>
-      <path d="M6 5h14c8.284 0 15 6.716 15 15s-6.716 15-15 15H6V5z" fill="url(#lg)"/>
-      <path d="M10 28 L28 10" stroke="#F2F0EC" stroke-width="4.5" stroke-linecap="round"/>
-      <path d="M10 9h9c6.075 0 11 4.925 11 11s-4.925 11-11 11H10V9z" fill="#F2F0EC" opacity="0.55"/>
-    </svg>
+    <img src="docs/img/danichaplogo.jfif" alt="DANICHAP" width="36" height="36" class="amber-glow-sm rounded-sm object-cover" style="width:36px;height:36px;"/>
     <div class="leading-none">
       <span class="block font-headline font-black text-xl uppercase tracking-tight text-on-surface">DANICHAP</span>
       <span class="block text-[9px] font-bold tracking-[0.2em] uppercase font-label text-primary-container">REPUESTOS · LONGCHAMPS</span>
