@@ -730,19 +730,9 @@
     };
 
     const isEditing = Boolean(editingId);
-    let { error } = isEditing
+    const { error } = isEditing
       ? await Productos.update(editingId, payload)
       : await Productos.create(payload);
-
-    // Retry without columns that may not exist yet in DB schema
-    if (error && error.message && error.message.includes('schema cache')) {
-      const { imagenes: _ig, stock_cantidad: _sc, ...safePayload } = payload;
-      const retry = isEditing
-        ? await Productos.update(editingId, safePayload)
-        : await Productos.create(safePayload);
-      error = retry.error;
-      if (!retry.error) console.warn('[admin] Saved without imagenes/stock_cantidad — run migration SQL');
-    }
 
     btn.innerHTML = orig; btn.disabled = false;
 
@@ -839,12 +829,7 @@
       stock:          orig.stock         ?? true,
     };
     try {
-      let { error } = await Productos.create(payload);
-      if (error && error.message?.includes('schema cache')) {
-        const { imagenes: _ig, stock_cantidad: _sc, ...safePayload } = payload;
-        const retry = await Productos.create(safePayload);
-        error = retry.error;
-      }
+      const { error } = await Productos.create(payload);
       if (error) { showToast('Error al duplicar: ' + error.message, 'error'); return; }
       showToast('Producto duplicado — editalo para ajustar los cambios');
       await loadProductos();
