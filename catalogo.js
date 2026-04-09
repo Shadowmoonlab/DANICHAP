@@ -407,46 +407,54 @@ document.addEventListener('DOMContentLoaded', async () => {
   const loadingEl = document.getElementById('catalogo-loading');
   const gridEl    = document.getElementById('productos-grid');
 
-  // Cargar productos desde Supabase. Merge con compatibilidades estáticas por nombre.
+  // Cargar productos desde Supabase. Merge: DB overrides/agrega a estáticos por nombre.
+  // Los productos estáticos se mantienen como base — los de DB los reemplazan si coinciden
+  // o se agregan como nuevos. Esto evita que un producto de prueba vacíe el catálogo.
   try {
     if (typeof Productos !== 'undefined') {
-      const { data: dbProds } = await Productos.list();
+      const { data: dbProds, error: dbErr } = await Productos.list();
+      if (dbErr) console.warn('Catalogo DB error:', dbErr.message);
       if (dbProds && dbProds.length > 0) {
-        // Índice de compatibilidades estáticas por nombre (lowercase) para merge
-        const staticIndex = {};
-        PRODUCTOS.forEach(p => {
-          staticIndex[p.nombre.toLowerCase()] = p.compatibilidades || ['Universal'];
-        });
+        // Índice por nombre lowercase para merge bidireccional
+        const staticByName = {};
+        PRODUCTOS.forEach(p => { staticByName[p.nombre.toLowerCase()] = p; });
 
-        const normalizados = dbProds.map(p => ({
-          id: p.id,
-          nombre: p.nombre,
-          categoria: p.categoria,
-          sub: p.subcategoria || '',
-          marca_rep: p.marca_rep || '',
-          precio: p.precio ? Number(p.precio) : null,
-          precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
-          imagen_url: p.imagen_url || null,
-          imagenes: Array.isArray(p.imagenes) ? p.imagenes : [],
-          badge: p.badge || null,
-          destacado: p.destacado || false,
-          stock: p.stock !== false,
-          stock_cantidad: p.stock_cantidad ?? null,
-          descripcion: p.descripcion || null,
-          // Preservar compatibilidades estáticas si el nombre coincide, si no Universal
-          compatibilidades: staticIndex[p.nombre.toLowerCase()] || ['Universal'],
-          _fromDB: true,
-        }));
+        const dbNormalizados = dbProds
+          .filter(p => p.nombre && p.nombre.trim() && !p.nombre.toLowerCase().includes('(copia)'))
+          .map(p => {
+            const staticMatch = staticByName[p.nombre.toLowerCase()];
+            return {
+              id: p.id,
+              nombre: p.nombre,
+              categoria: p.categoria,
+              sub: p.subcategoria || '',
+              marca_rep: p.marca_rep || '',
+              precio: p.precio ? Number(p.precio) : null,
+              precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
+              imagen_url: p.imagen_url || null,
+              imagenes: Array.isArray(p.imagenes) ? p.imagenes : [],
+              badge: p.badge || null,
+              destacado: p.destacado || false,
+              stock: p.stock !== false,
+              stock_cantidad: p.stock_cantidad ?? null,
+              descripcion: p.descripcion || null,
+              compatibilidades: staticMatch?.compatibilidades || ['Universal'],
+              _fromDB: true,
+            };
+          });
 
+        // Merge: estáticos que NO están en DB se mantienen; los de DB reemplazan o se agregan
+        const dbNames = new Set(dbNormalizados.map(p => p.nombre.toLowerCase()));
+        const estaticosRestantes = PRODUCTOS.filter(p => !dbNames.has(p.nombre.toLowerCase()));
         PRODUCTOS.length = 0;
-        normalizados.forEach(p => PRODUCTOS.push(p));
+        [...dbNormalizados, ...estaticosRestantes].forEach(p => PRODUCTOS.push(p));
       }
     }
   } catch(e) { console.warn('Catalogo: no se pudo cargar desde Supabase, usando datos estáticos', e); }
 
-  // Ocultar loading, mostrar grid
-  if (loadingEl) loadingEl.classList.add('hidden');
-  if (gridEl) gridEl.classList.remove('hidden');
+  // Ocultar loading, mostrar grid (usar style.display — no classList, evita conflicto con Tailwind hidden+grid)
+  if (loadingEl) loadingEl.style.display = 'none';
+  if (gridEl) gridEl.style.display = '';
 
   renderProductos();
 });
