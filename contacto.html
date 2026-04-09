@@ -7,7 +7,10 @@
 <meta name="description" content="Contactá DANICHAP Repuestos. Av. Hipólito Yrigoyen 19608, Longchamps, Buenos Aires. WhatsApp: 011 7520-0352. Lunes a viernes 8 a 18 hs, sábados 8 a 13 hs."/>
 <meta name="keywords" content="contacto DANICHAP, repuestos Longchamps, dirección, WhatsApp repuestos"/>
 <meta name="author" content="DANICHAP"/>
+<meta name="robots" content="index, follow"/>
+<meta name="geo.region" content="AR-B"/>
 <link rel="canonical" href="https://danichap.com.ar/contacto.html"/>
+<link rel="sitemap" type="application/xml" href="sitemap.xml"/>
 <!-- Favicons -->
 <link rel="icon" type="image/png" sizes="32x32" href="docs/img/favicon-32.png"/>
 <link rel="icon" type="image/png" sizes="16x16" href="docs/img/favicon-16.png"/>
@@ -52,8 +55,10 @@
 }
 </script>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0..1&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="shared.css"/>
 <script id="tailwind-config">
 tailwind.config = {
@@ -95,72 +100,79 @@ tailwind.config = {
 <script src="nav.js" defer></script>
 </head>
 <body class="bg-surface font-body text-on-surface">
+<a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
 <!-- ═══ NAV ═══════════════════════════════════════════════════════════════ -->
-<nav class="fixed top-0 w-full z-50 bg-surface/95 backdrop-blur-md shadow-sm border-b border-outline-variant">
+<nav class="fixed top-0 w-full z-50 bg-surface/95 backdrop-blur-md shadow-sm border-b border-outline-variant" aria-label="Navegación principal">
   <div class="flex justify-between items-center px-6 py-4 max-w-screen-xl mx-auto">
-    <a href="index.html" class="flex items-center gap-3 group">
-      <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="38" height="38" class="amber-glow-sm rounded-sm object-contain" style="width:38px;height:38px;"/>
-      <div class="flex flex-col leading-none">
+    <a href="index.html" class="flex items-center gap-3 group" aria-label="DANICHAP — Inicio">
+      <img src="docs/img/danichaplogo-transparent.png" alt="" width="38" height="38" class="amber-glow-sm rounded-sm object-contain" style="width:38px;height:38px;" aria-hidden="true"/>
+      <div class="flex flex-col leading-none" aria-hidden="true">
         <span class="text-xl font-black tracking-[-0.04em] text-on-surface font-headline uppercase">DANICHAP</span>
         <span class="text-[9px] font-bold tracking-[0.22em] uppercase font-label text-primary-container">REPUESTOS · LONGCHAMPS</span>
       </div>
     </a>
-    <div class="hidden md:flex gap-8 items-center font-headline uppercase tracking-tight text-sm font-bold">
-      <a href="index.html" class="text-secondary hover:text-on-surface transition-colors">Inicio</a>
-      <a href="catalogo.html" class="text-secondary hover:text-on-surface transition-colors">Catálogo</a>
-      <a href="contacto.html" class="text-primary-container border-b-2 border-primary-container pb-1">Contacto</a>
+    <div class="hidden md:flex gap-8 items-center font-headline uppercase tracking-tight text-sm font-bold" role="list">
+      <a href="index.html" class="text-secondary hover:text-on-surface transition-colors" role="listitem">Inicio</a>
+      <a href="catalogo.html" class="text-secondary hover:text-on-surface transition-colors" role="listitem">Catálogo</a>
+      <a href="contacto.html" class="text-primary-container border-b-2 border-primary-container pb-1" aria-current="page" role="listitem">Contacto</a>
     </div>
     <div id="nav-actions" class="flex items-center gap-2">
-      <button id="cart-nav-btn" class="relative p-2 rounded-lg hover:bg-surface-container transition-colors text-on-surface" title="Carrito">
-        <span class="material-symbols-outlined text-xl">shopping_cart</span>
+      <button id="cart-nav-btn" class="relative p-2 rounded-lg hover:bg-surface-container transition-colors text-on-surface" aria-label="Ver carrito de compras">
+        <span class="material-symbols-outlined text-xl" aria-hidden="true">shopping_cart</span>
         <span id="cart-badge" class="hidden absolute -top-1 -right-1 bg-primary-container text-white text-[10px] font-black w-5 h-5 rounded-full items-center justify-center font-label">0</span>
       </button>
-      <button id="nav-login-btn" class="hidden md:flex items-center gap-2 border border-primary-container text-primary-container px-4 py-2 rounded-xl font-bold text-sm hover:bg-primary-container/10 transition-colors font-headline uppercase">
-        <span class="material-symbols-outlined text-sm">person</span>
+      <button id="nav-login-btn" class="hidden md:flex items-center gap-2 border border-primary-container text-primary-container px-4 py-2 rounded-xl font-bold text-sm hover:bg-primary-container/10 transition-colors font-headline uppercase" aria-label="Ingresar a tu cuenta">
+        <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
         Ingresar
       </button>
       <div id="nav-user-btn" class="hidden items-center gap-2 relative group">
-        <button class="flex items-center gap-2 border border-outline-variant px-3 py-2 rounded-xl font-bold text-sm text-on-surface hover:bg-surface-container transition-colors font-headline uppercase">
-          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">account_circle</span>
+        <button class="flex items-center gap-2 border border-outline-variant px-3 py-2 rounded-xl font-bold text-sm text-on-surface hover:bg-surface-container transition-colors font-headline uppercase" aria-haspopup="true" aria-expanded="false">
+          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;" aria-hidden="true">account_circle</span>
           <span id="nav-user-label" class="max-w-[100px] truncate">Mi cuenta</span>
         </button>
-        <div class="absolute top-full right-0 mt-1 bg-surface border border-outline-variant rounded-xl shadow-lg py-1.5 w-44 hidden group-hover:block z-50">
-          <a id="nav-admin-link" href="admin.html" class="hidden items-center gap-2 px-4 py-2.5 text-sm text-primary-container font-bold hover:bg-surface-container-low transition-colors font-headline uppercase">
-            <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">admin_panel_settings</span>Admin
+        <div class="absolute top-full right-0 mt-1 bg-surface border border-outline-variant rounded-xl shadow-lg py-1.5 w-44 hidden group-hover:block z-50" role="menu">
+          <a id="nav-admin-link" href="admin.html" class="hidden items-center gap-2 px-4 py-2.5 text-sm text-primary-container font-bold hover:bg-surface-container-low transition-colors font-headline uppercase" role="menuitem">
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;" aria-hidden="true">admin_panel_settings</span>Admin
           </a>
-          <button id="nav-logout-btn" class="flex items-center gap-2 px-4 py-2.5 text-sm text-secondary hover:text-error hover:bg-surface-container-low transition-colors font-body w-full text-left">
-            <span class="material-symbols-outlined text-sm">logout</span>Cerrar sesión
+          <button id="nav-logout-btn" class="flex items-center gap-2 px-4 py-2.5 text-sm text-secondary hover:text-error hover:bg-surface-container-low transition-colors font-body w-full text-left" role="menuitem">
+            <span class="material-symbols-outlined text-sm" aria-hidden="true">logout</span>Cerrar sesión
           </button>
         </div>
       </div>
-      <a href="https://wa.me/541175200352?text=Hola%20Danichap!%20Quiero%20consultar%20por%20un%20repuesto." target="_blank"
-         class="hidden md:flex items-center gap-2 bg-tertiary-container text-on-tertiary-container px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-tertiary transition-colors font-headline uppercase">
-        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>WhatsApp
+      <a href="https://wa.me/541175200352?text=Hola%20Danichap!%20Quiero%20consultar%20por%20un%20repuesto." target="_blank" rel="noopener noreferrer"
+         class="hidden md:flex items-center gap-2 bg-tertiary-container text-on-tertiary-container px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-tertiary transition-colors font-headline uppercase"
+         aria-label="Contactar por WhatsApp (abre en nueva pestaña)">
+        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;" aria-hidden="true">chat</span>WhatsApp
       </a>
-      <button id="mobile-menu-btn" class="md:hidden text-on-surface p-2 rounded-lg hover:bg-surface-container transition-colors">
-        <span class="material-symbols-outlined text-2xl" id="menu-icon">menu</span>
+      <button id="mobile-menu-btn" class="md:hidden text-on-surface p-2 rounded-lg hover:bg-surface-container transition-colors"
+        aria-label="Abrir menú de navegación" aria-expanded="false" aria-controls="mobile-menu">
+        <span class="material-symbols-outlined text-2xl" id="menu-icon" aria-hidden="true">menu</span>
       </button>
     </div>
   </div>
-  <div id="mobile-menu" class="hidden md:hidden border-t border-outline-variant bg-surface">
+  <div id="mobile-menu" class="hidden md:hidden border-t border-outline-variant bg-surface" role="navigation" aria-label="Menú móvil">
     <div class="flex flex-col px-6 py-4 gap-1">
       <a href="index.html" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Inicio</a>
       <a href="catalogo.html" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Catálogo</a>
-      <a href="contacto.html" class="py-3 text-primary-container font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Contacto</a>
+      <a href="contacto.html" class="py-3 text-primary-container font-bold font-headline uppercase text-sm tracking-wide border-b border-outline-variant flex items-center gap-2" aria-current="page">
+        <span class="w-1.5 h-1.5 rounded-full bg-primary-container flex-shrink-0"></span>Contacto</a>
       <button id="nav-login-btn-mobile"
-        class="mt-2 flex items-center justify-center gap-2 border border-primary-container text-primary-container py-3 rounded-xl font-bold font-headline uppercase text-sm hover:bg-primary-container/10 transition-colors">
-        <span class="material-symbols-outlined text-sm">person</span>Ingresar
+        class="mt-2 flex items-center justify-center gap-2 border border-primary-container text-primary-container py-3 rounded-xl font-bold font-headline uppercase text-sm hover:bg-primary-container/10 transition-colors"
+        aria-label="Ingresar a tu cuenta">
+        <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>Ingresar
       </button>
-      <a href="https://wa.me/541175200352" target="_blank"
-         class="mt-2 flex items-center justify-center gap-2 bg-tertiary-container text-on-tertiary-container py-3 rounded-xl font-bold font-headline uppercase text-sm">
-        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>WhatsApp
+      <a href="https://wa.me/541175200352" target="_blank" rel="noopener noreferrer"
+         class="mt-2 flex items-center justify-center gap-2 bg-tertiary-container text-on-tertiary-container py-3 rounded-xl font-bold font-headline uppercase text-sm"
+         aria-label="Contactar por WhatsApp">
+        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;" aria-hidden="true">chat</span>WhatsApp
       </a>
     </div>
   </div>
 </nav>
 
 <!-- ═══ HERO CONTACTO ════════════════════════════════════════════════════════ -->
+<main id="main-content">
 <section class="pt-32 pb-16 bg-surface-container-low border-b border-outline-variant relative overflow-hidden">
   <div class="absolute inset-0 technical-grid opacity-10"></div>
   <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
@@ -182,7 +194,7 @@ tailwind.config = {
 
       <!-- WhatsApp CTA principal -->
       <a href="https://wa.me/541175200352?text=Hola%20Danichap!%20Quisiera%20consultar%20por%20un%20repuesto."
-         target="_blank"
+         target="_blank" rel="noopener noreferrer"
          class="flex items-center gap-4 bg-tertiary-container text-on-tertiary-container p-5 rounded-xl mb-8 hover:bg-tertiary transition-colors group">
         <div class="w-12 h-12 rounded-full bg-on-tertiary-container/20 flex items-center justify-center flex-shrink-0">
           <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">chat</span>
@@ -229,7 +241,7 @@ tailwind.config = {
           </div>
           <div>
             <p class="font-headline font-bold text-sm uppercase tracking-wide mb-1">Instagram</p>
-            <a href="https://www.instagram.com/danichap.arg/" target="_blank"
+            <a href="https://www.instagram.com/danichap.arg/" target="_blank" rel="noopener noreferrer"
                class="font-body text-primary-container hover:underline text-sm">@danichap.arg</a>
           </div>
         </li>
@@ -247,7 +259,7 @@ tailwind.config = {
         </iframe>
         <!-- Overlay con link a Google Maps -->
         <a href="https://maps.google.com/?q=Av.+Hip%C3%B3lito+Yrigoyen+19608+Longchamps+Buenos+Aires"
-           target="_blank"
+           target="_blank" rel="noopener noreferrer"
            class="absolute bottom-4 right-4 bg-surface/90 backdrop-blur-sm border border-outline-variant text-on-surface px-3 py-2 rounded-xl text-xs font-bold font-label uppercase flex items-center gap-1.5 hover:bg-primary-container hover:text-white transition-colors shadow">
           <span class="material-symbols-outlined text-sm">open_in_new</span>
           Ver en Google Maps
@@ -380,7 +392,7 @@ tailwind.config = {
           Trabajamos con marcas premium como Brembo, NGK, Bosch, Gates, Monroe, Valeo y Liqui-Moly, además de alternativas de calidad para todos los presupuestos. Nuestro objetivo es que tu auto funcione bien y que vos quedes tranquilo.
         </p>
         <a href="https://wa.me/541175200352?text=Hola%20Danichap!%20Quiero%20conocer%20m%C3%A1s%20sobre%20sus%20productos."
-           target="_blank"
+           target="_blank" rel="noopener noreferrer"
            class="inline-flex items-center gap-2 bg-primary-container text-white px-6 py-3 rounded-xl font-bold font-headline uppercase text-sm hover:opacity-90 transition-opacity">
           <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">chat</span>
           Consultanos hoy
@@ -480,6 +492,7 @@ tailwind.config = {
   </div>
 </section>
 
+</main>
 <!-- ═══ FOOTER ═══════════════════════════════════════════════════════════════ -->
 <footer class="bg-inverse-surface text-white border-t border-inverse-surface-mid">
   <div class="grid grid-cols-1 md:grid-cols-3 gap-12 px-6 md:px-12 py-16 max-w-screen-xl mx-auto">
@@ -492,7 +505,7 @@ tailwind.config = {
         </div>
       </div>
       <p class="text-inverse-on-surface/70 text-sm leading-relaxed mb-6 max-w-xs">Líderes en repuestos y accesorios multimarca con el mejor asesoramiento técnico de la zona sur.</p>
-      <a href="https://www.instagram.com/danichap.arg/" target="_blank"
+      <a href="https://www.instagram.com/danichap.arg/" target="_blank" rel="noopener noreferrer"
          class="inline-flex items-center gap-2 w-10 h-10 rounded-lg bg-white/10 hover:bg-primary-container transition-colors justify-center">
         <span class="material-symbols-outlined text-sm">photo_camera</span>
       </a>
@@ -521,13 +534,13 @@ tailwind.config = {
         <li><a href="catalogo.html" class="hover:text-white transition-colors">Catálogo</a></li>
         <li><a href="contacto.html#nosotros" class="hover:text-white transition-colors">Nosotros</a></li>
         <li><a href="contacto.html" class="hover:text-white transition-colors">Contacto</a></li>
-        <li><a href="https://wa.me/541175200352" target="_blank" class="hover:text-white transition-colors">WhatsApp</a></li>
-        <li><a href="https://www.instagram.com/danichap.arg/" target="_blank" class="hover:text-white transition-colors">Instagram</a></li>
+        <li><a href="https://wa.me/541175200352" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">WhatsApp</a></li>
+        <li><a href="https://www.instagram.com/danichap.arg/" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Instagram</a></li>
       </ul>
     </div>
   </div>
   <div class="border-t border-white/10 pb-24 px-6 flex flex-col items-center gap-1.5 text-center" style="background:linear-gradient(to bottom,transparent,rgba(0,30,75,0.04));padding-top:20px;">
-    <a href="https://www.manadigital.website" target="_blank" rel="noopener"
+    <a href="https://www.manadigital.website" target="_blank" rel="noopener noreferrer"
        class="font-headline font-bold text-xs uppercase tracking-[0.18em] hover:opacity-60 transition-opacity"
        style="color:#e1000f;">MANADIGITAL</a>
     <p class="text-[10px] text-inverse-on-surface/40 font-label uppercase tracking-widest">Diseño &amp; Desarrollo Web</p>
@@ -537,7 +550,7 @@ tailwind.config = {
 
 <!-- ═══ FAB WhatsApp ══════════════════════════════════════════════════════════ -->
 <a href="https://wa.me/541175200352?text=Hola%20Danichap!%20Quisiera%20consultar%20por%20un%20repuesto."
-   target="_blank"
+   target="_blank" rel="noopener noreferrer"
    class="wpp-fab fixed bottom-8 right-8 z-[100] bg-tertiary-container text-on-tertiary-container p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-transform active:scale-95 promo-pulse">
   <span class="material-symbols-outlined text-3xl" style="font-variation-settings:'FILL' 1;">chat</span>
   <span class="wpp-fab-label font-bold font-label text-sm uppercase tracking-wider">Consultar</span>

@@ -3,673 +3,462 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Guía de Usuario — DANICHAP</title>
+<title>Guía de Funcionalidades — DANICHAP Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --navy: #001e4b;
-    --navy-mid: #0a3270;
+    --navy:    #001e4b;
+    --navy-m:  #0a3270;
     --navy-hi: #1a5aaa;
-    --red: #e1000f;
-    --green: #25D366;
+    --red:     #e1000f;
+    --green:   #25D366;
+    --green-d: #166534;
     --surface: #F2F0EC;
-    --text: #111827;
-    --muted: #4B5563;
-    --border: #D1D5DB;
+    --text:    #111827;
+    --muted:   #4B5563;
+    --border:  #D1D5DB;
+    --low:     #ECEAE5;
   }
 
   html { font-size: 11pt; }
-  body {
-    font-family: 'Inter', system-ui, sans-serif;
-    color: var(--text);
-    background: white;
-    line-height: 1.55;
-  }
+  body { font-family: 'Inter', system-ui, sans-serif; color: var(--text); background: white; line-height: 1.5; }
 
-  /* ── Page layout ── */
+  /* ── Page ── */
   .page {
     width: 210mm;
     min-height: 297mm;
     margin: 0 auto;
-    padding: 14mm 16mm 12mm;
+    padding: 13mm 15mm 14mm;
     position: relative;
     page-break-after: always;
     background: white;
-    overflow: hidden;
   }
   .page:last-child { page-break-after: auto; }
 
   /* ── Header ── */
-  .page-header {
+  .ph {
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: 2.5px solid var(--navy);
     padding-bottom: 8px;
-    margin-bottom: 14px;
+    margin-bottom: 13px;
   }
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .brand-logo {
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
-  }
-  .brand-text { line-height: 1.1; }
-  .brand-name {
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand img { width: 36px; height: 36px; object-fit: contain; }
+  .brand-name { font-family: 'Space Grotesk', sans-serif; font-weight: 900; font-size: 16pt; color: var(--navy); letter-spacing: -0.03em; text-transform: uppercase; line-height: 1; }
+  .brand-sub  { font-size: 6.5pt; font-weight: 600; color: var(--navy-m); letter-spacing: 0.2em; text-transform: uppercase; }
+  .ph-right { text-align: right; font-size: 7pt; color: var(--muted); line-height: 1.5; }
+  .ph-right strong { color: var(--red); }
+
+  /* ── Section ── */
+  .sec-title {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 900;
-    font-size: 16pt;
-    color: var(--navy);
-    letter-spacing: -0.03em;
-    text-transform: uppercase;
-  }
-  .brand-sub {
-    font-size: 6.5pt;
-    font-weight: 600;
-    color: var(--navy-mid);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-  }
-  .page-label {
-    font-size: 7pt;
-    font-weight: 600;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    text-align: right;
-    line-height: 1.4;
-  }
-  .page-label strong { color: var(--red); }
-
-  /* ── Section headings ── */
-  .section-title {
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 900;
-    font-size: 13pt;
+    font-size: 11.5pt;
     color: var(--navy);
     text-transform: uppercase;
-    letter-spacing: -0.02em;
-    margin-bottom: 10px;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
   }
-  .section-title .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--red);
-    flex-shrink: 0;
-  }
-  .section-title .num {
-    font-size: 10pt;
-    color: var(--navy-hi);
-    font-weight: 700;
-  }
+  .sec-title .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
+  .sec-title .num { font-size: 9pt; color: var(--navy-hi); font-weight: 700; }
 
-  /* ── Cards ── */
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  hr.div { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+
+  /* ── Cards / grid ── */
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; margin-bottom: 10px; }
+  .g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+
   .card {
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
+    border-radius: 7px;
+    padding: 9px 11px;
     background: #FAFAF9;
   }
-  .card-navy {
-    border-left: 3px solid var(--navy);
-  }
-  .card-red {
-    border-left: 3px solid var(--red);
-  }
-  .card-green {
-    border-left: 3px solid var(--green);
-  }
+  .card.navy { border-left: 3px solid var(--navy); }
+  .card.red  { border-left: 3px solid var(--red); }
+  .card.green { border-left: 3px solid var(--green); }
   .card h4 {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    font-size: 9.5pt;
+    font-size: 8.5pt;
     color: var(--navy);
     text-transform: uppercase;
     letter-spacing: 0.02em;
     margin-bottom: 5px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
   }
-  .card h4 .icon {
-    font-size: 13px;
-    opacity: 0.7;
-  }
-  .card p, .card li {
-    font-size: 8.5pt;
-    color: var(--muted);
-    line-height: 1.5;
-  }
-  .card ul { padding-left: 14px; }
-  .card ul li { margin-bottom: 2px; }
+  .card p, .card li { font-size: 8pt; color: var(--muted); line-height: 1.5; }
+  .card ul { padding-left: 13px; }
+  .card ul li { margin-bottom: 1.5px; }
 
   /* ── Steps ── */
-  .steps { display: flex; gap: 0; margin-bottom: 12px; }
-  .step {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    position: relative;
-  }
-  .step:not(:last-child)::after {
-    content: '→';
-    position: absolute;
-    right: -8px;
-    top: 10px;
-    color: var(--navy-hi);
-    font-size: 10pt;
-    font-weight: 700;
-  }
-  .step-num {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: var(--navy);
-    color: white;
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 900;
-    font-size: 9pt;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 5px;
-    flex-shrink: 0;
-  }
-  .step-label {
-    font-size: 7.5pt;
-    font-weight: 600;
-    color: var(--navy);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    line-height: 1.3;
-  }
-  .step-sub {
-    font-size: 7pt;
-    color: var(--muted);
-    margin-top: 2px;
-    line-height: 1.3;
-  }
+  .steps { display: flex; gap: 0; margin-bottom: 10px; }
+  .step { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; }
+  .step:not(:last-child)::after { content: '→'; position: absolute; right: -7px; top: 8px; color: var(--navy-hi); font-size: 9pt; font-weight: 700; }
+  .step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: white; font-family: 'Space Grotesk', sans-serif; font-weight: 900; font-size: 8pt; display: flex; align-items: center; justify-content: center; margin-bottom: 4px; flex-shrink: 0; }
+  .step-l { font-size: 7.5pt; font-weight: 600; color: var(--navy); text-transform: uppercase; letter-spacing: 0.02em; line-height: 1.3; }
+  .step-s { font-size: 7pt; color: var(--muted); margin-top: 1px; line-height: 1.3; }
 
   /* ── Info strip ── */
-  .info-strip {
+  .strip {
     background: var(--navy);
     color: white;
-    border-radius: 8px;
-    padding: 10px 14px;
+    border-radius: 7px;
+    padding: 9px 13px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-    font-size: 8.5pt;
-  }
-  .info-strip strong { font-weight: 700; font-size: 9.5pt; }
-  .info-strip .icon-wrap {
-    font-size: 18px;
-    opacity: 0.9;
-    flex-shrink: 0;
-  }
-
-  /* ── Category grid ── */
-  .cat-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    margin-bottom: 12px;
-  }
-  .cat-item {
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 7px 6px;
-    text-align: center;
-    background: #FAFAF9;
-  }
-  .cat-item .cat-icon { font-size: 16px; display: block; margin-bottom: 3px; }
-  .cat-item .cat-label {
-    font-size: 7pt;
-    font-weight: 600;
-    color: var(--navy);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    line-height: 1.2;
-  }
-
-  /* ── Highlight box ── */
-  .highlight {
-    background: #EFF6FF;
-    border: 1px solid #BFDBFE;
-    border-radius: 8px;
-    padding: 9px 12px;
+    gap: 11px;
     margin-bottom: 10px;
-    font-size: 8.5pt;
-    color: var(--navy-mid);
-    line-height: 1.5;
+    font-size: 8pt;
+    line-height: 1.45;
   }
-  .highlight strong { color: var(--navy); }
+  .strip .ico { font-size: 18px; flex-shrink: 0; }
+  .strip strong { font-weight: 700; font-size: 9pt; display: block; margin-bottom: 1px; }
 
-  /* ── WA box ── */
-  .wa-box {
-    background: #F0FDF4;
-    border: 1.5px solid #86EFAC;
-    border-radius: 8px;
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 10px;
-  }
-  .wa-circle {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: var(--green);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 16px;
-    color: white;
-  }
-  .wa-content { flex: 1; }
-  .wa-content strong {
-    font-size: 9pt;
-    font-weight: 700;
-    color: #14532D;
-    display: block;
-    margin-bottom: 2px;
-  }
-  .wa-content p {
-    font-size: 7.5pt;
-    color: #166534;
-    line-height: 1.4;
-  }
+  /* ── Pill ── */
+  .pill { display: inline-flex; align-items: center; gap: 2px; font-size: 7pt; font-weight: 700; padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .pn { background: rgba(0,30,75,0.08); color: var(--navy); border: 1px solid rgba(0,30,75,0.2); }
+  .pr { background: rgba(225,0,15,0.07); color: var(--red); border: 1px solid rgba(225,0,15,0.2); }
+  .pg { background: rgba(37,211,102,0.1); color: var(--green-d); border: 1px solid rgba(37,211,102,0.3); }
 
-  /* ── Divider ── */
-  .divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 11px 0;
-  }
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 7.5pt; margin-bottom: 10px; }
+  th { background: var(--low); color: var(--navy); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 5px 8px; border: 1px solid var(--border); text-align: left; font-size: 6.5pt; }
+  td { padding: 5px 8px; border: 1px solid var(--border); color: var(--muted); vertical-align: top; }
+  tr:nth-child(even) td { background: #FAFAF9; }
+
+  /* ── Highlight ── */
+  .hl { background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 7px; padding: 8px 11px; margin-bottom: 9px; font-size: 8pt; color: var(--navy-m); line-height: 1.5; }
+  .hl strong { color: var(--navy); }
+
+  /* ── Warning ── */
+  .warn { background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 7px; padding: 7px 11px; margin-bottom: 9px; font-size: 8pt; color: #92400E; }
+  .warn strong { color: #78350F; }
 
   /* ── Footer ── */
-  .page-footer {
-    position: absolute;
-    bottom: 10mm;
-    left: 16mm;
-    right: 16mm;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-top: 1px solid var(--border);
-    padding-top: 6px;
-  }
-  .page-footer p {
-    font-size: 7pt;
-    color: var(--muted);
-    letter-spacing: 0.05em;
-  }
-  .page-footer .page-num {
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 700;
-    font-size: 8pt;
-    color: var(--navy);
-  }
+  .pf { position: absolute; bottom: 9mm; left: 15mm; right: 15mm; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 5px; }
+  .pf p { font-size: 6.5pt; color: var(--muted); }
+  .pf .pn2 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 8pt; color: var(--navy); }
 
-  /* ── Badge pill ── */
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 7pt;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 20px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .pill-navy { background: rgba(0,30,75,0.08); color: var(--navy); border: 1px solid rgba(0,30,75,0.2); }
-  .pill-red  { background: rgba(225,0,15,0.07); color: var(--red); border: 1px solid rgba(225,0,15,0.2); }
-  .pill-green { background: rgba(37,211,102,0.1); color: #14532D; border: 1px solid rgba(37,211,102,0.3); }
+  /* ── Kbd ── */
+  kbd { font-family: monospace; font-size: 7.5pt; background: var(--low); border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; color: var(--navy); }
 
   /* ── Print ── */
   @media print {
     @page { size: A4; margin: 0; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .page { page-break-after: always; margin: 0; }
+    .page { margin: 0; page-break-after: always; }
   }
   @media screen {
-    body { background: #e8e8e8; }
-    .page { margin: 20px auto; box-shadow: 0 4px 40px rgba(0,0,0,.15); }
+    body { background: #e0e0e0; }
+    .page { margin: 20px auto; box-shadow: 0 4px 40px rgba(0,0,0,.18); }
   }
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════════════════
-     PÁGINA 1 — Catálogo, Filtros, Carrito y WhatsApp
-═══════════════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════
+     PÁGINA 1 — Panel Admin: acceso, productos, imágenes
+═══════════════════════════════════════════════════════════ -->
 <div class="page">
 
-  <!-- HEADER -->
-  <header class="page-header">
+  <header class="ph">
     <div class="brand">
-      <img src="../docs/img/danichaplogo-transparent.png" alt="DANICHAP" class="brand-logo"/>
-      <div class="brand-text">
+      <img src="../docs/img/danichaplogo-transparent.png" alt="DANICHAP"/>
+      <div>
         <div class="brand-name">DANICHAP</div>
-        <div class="brand-sub">Repuestos · Longchamps, Zona Sur</div>
+        <div class="brand-sub">Panel de Administración</div>
       </div>
     </div>
-    <div class="page-label">
-      <strong>Guía de Usuario</strong><br/>
-      danichap.com.ar · 011 7520-0352
+    <div class="ph-right">
+      <strong>Guía de Funcionalidades</strong><br/>
+      danichap.com.ar · Admin interno
     </div>
   </header>
 
-  <!-- INTRO STRIP -->
-  <div class="info-strip">
-    <div class="icon-wrap">🔧</div>
+  <!-- Intro -->
+  <div class="strip">
+    <span class="ico">⚙️</span>
     <div>
-      <strong>¿Cómo usar la web de DANICHAP?</strong><br/>
-      Esta guía te explica en 2 páginas todas las funciones disponibles: catálogo, filtros, consulta por WhatsApp y más.
+      <strong>¿Para quién es esta guía?</strong>
+      Esta guía explica cómo usar el panel de administración de DANICHAP para gestionar productos, subir fotos, controlar stock y publicar en el catálogo. Solo usuarios con acceso admin pueden ingresar.
     </div>
   </div>
 
-  <!-- SECCIÓN 1 — CATÁLOGO -->
-  <div class="section-title"><span class="dot"></span><span class="num">01</span> El Catálogo de Repuestos</div>
+  <!-- 01 Acceso al admin -->
+  <div class="sec-title"><span class="dot"></span><span class="num">01</span> Cómo Acceder al Panel Admin</div>
 
-  <div class="highlight">
-    <strong>Acceso:</strong> Desde la página principal hacé clic en <em>"Ver Catálogo"</em> o entrá directamente a <strong>danichap.com.ar/catalogo.html</strong>. Encontrarás más de 10.000 referencias de repuestos multimarca organizadas por categoría.
+  <div class="steps" style="margin-bottom:8px;">
+    <div class="step"><div class="step-n">1</div><div class="step-l">Ir a<br/>login.html</div><div class="step-s">danichap.com.ar<br/>/login.html</div></div>
+    <div class="step"><div class="step-n">2</div><div class="step-l">Ingresar<br/>usuario y clave</div><div class="step-s">Email + contraseña<br/>de admin</div></div>
+    <div class="step"><div class="step-n">3</div><div class="step-l">Clic en<br/>"Ingresar"</div><div class="step-s">Autenticación<br/>via Supabase</div></div>
+    <div class="step"><div class="step-n">4</div><div class="step-l">Ir a<br/>admin.html</div><div class="step-s">Menú usuario<br/>→ Admin</div></div>
   </div>
 
-  <!-- Categorías -->
-  <div style="font-size:8pt;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Categorías disponibles</div>
-  <div class="cat-grid">
-    <div class="cat-item"><span class="cat-icon">🛞</span><div class="cat-label">Frenos</div></div>
-    <div class="cat-item"><span class="cat-icon">💡</span><div class="cat-label">Iluminación</div></div>
-    <div class="cat-item"><span class="cat-icon">⚙️</span><div class="cat-label">Mecánica</div></div>
-    <div class="cat-item"><span class="cat-icon">🌡️</span><div class="cat-label">Refrigeración</div></div>
-    <div class="cat-item"><span class="cat-icon">⚡</span><div class="cat-label">Electricidad</div></div>
-    <div class="cat-item"><span class="cat-icon">🔒</span><div class="cat-label">Cerraduras</div></div>
-    <div class="cat-item"><span class="cat-icon">🛢️</span><div class="cat-label">Lubricantes</div></div>
-    <div class="cat-item"><span class="cat-icon">🔩</span><div class="cat-label">Accesorios</div></div>
-  </div>
+  <div class="hl"><strong>Acceso directo:</strong> Una vez logueado, el menú de usuario en el nav muestra el enlace <kbd>Admin</kbd>. Solo aparece si tu cuenta tiene permisos de administrador. Si no aparece, contactar al desarrollador.</div>
 
-  <hr class="divider"/>
+  <hr class="div"/>
 
-  <!-- SECCIÓN 2 — FILTROS -->
-  <div class="section-title"><span class="dot"></span><span class="num">02</span> Filtros de Búsqueda</div>
+  <!-- 02 Dashboard -->
+  <div class="sec-title"><span class="dot"></span><span class="num">02</span> Dashboard — Resumen del Catálogo</div>
 
-  <div class="grid-2" style="margin-bottom:10px;">
-    <div class="card card-navy">
-      <h4><span class="icon">🚗</span> Filtrar por Vehículo</h4>
-      <ul>
-        <li>Seleccioná tu <strong>Marca</strong> de auto</li>
-        <li>Elegí el <strong>Modelo</strong> (Gol, Corolla, etc.)</li>
-        <li>Seleccioná la <strong>Versión</strong> y el <strong>Año</strong></li>
-        <li>Presioná <strong>"Buscar repuestos"</strong></li>
-      </ul>
-      <p style="margin-top:6px; font-size:7.5pt; color:#1a5aaa; font-weight:600;">Marcas disponibles: Toyota, VW, Ford, Chevrolet, Renault, Peugeot, Fiat, Honda, Nissan, Citroën y más.</p>
-    </div>
-    <div class="card card-navy">
-      <h4><span class="icon">🔍</span> Búsqueda por Texto</h4>
-      <ul>
-        <li>Escribí el nombre del repuesto en la barra de búsqueda</li>
-        <li>Podés buscar por nombre, marca o categoría</li>
-        <li>El resultado se actualiza en tiempo real</li>
-        <li>Usá el ícono ✕ para limpiar la búsqueda</li>
-      </ul>
-      <p style="margin-top:6px; font-size:7.5pt; color:#1a5aaa; font-weight:600;">Ejemplos: "pastillas freno", "bujías NGK", "faro delantero Corolla"</p>
-    </div>
-  </div>
-
-  <!-- Steps de búsqueda -->
-  <div style="font-size:8pt;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:7px;">Flujo recomendado de búsqueda</div>
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-label">Elegí tu<br/>vehículo</div>
-      <div class="step-sub">Marca, modelo<br/>y año</div>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-label">Filtrá por<br/>categoría</div>
-      <div class="step-sub">Frenos, electricidad<br/>mecánica, etc.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-label">Buscá por<br/>nombre</div>
-      <div class="step-sub">Si sabés el nombre<br/>del repuesto</div>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <div class="step-label">Consultá por<br/>WhatsApp</div>
-      <div class="step-sub">Precio y stock<br/>en minutos</div>
-    </div>
-  </div>
-
-  <hr class="divider"/>
-
-  <!-- SECCIÓN 3 — BADGES Y TAGS -->
-  <div class="section-title" style="margin-bottom:8px;"><span class="dot"></span><span class="num">03</span> Etiquetas e Indicadores</div>
-
-  <div class="grid-3" style="margin-bottom:10px;">
+  <div class="g4" style="margin-bottom:8px;">
     <div class="card">
-      <h4>Badges de producto</h4>
-      <p>Cada tarjeta puede mostrar:</p>
-      <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:4px;">
-        <span class="pill pill-navy">Nuevo</span>
-        <span class="pill pill-red">Oferta</span>
-        <span class="pill pill-green">En stock</span>
+      <h4>📦 Productos</h4>
+      <p>Total de productos en la base de datos. Incluye todos los que están activos e inactivos.</p>
+    </div>
+    <div class="card">
+      <h4>⭐ Destacados</h4>
+      <p>Productos marcados como destacados. Aparecen en la sección "Productos Destacados" del inicio.</p>
+    </div>
+    <div class="card">
+      <h4>🔴 Sin Stock</h4>
+      <p>Productos con stock desactivado. No aparecen disponibles en el catálogo público.</p>
+    </div>
+    <div class="card">
+      <h4>🗂️ Categorías</h4>
+      <p>Cantidad de categorías únicas con al menos 1 producto activo.</p>
+    </div>
+  </div>
+
+  <hr class="div"/>
+
+  <!-- 03 Crear producto -->
+  <div class="sec-title"><span class="dot"></span><span class="num">03</span> Crear un Nuevo Producto</div>
+
+  <div class="g2">
+    <div class="card navy">
+      <h4>Campos del formulario</h4>
+      <ul>
+        <li><strong>Nombre</strong> — nombre completo del repuesto (requerido)</li>
+        <li><strong>Categoría</strong> — seleccioná de la lista (requerido)</li>
+        <li><strong>Subcategoría</strong> — refinamiento dentro de la categoría</li>
+        <li><strong>Marca del repuesto</strong> — Brembo, NGK, Bosch, etc.</li>
+        <li><strong>Precio</strong> — precio actual en pesos (puede dejarse vacío)</li>
+        <li><strong>Precio anterior</strong> — para mostrar tachado</li>
+        <li><strong>Badge</strong> — etiqueta: Nuevo, Oferta, Premium, etc.</li>
+        <li><strong>Descripción</strong> — texto corto opcional</li>
+        <li><strong>Stock</strong> — activado/desactivado + cantidad exacta</li>
+        <li><strong>Destacado</strong> — aparece en la home si está tildado</li>
+      </ul>
+    </div>
+    <div class="card navy">
+      <h4>Subir fotos del producto</h4>
+      <ul>
+        <li>Hacé clic en <kbd>+ Agregar foto</kbd> o arrastrá una imagen al área</li>
+        <li>Se pueden subir <strong>múltiples fotos</strong> por producto</li>
+        <li>Formatos: JPG, PNG, WebP (máx. 5 MB por imagen)</li>
+        <li>La primera foto es la <strong>imagen principal</strong> del catálogo</li>
+        <li>Las fotos se guardan en Supabase Storage automáticamente</li>
+        <li>En el catálogo, el cliente puede navegar entre fotos con flechas ←→</li>
+      </ul>
+      <div style="margin-top:6px; padding:5px 8px; background:rgba(0,30,75,0.06); border-radius:5px; font-size:7.5pt; color:var(--navy);">
+        <strong>Watermark automática:</strong> cada imagen muestra "DANICHAP" en la esquina inferior derecha para proteger el contenido.
       </div>
-      <p style="margin-top:5px; font-size:7.5pt;">La etiqueta <strong>Brembo / NGK / Bosch</strong> indica la marca del fabricante.</p>
-    </div>
-    <div class="card">
-      <h4>Stock disponible</h4>
-      <p>Si ves <em>"Últimas N uds."</em> en naranja, significa que el stock es limitado. Consultá rápido para asegurarte el repuesto.</p>
-      <p style="margin-top:5px; font-size:7.5pt;">Hacé clic en la foto para ver el detalle completo con todas las imágenes disponibles.</p>
-    </div>
-    <div class="card">
-      <h4>Precio</h4>
-      <p>Si aparece el precio, es el valor actual. Si dice <em>"Precio por WhatsApp"</em>, consultanos para recibir la cotización al momento.</p>
-      <p style="margin-top:5px; font-size:7.5pt;">Los precios se actualizan regularmente desde el panel de administración.</p>
     </div>
   </div>
 
-  <hr class="divider"/>
+  <div class="warn"><strong>⚠️ Importante:</strong> El nombre del producto debe ser claro y descriptivo. Evitá nombres como "Producto nuevo" o "ada (copia)". El nombre aparece en el catálogo público y en los mensajes de WhatsApp.</div>
 
-  <!-- SECCIÓN 4 — CARRITO -->
-  <div class="section-title" style="margin-bottom:8px;"><span class="dot"></span><span class="num">04</span> Carrito y Envío por WhatsApp</div>
+  <hr class="div"/>
 
-  <div class="grid-2">
-    <div class="card card-green">
-      <h4><span class="icon">🛒</span> Cómo usar el Carrito</h4>
-      <ul>
-        <li>Hacé clic en <strong>"Agregar al carrito"</strong> en cualquier producto</li>
-        <li>El ícono del carrito en el menú muestra la cantidad de ítems</li>
-        <li>Hacé clic en el carrito para ver todos tus productos seleccionados</li>
-        <li>Podés cambiar cantidades o eliminar ítems antes de enviar</li>
-      </ul>
-    </div>
-    <div class="card card-green">
-      <h4><span class="icon">📲</span> Enviar Pedido por WhatsApp</h4>
-      <ul>
-        <li>Una vez que cargaste tus productos, abrí el carrito</li>
-        <li>Presioná <strong>"Enviar por WhatsApp"</strong></li>
-        <li>Se abre WhatsApp con un mensaje listo con todos tus productos</li>
-        <li>Nuestro equipo responde en minutos con precio y stock</li>
-      </ul>
-    </div>
-  </div>
+  <!-- 04 Editar y duplicar -->
+  <div class="sec-title"><span class="dot"></span><span class="num">04</span> Editar, Duplicar y Eliminar Productos</div>
 
-  <!-- FOOTER -->
-  <footer class="page-footer">
-    <p>DANICHAP · Av. Hipólito Yrigoyen 19608, Longchamps · 011 7520-0352</p>
-    <span class="page-num">1 / 2</span>
+  <table>
+    <thead>
+      <tr>
+        <th>Acción</th>
+        <th>Ícono</th>
+        <th>Qué hace</th>
+        <th>Cuándo usarlo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Editar</strong></td>
+        <td>✏️ lápiz</td>
+        <td>Abre el formulario con los datos actuales del producto. Permite cambiar nombre, precio, fotos, stock, etc.</td>
+        <td>Para actualizar precio, subir nuevas fotos o corregir información.</td>
+      </tr>
+      <tr>
+        <td><strong>Duplicar</strong></td>
+        <td>📋 copia</td>
+        <td>Crea una copia del producto con "(copia)" en el nombre. La copia queda en modo edición.</td>
+        <td>Para crear variantes del mismo producto rápidamente.</td>
+      </tr>
+      <tr>
+        <td><strong>Eliminar</strong></td>
+        <td>🗑️ tacho</td>
+        <td>Elimina el producto permanentemente de la base de datos y sus imágenes del storage.</td>
+        <td>Solo cuando el producto ya no se vende y no querés que aparezca más.</td>
+      </tr>
+      <tr>
+        <td><strong>Destacar</strong></td>
+        <td>⭐ estrella</td>
+        <td>Marca o desmarca el producto como destacado. Los destacados aparecen en la home.</td>
+        <td>Para promover productos con mayor visibilidad en la página principal.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <footer class="pf">
+    <p>DANICHAP · Panel Admin · danichap.com.ar/admin.html</p>
+    <span class="pn2">1 / 2</span>
   </footer>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     PÁGINA 2 — WhatsApp, Horarios, Admin, Marcas
-═══════════════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════
+     PÁGINA 2 — Catálogo, filtros, carrito, WhatsApp
+═══════════════════════════════════════════════════════════ -->
 <div class="page">
 
-  <!-- HEADER -->
-  <header class="page-header">
+  <header class="ph">
     <div class="brand">
-      <img src="../docs/img/danichaplogo-transparent.png" alt="DANICHAP" class="brand-logo"/>
-      <div class="brand-text">
+      <img src="../docs/img/danichaplogo-transparent.png" alt="DANICHAP"/>
+      <div>
         <div class="brand-name">DANICHAP</div>
-        <div class="brand-sub">Repuestos · Longchamps, Zona Sur</div>
+        <div class="brand-sub">Funcionalidades del Catálogo</div>
       </div>
     </div>
-    <div class="page-label">
-      <strong>Guía de Usuario</strong><br/>
-      danichap.com.ar · 011 7520-0352
+    <div class="ph-right">
+      <strong>Guía de Funcionalidades</strong><br/>
+      danichap.com.ar · Catálogo público
     </div>
   </header>
 
-  <!-- SECCIÓN 5 — WHATSAPP -->
-  <div class="section-title"><span class="dot"></span><span class="num">05</span> Consultas Directas por WhatsApp</div>
+  <!-- 05 Stock y badges -->
+  <div class="sec-title"><span class="dot"></span><span class="num">05</span> Control de Stock y Etiquetas (Badges)</div>
 
-  <div class="wa-box">
-    <div class="wa-circle">💬</div>
-    <div class="wa-content">
-      <strong>Respondemos en minutos · Lunes a Sábado</strong>
-      <p>No necesitás el carrito. Podés escribirnos directamente con el nombre del repuesto, tu marca de auto y modelo. Nuestro equipo técnico te responde con precio, stock y disponibilidad al momento.</p>
-    </div>
-  </div>
-
-  <div class="grid-2" style="margin-bottom:10px;">
-    <div class="card">
-      <h4><span class="icon">📦</span> Consulta de producto</h4>
-      <p>En cada tarjeta del catálogo hay un botón <strong>"Consultar"</strong> en verde. Al tocarlo, se abre WhatsApp con un mensaje pre-escrito que incluye el nombre del repuesto y tu vehículo seleccionado. Solo tenés que enviarlo.</p>
-    </div>
-    <div class="card">
-      <h4><span class="icon">🔎</span> No encontrás tu repuesto</h4>
-      <p>Si el repuesto no aparece en el catálogo, usá el botón <strong>"¿No encontrás tu repuesto?"</strong> al pie del catálogo. Tenemos acceso a más de 10.000 referencias. También podés escribirnos libremente por WhatsApp.</p>
-    </div>
-  </div>
-
-  <hr class="divider"/>
-
-  <!-- SECCIÓN 6 — ATENCIÓN AL CLIENTE -->
-  <div class="section-title"><span class="dot"></span><span class="num">06</span> Atención al Cliente · Pre y Post Venta</div>
-
-  <div class="grid-2" style="margin-bottom:10px;">
-    <div class="card card-navy">
-      <h4><span class="icon">🧰</span> Pre-Venta</h4>
+  <div class="g2" style="margin-bottom:9px;">
+    <div class="card green">
+      <h4>Control de stock</h4>
       <ul>
-        <li>Identificamos el repuesto exacto para tu auto</li>
-        <li>Te explicamos diferencias entre marcas y calidades</li>
-        <li>Verificamos compatibilidad y stock antes de cerrar</li>
-        <li>Respondemos tus dudas sin costo y sin presión</li>
+        <li><strong>Stock activado:</strong> el producto aparece con estado disponible</li>
+        <li><strong>Stock desactivado:</strong> el producto queda oculto/sin disponibilidad</li>
+        <li><strong>Cantidad exacta:</strong> si ponés un número ≤5, el catálogo muestra el aviso <em>"Últimas N uds."</em> en naranja para generar urgencia</li>
+        <li>Útil para productos con pocas unidades disponibles</li>
       </ul>
     </div>
-    <div class="card card-navy">
-      <h4><span class="icon">✅</span> Post-Venta</h4>
-      <ul>
-        <li>Garantía en todos los productos</li>
-        <li>Seguimiento de tu compra por WhatsApp</li>
-        <li>Asistencia técnica si hay algún inconveniente</li>
-        <li>Soporte ante cualquier eventualidad</li>
-      </ul>
+    <div class="card green">
+      <h4>Etiquetas (Badges) disponibles</h4>
+      <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:5px;">
+        <span class="pill pn">Nuevo</span>
+        <span class="pill pr">Oferta</span>
+        <span class="pill pn">Premium</span>
+        <span class="pill pg">Stock</span>
+        <span class="pill pr">Limitado</span>
+        <span class="pill pn">Original</span>
+      </div>
+      <p>Las etiquetas aparecen en la esquina superior derecha de la imagen del producto en el catálogo. Son opcionales — podés dejar el campo vacío si no querés badge.</p>
     </div>
   </div>
 
-  <hr class="divider"/>
+  <hr class="div"/>
 
-  <!-- SECCIÓN 7 — HORARIOS Y UBICACIÓN -->
-  <div class="section-title"><span class="dot"></span><span class="num">07</span> Horarios y Cómo Llegar</div>
+  <!-- 06 Catálogo público -->
+  <div class="sec-title"><span class="dot"></span><span class="num">06</span> Cómo Funciona el Catálogo Público</div>
 
-  <div class="grid-3" style="margin-bottom:10px;">
+  <div class="hl">
+    <strong>Origen de los productos:</strong> El catálogo muestra los productos de la base de datos (admin) + una base de datos estática. Los de la BD tienen prioridad. Los cambios en el admin se reflejan en el catálogo en tiempo real.
+  </div>
+
+  <div class="g3">
     <div class="card">
-      <h4><span class="icon">🕗</span> Lunes a Viernes</h4>
-      <p style="font-size:14pt; font-weight:900; color:var(--navy); font-family:'Space Grotesk',sans-serif; line-height:1.1; margin:4px 0;">8:30–18:30</p>
-      <p>Atención en el local y por WhatsApp</p>
+      <h4>🔍 Búsqueda de texto</h4>
+      <p>El cliente escribe en la barra de búsqueda. El filtro busca en nombre, marca, descripción y categoría en tiempo real. No hace falta presionar Enter.</p>
     </div>
     <div class="card">
-      <h4><span class="icon">🕗</span> Sábado</h4>
-      <p style="font-size:14pt; font-weight:900; color:var(--navy); font-family:'Space Grotesk',sans-serif; line-height:1.1; margin:4px 0;">8:30–13:30</p>
-      <p>Atención en el local y por WhatsApp</p>
+      <h4>🚗 Filtro por vehículo</h4>
+      <p>El cliente selecciona Marca → Modelo → Versión → Año. El sistema filtra solo los repuestos compatibles con ese vehículo. La compatibilidad se define en el código (data.js).</p>
     </div>
     <div class="card">
-      <h4><span class="icon">📍</span> Ubicación</h4>
-      <p><strong>Av. Hipólito Yrigoyen 19608</strong></p>
-      <p>Longchamps, Buenos Aires</p>
-      <p style="margin-top:4px; font-size:7.5pt; color:var(--navy-hi);">Ver en Google Maps desde danichap.com.ar</p>
+      <h4>🗂️ Filtro por categoría</h4>
+      <p>El sidebar izquierdo muestra las categorías disponibles. Al hacer clic se filtra automáticamente. Cada categoría tiene subcategorías expandibles.</p>
     </div>
   </div>
 
-  <hr class="divider"/>
-
-  <!-- SECCIÓN 8 — MARCAS -->
-  <div class="section-title" style="margin-bottom:8px;"><span class="dot"></span><span class="num">08</span> Marcas Originales Disponibles</div>
-
-  <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
-    <span class="pill pill-navy">Brembo</span>
-    <span class="pill pill-navy">NGK</span>
-    <span class="pill pill-navy">Bosch</span>
-    <span class="pill pill-navy">Gates</span>
-    <span class="pill pill-navy">Liqui-Moly</span>
-    <span class="pill pill-navy">Monroe</span>
-    <span class="pill pill-navy">SKF</span>
-    <span class="pill pill-navy">Valeo</span>
-    <span class="pill pill-navy">TRW</span>
-    <span class="pill pill-navy">Mahle</span>
-    <span class="pill pill-navy">Sachs</span>
-    <span class="pill pill-navy">KYB</span>
-    <span class="pill pill-navy">Mann Filter</span>
-    <span class="pill pill-navy">Ferodo</span>
-    <span class="pill pill-navy">Continental</span>
-    <span class="pill pill-navy" style="background:rgba(0,30,75,0.14);">+100 marcas más</span>
-  </div>
-
-  <hr class="divider"/>
-
-  <!-- SECCIÓN 9 — ENVÍOS -->
-  <div class="section-title" style="margin-bottom:8px;"><span class="dot"></span><span class="num">09</span> Envíos y Retiro en Local</div>
-
-  <div class="grid-3" style="margin-bottom:10px;">
-    <div class="card card-red">
-      <h4><span class="icon">🚚</span> Zona Sur GBA</h4>
-      <p>Entrega en el <strong>mismo día</strong> en Longchamps y alrededores. Coordinamos por WhatsApp antes de despachar.</p>
+  <div class="g2">
+    <div class="card">
+      <h4>📷 Galería de imágenes</h4>
+      <p>Si el producto tiene múltiples fotos, el cliente puede navegar entre ellas con las flechas ← → dentro de la tarjeta, o haciendo clic en la imagen para abrir el detalle completo con todas las fotos y descripción.</p>
     </div>
-    <div class="card card-red">
-      <h4><span class="icon">📦</span> Todo el País</h4>
-      <p>Despachamos al día hábil siguiente. Usamos Andreani, OCA o el servicio que prefieras. Te enviamos el tracking.</p>
-    </div>
-    <div class="card card-red">
-      <h4><span class="icon">🏪</span> Retiro en Local</h4>
-      <p>Podés pasar a retirar tu pedido en el local en Longchamps durante el horario comercial, sin cargo adicional.</p>
+    <div class="card">
+      <h4>📊 Ordenamiento</h4>
+      <p>El cliente puede ordenar los resultados por: <strong>Relevancia</strong> (default), <strong>Precio: menor a mayor</strong>, <strong>Precio: mayor a menor</strong>, <strong>Nombre A-Z</strong>. El ordenador está en la barra superior del catálogo.</p>
     </div>
   </div>
 
-  <!-- CTA FINAL -->
-  <div class="wa-box" style="background:var(--navy); border:none;">
-    <div class="wa-circle" style="background:rgba(255,255,255,0.15);">📱</div>
-    <div class="wa-content" style="color:white;">
-      <strong style="color:white; font-size:10pt;">¿Dudas? Escribinos por WhatsApp ahora</strong>
-      <p style="color:rgba(255,255,255,0.7);">Nuestro equipo responde de lunes a sábado en minutos. Número: <strong style="color:white;">011 7520-0352</strong> — También podés escanear el código QR de nuestro WhatsApp en el local.</p>
+  <hr class="div"/>
+
+  <!-- 07 Carrito y WhatsApp -->
+  <div class="sec-title"><span class="dot"></span><span class="num">07</span> Carrito de Compras y Pedidos por WhatsApp</div>
+
+  <div class="steps" style="margin-bottom:9px;">
+    <div class="step"><div class="step-n">1</div><div class="step-l">Agregar<br/>al carrito</div><div class="step-s">Botón azul<br/>en la tarjeta</div></div>
+    <div class="step"><div class="step-n">2</div><div class="step-l">Revisar<br/>el carrito</div><div class="step-s">Ícono 🛒<br/>en el nav</div></div>
+    <div class="step"><div class="step-n">3</div><div class="step-l">Ajustar<br/>cantidades</div><div class="step-s">+ / − o<br/>eliminar</div></div>
+    <div class="step"><div class="step-n">4</div><div class="step-l">Enviar por<br/>WhatsApp</div><div class="step-s">Mensaje listo<br/>con productos</div></div>
+    <div class="step"><div class="step-n">5</div><div class="step-l">DANICHAP<br/>responde</div><div class="step-s">Precio y stock<br/>en minutos</div></div>
+  </div>
+
+  <div class="g2">
+    <div class="card red">
+      <h4>Mensaje automático generado</h4>
+      <p>Al hacer "Enviar pedido por WhatsApp", se genera un mensaje con todos los productos seleccionados, cantidades, y el vehículo del cliente si usó el filtro. El cliente solo debe enviarlo.</p>
+      <div style="margin-top:6px; padding:5px 8px; background:rgba(225,0,15,0.05); border-radius:5px; font-size:7.5pt; color:var(--red);">
+        Ejemplo: <em>"Hola Danichap! Consulto por: *Pastillas Brembo* para mi vehículo *Toyota Corolla 2018*. ¿Tienen stock y precio?"</em>
+      </div>
+    </div>
+    <div class="card red">
+      <h4>Consulta directa (sin carrito)</h4>
+      <p>Cada tarjeta tiene un botón verde <strong>"Consultar"</strong> que abre WhatsApp directamente con el nombre del producto y vehículo. No requiere iniciar sesión ni usar el carrito.</p>
+      <p style="margin-top:5px;">El FAB (botón flotante verde ↗) en la esquina inferior derecha permite contacto directo en cualquier momento.</p>
     </div>
   </div>
 
-  <!-- FOOTER -->
-  <footer class="page-footer">
+  <hr class="div"/>
+
+  <!-- 08 Recomendaciones -->
+  <div class="sec-title" style="margin-bottom:7px;"><span class="dot"></span><span class="num">08</span> Buenas Prácticas para el Admin</div>
+
+  <div class="g3">
+    <div class="card">
+      <h4>✅ Nombres claros</h4>
+      <p>Usar nombres completos y descriptivos. Ej: "Pastillas de freno Brembo P85020" en lugar de "freno".</p>
+    </div>
+    <div class="card">
+      <h4>✅ Fotos de calidad</h4>
+      <p>Subir fotos sobre fondo blanco o neutro, bien iluminadas. Mínimo 600×600px. El watermark DANICHAP se agrega automáticamente.</p>
+    </div>
+    <div class="card">
+      <h4>✅ Precio actualizado</h4>
+      <p>Si el precio cambió, actualizar en el admin. Si no hay precio fijo, dejar vacío para que aparezca "Consultar por WhatsApp".</p>
+    </div>
+    <div class="card">
+      <h4>✅ Usar categorías correctas</h4>
+      <p>Asignar siempre la categoría correcta para que el filtro del catálogo funcione bien.</p>
+    </div>
+    <div class="card">
+      <h4>✅ Stock al día</h4>
+      <p>Desactivar stock de productos agotados. Si queda poco, poner la cantidad exacta para mostrar urgencia al cliente.</p>
+    </div>
+    <div class="card">
+      <h4>⚠️ No dejar copias</h4>
+      <p>Al duplicar un producto, editarlo o eliminarlo si no se usa. Evitar nombres como "ada (copia) (copia)" en el catálogo público.</p>
+    </div>
+  </div>
+
+  <footer class="pf">
     <p>© 2025 DANICHAP · Todos los derechos reservados · danichap.com.ar</p>
-    <span class="page-num">2 / 2</span>
+    <span class="pn2">2 / 2</span>
   </footer>
 </div>
 

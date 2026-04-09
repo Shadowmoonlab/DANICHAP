@@ -7,7 +7,10 @@
 <meta name="description" content="Catálogo completo de repuestos automotrices DANICHAP. Frenos, iluminación, mecánica, refrigeración, electricidad, cerraduras. Buscá por marca y modelo de tu auto."/>
 <meta name="keywords" content="catálogo repuestos, repuestos por modelo, frenos Brembo, pastillas freno, faros, Longchamps"/>
 <meta name="author" content="DANICHAP"/>
+<meta name="robots" content="index, follow"/>
+<meta name="geo.region" content="AR-B"/>
 <link rel="canonical" href="https://danichap.com.ar/catalogo.html"/>
+<link rel="sitemap" type="application/xml" href="sitemap.xml"/>
 <!-- Favicons -->
 <link rel="icon" type="image/png" sizes="32x32" href="docs/img/favicon-32.png"/>
 <link rel="icon" type="image/png" sizes="16x16" href="docs/img/favicon-16.png"/>
@@ -24,24 +27,34 @@
 <meta property="og:image:height" content="512"/>
 <meta property="og:locale"      content="es_AR"/>
 <meta property="og:site_name"   content="DANICHAP"/>
-<!-- Structured Data: ItemList (catálogo) -->
+<!-- Structured Data -->
 <script type="application/ld+json">
-{
+[{
   "@context": "https://schema.org",
   "@type": "CollectionPage",
   "name": "Catálogo de Repuestos — DANICHAP",
-  "description": "Catálogo de repuestos automotrices en Longchamps. Frenos, iluminación, mecánica y más.",
+  "description": "Catálogo de repuestos automotrices multimarca en Longchamps. Frenos, iluminación, mecánica, refrigeración, electricidad y más.",
   "url": "https://danichap.com.ar/catalogo.html",
   "publisher": {
     "@type": "Organization",
     "name": "DANICHAP",
-    "url": "https://danichap.com.ar"
+    "url": "https://danichap.com.ar",
+    "logo": "https://danichap.com.ar/docs/img/favicon-512.png"
   }
-}
+},{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://danichap.com.ar/" },
+    { "@type": "ListItem", "position": 2, "name": "Catálogo", "item": "https://danichap.com.ar/catalogo.html" }
+  ]
+}]
 </script>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0..1&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="shared.css"/>
 <script id="tailwind-config">
 tailwind.config = {
@@ -85,73 +98,79 @@ tailwind.config = {
 <script src="scroll-animations.js" defer></script>
 </head>
 <body class="bg-surface font-body text-on-surface">
+<a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
 <!-- ═══ NAV ═══════════════════════════════════════════════════════════════ -->
-<nav class="fixed top-0 w-full z-50 bg-surface/95 backdrop-blur-md shadow-sm border-b border-outline-variant">
+<nav class="fixed top-0 w-full z-50 bg-surface/95 backdrop-blur-md shadow-sm border-b border-outline-variant" aria-label="Navegación principal">
   <div class="flex justify-between items-center px-6 py-4 max-w-screen-xl mx-auto">
-    <a href="index.html" class="flex items-center gap-3 group">
-      <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="38" height="38" class="amber-glow-sm rounded-sm object-contain" style="width:38px;height:38px;"/>
-      <div class="flex flex-col leading-none">
+    <a href="index.html" class="flex items-center gap-3 group" aria-label="DANICHAP — Inicio">
+      <img src="docs/img/danichaplogo-transparent.png" alt="" width="38" height="38" class="amber-glow-sm rounded-sm object-contain" style="width:38px;height:38px;" aria-hidden="true"/>
+      <div class="flex flex-col leading-none" aria-hidden="true">
         <span class="text-xl font-black tracking-[-0.04em] text-on-surface font-headline uppercase">DANICHAP</span>
         <span class="text-[9px] font-bold tracking-[0.22em] uppercase font-label text-primary-container">REPUESTOS · LONGCHAMPS</span>
       </div>
     </a>
-    <div class="hidden md:flex gap-8 items-center font-headline uppercase tracking-tight text-sm font-bold">
-      <a href="index.html" class="text-secondary hover:text-on-surface transition-colors">Inicio</a>
-      <a href="catalogo.html" class="text-primary-container border-b-2 border-primary-container pb-1">Catálogo</a>
-      <a href="contacto.html" class="text-secondary hover:text-on-surface transition-colors">Contacto</a>
+    <div class="hidden md:flex gap-8 items-center font-headline uppercase tracking-tight text-sm font-bold" role="list">
+      <a href="index.html" class="text-secondary hover:text-on-surface transition-colors" role="listitem">Inicio</a>
+      <a href="catalogo.html" class="text-primary-container border-b-2 border-primary-container pb-1" aria-current="page" role="listitem">Catálogo</a>
+      <a href="contacto.html" class="text-secondary hover:text-on-surface transition-colors" role="listitem">Contacto</a>
     </div>
     <div id="nav-actions" class="flex items-center gap-2">
-      <button id="cart-nav-btn" class="relative p-2 rounded-lg hover:bg-surface-container transition-colors text-on-surface" title="Carrito">
-        <span class="material-symbols-outlined text-xl">shopping_cart</span>
+      <button id="cart-nav-btn" class="relative p-2 rounded-lg hover:bg-surface-container transition-colors text-on-surface" aria-label="Ver carrito de compras">
+        <span class="material-symbols-outlined text-xl" aria-hidden="true">shopping_cart</span>
         <span id="cart-badge" class="hidden absolute -top-1 -right-1 bg-primary-container text-white text-[10px] font-black w-5 h-5 rounded-full items-center justify-center font-label">0</span>
       </button>
-      <button id="nav-login-btn" class="hidden md:flex items-center gap-2 border border-primary-container text-primary-container px-4 py-2 rounded-xl font-bold text-sm hover:bg-primary-container/10 transition-colors font-headline uppercase">
-        <span class="material-symbols-outlined text-sm">person</span>
+      <button id="nav-login-btn" class="hidden md:flex items-center gap-2 border border-primary-container text-primary-container px-4 py-2 rounded-xl font-bold text-sm hover:bg-primary-container/10 transition-colors font-headline uppercase" aria-label="Ingresar a tu cuenta">
+        <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
         Ingresar
       </button>
       <div id="nav-user-btn" class="hidden items-center gap-2 relative group">
-        <button class="flex items-center gap-2 border border-outline-variant px-3 py-2 rounded-xl font-bold text-sm text-on-surface hover:bg-surface-container transition-colors font-headline uppercase">
-          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">account_circle</span>
+        <button class="flex items-center gap-2 border border-outline-variant px-3 py-2 rounded-xl font-bold text-sm text-on-surface hover:bg-surface-container transition-colors font-headline uppercase" aria-haspopup="true" aria-expanded="false">
+          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;" aria-hidden="true">account_circle</span>
           <span id="nav-user-label" class="max-w-[100px] truncate">Mi cuenta</span>
         </button>
-        <div class="absolute top-full right-0 mt-1 bg-surface border border-outline-variant rounded-xl shadow-lg py-1.5 w-44 hidden group-hover:block z-50">
-          <a id="nav-admin-link" href="admin.html" class="hidden items-center gap-2 px-4 py-2.5 text-sm text-primary-container font-bold hover:bg-surface-container-low transition-colors font-headline uppercase">
-            <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">admin_panel_settings</span>Admin
+        <div class="absolute top-full right-0 mt-1 bg-surface border border-outline-variant rounded-xl shadow-lg py-1.5 w-44 hidden group-hover:block z-50" role="menu">
+          <a id="nav-admin-link" href="admin.html" class="hidden items-center gap-2 px-4 py-2.5 text-sm text-primary-container font-bold hover:bg-surface-container-low transition-colors font-headline uppercase" role="menuitem">
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;" aria-hidden="true">admin_panel_settings</span>Admin
           </a>
-          <button id="nav-logout-btn" class="flex items-center gap-2 px-4 py-2.5 text-sm text-secondary hover:text-error hover:bg-surface-container-low transition-colors font-body w-full text-left">
-            <span class="material-symbols-outlined text-sm">logout</span>Cerrar sesión
+          <button id="nav-logout-btn" class="flex items-center gap-2 px-4 py-2.5 text-sm text-secondary hover:text-error hover:bg-surface-container-low transition-colors font-body w-full text-left" role="menuitem">
+            <span class="material-symbols-outlined text-sm" aria-hidden="true">logout</span>Cerrar sesión
           </button>
         </div>
       </div>
-      <a href="https://wa.me/541175200352?text=Hola%20Danichap!%20Quiero%20consultar%20por%20un%20repuesto." target="_blank"
-         class="hidden md:flex items-center gap-2 bg-tertiary-container text-on-tertiary-container px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-tertiary transition-colors font-headline uppercase">
-        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>WhatsApp
+      <a href="https://wa.me/541175200352?text=Hola%20Danichap!%20Quiero%20consultar%20por%20un%20repuesto." target="_blank" rel="noopener noreferrer"
+         class="hidden md:flex items-center gap-2 bg-tertiary-container text-on-tertiary-container px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-tertiary transition-colors font-headline uppercase"
+         aria-label="Contactar por WhatsApp (abre en nueva pestaña)">
+        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;" aria-hidden="true">chat</span>WhatsApp
       </a>
-      <button id="mobile-menu-btn" class="md:hidden text-on-surface p-2 rounded-lg hover:bg-surface-container transition-colors">
-        <span class="material-symbols-outlined text-2xl" id="menu-icon">menu</span>
+      <button id="mobile-menu-btn" class="md:hidden text-on-surface p-2 rounded-lg hover:bg-surface-container transition-colors"
+        aria-label="Abrir menú de navegación" aria-expanded="false" aria-controls="mobile-menu">
+        <span class="material-symbols-outlined text-2xl" id="menu-icon" aria-hidden="true">menu</span>
       </button>
     </div>
   </div>
-  <div id="mobile-menu" class="hidden md:hidden border-t border-outline-variant bg-surface">
+  <div id="mobile-menu" class="hidden md:hidden border-t border-outline-variant bg-surface" role="navigation" aria-label="Menú móvil">
     <div class="flex flex-col px-6 py-4 gap-1">
       <a href="index.html" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Inicio</a>
-      <a href="catalogo.html" class="py-3 text-primary-container font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Catálogo</a>
+      <a href="catalogo.html" class="py-3 text-primary-container font-bold font-headline uppercase text-sm tracking-wide border-b border-outline-variant flex items-center gap-2" aria-current="page">
+        <span class="w-1.5 h-1.5 rounded-full bg-primary-container flex-shrink-0"></span>Catálogo</a>
       <a href="contacto.html" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Contacto</a>
       <button id="nav-login-btn-mobile"
-        class="mt-2 flex items-center justify-center gap-2 border border-primary-container text-primary-container py-3 rounded-xl font-bold font-headline uppercase text-sm hover:bg-primary-container/10 transition-colors">
-        <span class="material-symbols-outlined text-sm">person</span>Ingresar
+        class="mt-2 flex items-center justify-center gap-2 border border-primary-container text-primary-container py-3 rounded-xl font-bold font-headline uppercase text-sm hover:bg-primary-container/10 transition-colors"
+        aria-label="Ingresar a tu cuenta">
+        <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>Ingresar
       </button>
-      <a href="https://wa.me/541175200352" target="_blank"
-         class="mt-2 flex items-center justify-center gap-2 bg-tertiary-container text-on-tertiary-container py-3 rounded-xl font-bold font-headline uppercase text-sm">
-        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>WhatsApp
+      <a href="https://wa.me/541175200352" target="_blank" rel="noopener noreferrer"
+         class="mt-2 flex items-center justify-center gap-2 bg-tertiary-container text-on-tertiary-container py-3 rounded-xl font-bold font-headline uppercase text-sm"
+         aria-label="Contactar por WhatsApp">
+        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;" aria-hidden="true">chat</span>WhatsApp
       </a>
     </div>
   </div>
 </nav>
 
 <!-- ═══ PAGE HEADER ══════════════════════════════════════════════════════════ -->
-<section class="pt-28 pb-10 bg-surface-container-low border-b border-outline-variant relative overflow-hidden">
+<section id="main-content" class="pt-28 pb-10 bg-surface-container-low border-b border-outline-variant relative overflow-hidden">
   <div class="absolute inset-0 technical-grid opacity-10"></div>
   <div class="max-w-screen-xl mx-auto px-6 relative z-10">
     <span class="text-primary-container font-black tracking-widest uppercase text-xs font-label">Danichap</span>
@@ -226,7 +245,7 @@ tailwind.config = {
   </aside>
 
   <!-- MAIN -->
-  <main class="flex-1 p-5 md:p-8 min-w-0">
+  <main id="catalog-main" class="flex-1 p-5 md:p-8 min-w-0">
 
     <!-- Barra de búsqueda + resultados -->
     <div class="flex flex-col gap-3 mb-6">
@@ -269,7 +288,7 @@ tailwind.config = {
       <span class="material-symbols-outlined text-6xl text-secondary mb-4 block">search_off</span>
       <h3 class="font-headline font-bold text-xl mb-2">Sin resultados</h3>
       <p class="text-secondary font-body mb-6 max-w-sm mx-auto">No encontramos productos con esos filtros. Consultanos directamente por WhatsApp.</p>
-      <a id="empty-wpp" href="https://wa.me/541175200352" target="_blank"
+      <a id="empty-wpp" href="https://wa.me/541175200352" target="_blank" rel="noopener noreferrer"
          class="inline-flex items-center gap-2 bg-tertiary-container text-on-tertiary-container px-6 py-3 rounded-xl font-bold font-headline uppercase text-sm hover:bg-tertiary transition-colors">
         <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">chat</span>
         Consultar por WhatsApp
@@ -320,7 +339,7 @@ tailwind.config = {
     </div>
   </div>
   <div class="border-t border-white/10 pb-24 px-6 flex flex-col items-center gap-1.5 text-center" style="background:linear-gradient(to bottom,transparent,rgba(0,30,75,0.04));padding-top:20px;">
-    <a href="https://www.manadigital.website" target="_blank" rel="noopener"
+    <a href="https://www.manadigital.website" target="_blank" rel="noopener noreferrer"
        class="font-headline font-bold text-xs uppercase tracking-[0.18em] hover:opacity-60 transition-opacity"
        style="color:#e1000f;">MANADIGITAL</a>
     <p class="text-[10px] text-inverse-on-surface/40 font-label uppercase tracking-widest">Diseño &amp; Desarrollo Web</p>
@@ -330,7 +349,7 @@ tailwind.config = {
 
 <!-- ═══ FAB WhatsApp ══════════════════════════════════════════════════════════ -->
 <a href="https://wa.me/541175200352?text=Hola%20Danichap!%20Quiero%20consultar%20por%20un%20repuesto."
-   target="_blank"
+   target="_blank" rel="noopener noreferrer"
    class="wpp-fab fixed bottom-8 right-8 z-[100] bg-tertiary-container text-on-tertiary-container p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-transform active:scale-95 promo-pulse">
   <span class="material-symbols-outlined text-3xl" style="font-variation-settings:'FILL' 1;">chat</span>
   <span class="wpp-fab-label font-bold font-label text-sm uppercase tracking-wider">Consultar</span>
@@ -456,7 +475,7 @@ tailwind.config = {
 
         <!-- CTAs -->
         <div class="flex flex-col gap-2 pt-2">
-          <a id="pd-wpp-btn" href="#" target="_blank" rel="noopener"
+          <a id="pd-wpp-btn" href="#" target="_blank" rel="noopener noreferrer"
             class="flex items-center justify-center gap-2 bg-tertiary-container text-on-tertiary-container py-3 rounded-xl font-bold font-headline uppercase text-sm hover:bg-tertiary transition-colors">
             <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">chat</span>
             Consultar por WhatsApp

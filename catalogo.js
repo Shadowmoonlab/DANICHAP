@@ -256,11 +256,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderProductos() {
     const lista = getProductosFiltrados();
     const grid = document.getElementById('productos-grid');
+    const loadingEl2 = document.getElementById('catalogo-loading');
     const emptyState = document.getElementById('empty-state');
     const countEl = document.getElementById('resultado-count');
 
+    // Asegurar que el loading esté oculto y el grid visible cuando se filtra
+    if (loadingEl2) loadingEl2.style.display = 'none';
+    if (grid) grid.style.display = '';
+
     const n = lista.length;
-    countEl.textContent = `${n} producto${n !== 1 ? 's' : ''} encontrado${n !== 1 ? 's' : ''}`;
+    if (countEl) countEl.textContent = `${n} producto${n !== 1 ? 's' : ''} encontrado${n !== 1 ? 's' : ''}`;
 
     if (n === 0) {
       grid.innerHTML = '';
@@ -269,7 +274,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const msg = vehiculo
         ? `Hola Danichap! No encontré el repuesto para mi ${vehiculo}. ¿Me podés ayudar?`
         : `Hola Danichap! No encontré el repuesto que busco. ¿Me podés ayudar?`;
-      document.getElementById('empty-wpp').href = `${WPP_BASE}?text=${encodeURIComponent(msg)}`;
+      const wppEl = document.getElementById('empty-wpp');
+      if (wppEl) wppEl.href = `${WPP_BASE}?text=${encodeURIComponent(msg)}`;
       return;
     }
 
@@ -420,7 +426,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         PRODUCTOS.forEach(p => { staticByName[p.nombre.toLowerCase()] = p; });
 
         const dbNormalizados = dbProds
-          .filter(p => p.nombre && p.nombre.trim() && !p.nombre.toLowerCase().includes('(copia)'))
+          .filter(p => p.nombre && p.nombre.trim())
           .map(p => {
             const staticMatch = staticByName[p.nombre.toLowerCase()];
             return {

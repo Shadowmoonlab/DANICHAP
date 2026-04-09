@@ -1,5 +1,22 @@
 /* shared.css — Danichap Design System — Palette v4 Navy+Red */
 
+/* ── Skip to main content (accesibilidad) ────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 9999;
+  background: #001e4b;
+  color: #ffffff;
+  padding: 12px 20px;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  border-radius: 0 0 8px 0;
+  transition: top 0.15s;
+}
+.skip-link:focus { top: 0; }
+
 /* ── Logo SVG global ─────────────────────────────────────────────────────── */
 .danichap-logo-icon { display:inline-block; vertical-align:middle; }
 
