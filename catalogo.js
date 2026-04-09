@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (filtros.marca || filtros.modelo) {
       const partes = [filtros.marca, filtros.modelo, filtros.año].filter(Boolean).map(s => s.toLowerCase());
       lista = lista.filter(p =>
-        p.compatibilidades.some(c => {
+        (p.compatibilidades || ['Universal']).some(c => {
           const cl = c.toLowerCase();
           if (cl === 'universal' || cl.includes('universal')) return true;
           return partes.every(parte => cl.includes(parte));
