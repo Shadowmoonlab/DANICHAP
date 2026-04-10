@@ -105,13 +105,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="width:32px;height:32px;border-radius:50%;background:${avatarBg[i%avatarBg.length]};display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:900;color:white;font-size:12px;flex-shrink:0;">${esc(r.foto)}</div>
           <div style="min-width:0;">
             <div style="color:white;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.nombre)}</div>
-            <div style="color:rgba(255,255,255,0.35);font-size:10px;font-family:Inter,sans-serif;">${esc(r.fecha)}</div>
+            <div style="color:rgba(255,255,255,0.6);font-size:10px;font-family:Inter,sans-serif;">${esc(r.fecha)}</div>
           </div>
         </div>
         ${googleGSvg}
       </div>
       <div style="display:flex;gap:2px;">${starsHtml(r.estrellas)}</div>
-      <p style="color:rgba(255,255,255,0.6);font-family:Inter,sans-serif;font-size:12px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">"${esc(r.texto)}"</p>
+      <p style="color:rgba(255,255,255,0.9);font-family:Inter,sans-serif;font-size:12px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">"${esc(r.texto)}"</p>
     </div>`).join('');
 
   // ─── PRODUCTOS DESTACADOS ────────────────────────────────────────────────────
