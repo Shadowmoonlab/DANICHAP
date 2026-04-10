@@ -953,34 +953,40 @@
       <p class="text-[10px] font-label uppercase tracking-[0.15em] order-2 sm:order-1" style="color:rgba(0,30,75,0.35);">
         © 2025 DANICHAP · Todos los derechos reservados
       </p>
-      <!-- Agency badge -->
+      <!-- Agency credit -->
       <a href="https://www.manadigital.website" target="_blank" rel="noopener noreferrer"
-         class="order-1 sm:order-2 group flex items-center gap-3 no-underline"
-         aria-label="Diseñado por Mana Digital">
-        <!-- Pill badge -->
-        <span class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border transition-all duration-300"
-              style="border-color:rgba(0,30,75,0.15);background:rgba(255,255,255,0.6);backdrop-filter:blur(8px);"
-              onmouseenter="this.style.borderColor='rgba(225,0,15,0.4)';this.style.background='rgba(255,255,255,0.95)';"
-              onmouseleave="this.style.borderColor='rgba(0,30,75,0.15)';this.style.background='rgba(255,255,255,0.6)';">
-          <!-- Diamond accent -->
-          <span style="display:inline-block;width:5px;height:5px;background:#e1000f;transform:rotate(45deg);flex-shrink:0;"></span>
-          <!-- Label -->
-          <span class="flex flex-col leading-none">
-            <span class="font-label uppercase tracking-[0.2em] font-bold"
-                  style="font-size:8px;color:rgba(0,30,75,0.4);letter-spacing:0.18em;">Crafted by</span>
-            <span class="font-headline font-black uppercase tracking-[0.12em]"
-                  style="font-size:11px;color:#0a1f4e;letter-spacing:0.1em;">Mana Digital</span>
-          </span>
-          <!-- Arrow -->
-          <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:rgba(0,30,75,0.08);flex-shrink:0;transition:background 0.2s;"
-                onmouseenter="this.style.background='#e1000f';"
-                onmouseleave="this.style.background='rgba(0,30,75,0.08)';">
-            <svg width="7" height="7" viewBox="0 0 7 7" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M1 6L6 1M6 1H2M6 1V5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-        </span>
+         class="order-1 sm:order-2 mana-credit"
+         aria-label="Diseño y desarrollo por Mana Digital">
+        <span class="mana-label">Diseño &amp; desarrollo</span>
+        <span class="mana-name">MANA<span class="mana-dot">·</span>DIGITAL</span>
       </a>
+      <style>
+        .mana-credit {
+          display: inline-flex; align-items: center; gap: 10px;
+          text-decoration: none; opacity: 0.55;
+          transition: opacity 0.2s;
+        }
+        .mana-credit:hover { opacity: 1; }
+        .mana-credit::before {
+          content: '';
+          display: block; width: 18px; height: 1px;
+          background: #0a1f4e;
+          flex-shrink: 0;
+        }
+        .mana-label {
+          font-family: Inter, sans-serif;
+          font-size: 9px; font-weight: 500;
+          letter-spacing: 0.14em; text-transform: uppercase;
+          color: rgba(0,30,75,0.6);
+        }
+        .mana-name {
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 11px; font-weight: 900;
+          letter-spacing: 0.08em; text-transform: uppercase;
+          color: #0a1f4e;
+        }
+        .mana-dot { color: #e1000f; margin: 0 1px; }
+      </style>
     </div>
   </div>
 </footer>
