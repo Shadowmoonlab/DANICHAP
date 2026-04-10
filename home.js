@@ -120,13 +120,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let destacados = [];
     try {
       if (typeof Productos !== 'undefined') {
-        const { data } = await Productos.list({ destacado: true });
-        if (data && data.length > 0) destacados = data.slice(0, 6);
+        // 1. Traer todos los productos con stock
+        const { data: todos } = await Productos.list();
+        if (todos && todos.length > 0) {
+          const marcados   = todos.filter(p => p.destacado);
+          const normales   = todos.filter(p => !p.destacado);
+          // 2. Priorizar destacados, completar con normales hasta 6
+          const relleno    = [...marcados, ...normales].slice(0, 6);
+          destacados = relleno;
+        }
       }
     } catch(e) {}
-    if (destacados.length === 0) {
-      destacados = PRODUCTOS.filter(p => p.destacado || p.precio !== null).slice(0, 6);
-    }
     if (destacados.length === 0) {
       container.innerHTML = `<div class="col-span-full text-center py-12">
         <span class="material-symbols-outlined text-5xl text-outline-variant mb-3 block">inventory_2</span>
