@@ -145,55 +145,7 @@ const CATEGORIAS = [
 
 // ─── PRODUCTOS ────────────────────────────────────────────────────────────────
 // precio: número = visible en web | null = solo por WhatsApp
-const PRODUCTOS = [
-  // ILUMINACIÓN
-  { id:1, nombre:"Faro delantero LED derecho", categoria:"iluminacion", sub:"Faros delanteros", marca_rep:"TYC", precio:38500, compatibilidades:["Toyota Corolla 2014-2019","Toyota Corolla 2020-2024"] },
-  { id:2, nombre:"Faro trasero izquierdo", categoria:"iluminacion", sub:"Faros traseros", marca_rep:"Depo", precio:null, compatibilidades:["Volkswagen Gol 2009-2016"] },
-  { id:3, nombre:"Kit faros antiniebla H11", categoria:"iluminacion", sub:"Focos H4/H7", marca_rep:"Osram", precio:12900, compatibilidades:["Universal"] },
-  { id:4, nombre:"Faro delantero completo izquierdo", categoria:"iluminacion", sub:"Faros delanteros", marca_rep:"Depo", precio:null, compatibilidades:["Peugeot 208 2013-2021"] },
-
-  // CHAPERIO
-  { id:5, nombre:"Paragolpes delantero completo", categoria:"chaperio", sub:"Paragolpes", marca_rep:"", precio:null, compatibilidades:["Ford Focus 2012-2018"] },
-  { id:6, nombre:"Espejo retrovisor eléctrico derecho", categoria:"chaperio", sub:"Espejos retrovisores", marca_rep:"", precio:24800, compatibilidades:["Peugeot 208 2013-2021","Peugeot 207 2008-2014"] },
-  { id:7, nombre:"Moldura paragolpes trasero", categoria:"chaperio", sub:"Molduras", marca_rep:"", precio:null, compatibilidades:["Renault Sandero 2014-2021"] },
-  { id:8, nombre:"Guardabarros delantero derecho", categoria:"chaperio", sub:"Guardabarros", marca_rep:"", precio:18500, compatibilidades:["Chevrolet Onix 2013-2019"] },
-
-  // MECÁNICA — FRENOS
-  { id:9, nombre:"Pastillas de freno delanteras", categoria:"mecanica", sub:"Frenos / Pastillas", marca_rep:"Brembo", precio:28500, compatibilidades:["Toyota Corolla 2014-2024","Toyota RAV4 2013-2020"], imagen_url:"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop&auto=format", badge:"BREMBO", destacado:true },
-  { id:10, nombre:"Disco de freno ventilado", categoria:"mecanica", sub:"Frenos / Discos", marca_rep:"Brembo", precio:35900, compatibilidades:["Volkswagen Vento 2013-2023","Volkswagen Polo 2010-2023"], imagen_url:"https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=400&h=300&fit=crop&auto=format", badge:"OFERTA", destacado:true },
-  { id:11, nombre:"Zapatas de freno traseras", categoria:"mecanica", sub:"Frenos / Zapatas", marca_rep:"Ferodo", precio:null, compatibilidades:["Chevrolet Onix 2013-2019"] },
-  { id:12, nombre:"Bomba de freno principal", categoria:"mecanica", sub:"Frenos / Bombas de freno", marca_rep:"ATE", precio:null, compatibilidades:["Ford Focus 2006-2018","Ford Ranger 2012-2020"] },
-
-  // MECÁNICA — TREN DELANTERO
-  { id:13, nombre:"Rótula inferior derecha", categoria:"mecanica", sub:"Tren delantero / Rótulas", marca_rep:"Febest", precio:18200, compatibilidades:["Toyota Hilux 2012-2024"] },
-  { id:14, nombre:"Terminal de dirección izquierdo", categoria:"mecanica", sub:"Tren delantero / Terminales dirección", marca_rep:"TRW", precio:9800, compatibilidades:["Renault Clio 2003-2013","Renault Sandero 2008-2021"] },
-  { id:15, nombre:"Buje de rueda trasero", categoria:"mecanica", sub:"Tren delantero / Bujes", marca_rep:"SKF", precio:null, compatibilidades:["Ford Focus 2006-2018"] },
-  { id:16, nombre:"Amortiguador delantero derecho", categoria:"mecanica", sub:"Tren delantero / Amortiguadores", marca_rep:"Monroe", precio:42000, compatibilidades:["Volkswagen Amarok 2011-2023"] },
-
-  // REFRIGERACIÓN
-  { id:17, nombre:"Electro ventilador completo", categoria:"refrigeracion", sub:"Electro ventiladores", marca_rep:"Valeo", precio:52000, compatibilidades:["Peugeot 207 2006-2014","Peugeot 208 2013-2021"] },
-  { id:18, nombre:"Radiador de agua", categoria:"refrigeracion", sub:"Radiador de agua", marca_rep:"Nissens", precio:null, compatibilidades:["Ford Ranger 2012-2020"] },
-  { id:19, nombre:"Termostato motor", categoria:"refrigeracion", sub:"Termostatos", marca_rep:"Gates", precio:8500, compatibilidades:["Chevrolet Cruze 2012-2020"] },
-  { id:20, nombre:"Manguera de agua superior", categoria:"refrigeracion", sub:"Mangueras de agua", marca_rep:"", precio:5900, compatibilidades:["Renault Logan 2007-2020","Renault Sandero 2008-2021"] },
-
-  // ELECTRICIDAD
-  { id:21, nombre:"Bujía Iridium Power (juego x4)", categoria:"electricidad", sub:"Bujías", marca_rep:"NGK", precio:16800, compatibilidades:["Universal — consultar modelo"] },
-  { id:22, nombre:"Motor de arranque", categoria:"electricidad", sub:"Motores de arranque", marca_rep:"Bosch", precio:null, compatibilidades:["Toyota Corolla 2002-2014"] },
-  { id:23, nombre:"Alternador reconstruido", categoria:"electricidad", sub:"Alternadores", marca_rep:"Bosch", precio:null, compatibilidades:["Volkswagen Gol 2009-2023"] },
-  { id:24, nombre:"Sensor de temperatura de agua", categoria:"electricidad", sub:"Sensores", marca_rep:"", precio:4200, compatibilidades:["Fiat Palio 2003-2012","Fiat Siena 2003-2012"] },
-
-  // LIMPIEZA / LIQUI-MOLY
-  { id:25, nombre:"Aditivo limpia inyectores Liqui-Moly 300ml", categoria:"limpieza", sub:"Aditivos Liqui-Moly", marca_rep:"Liqui-Moly", precio:6900, compatibilidades:["Universal"], imagen_url:"https://images.unsplash.com/photo-1635273051303-6b5bcd65b37f?w=400&h=300&fit=crop&auto=format", badge:"POPULAR", destacado:true },
-  { id:26, nombre:"Aceite motor 5W40 Full Synthetic Liqui-Moly 5L", categoria:"limpieza", sub:"Aceites Liqui-Moly", marca_rep:"Liqui-Moly", precio:28900, compatibilidades:["Universal"] },
-  { id:27, nombre:"Kit mantenimiento Liqui-Moly (aditivos + limpiadores)", categoria:"limpieza", sub:"Aditivos Liqui-Moly", marca_rep:"Liqui-Moly", precio:null, compatibilidades:["Universal"] },
-  { id:28, nombre:"Escobillas limpiaparabrisas par", categoria:"limpieza", sub:"Escobillas limpiaparabrisas", marca_rep:"Bosch", precio:8400, compatibilidades:["Universal — consultar modelo"] },
-
-  // CERRADURAS
-  { id:29, nombre:"Cerradura puerta delantera derecha", categoria:"cerraduras", sub:"Cilindros de cerradura", marca_rep:"", precio:null, compatibilidades:["Volkswagen Gol 2009-2023"] },
-  { id:30, nombre:"Manija exterior delantera izquierda", categoria:"cerraduras", sub:"Manijas exteriores", marca_rep:"", precio:7400, compatibilidades:["Chevrolet Onix 2013-2019","Chevrolet Tracker 2013-2021"] },
-  { id:31, nombre:"Actuador eléctrico de cerradura", categoria:"cerraduras", sub:"Actuadores eléctricos", marca_rep:"", precio:null, compatibilidades:["Ford Focus 2010-2018"] },
-  { id:32, nombre:"Kit cerradura completo con llave", categoria:"cerraduras", sub:"Kits de cerradura", marca_rep:"", precio:null, compatibilidades:["Renault Clio 2003-2013"] },
-];
+const PRODUCTOS = []; // Productos cargados desde Supabase
 
 // ─── RESEÑAS GOOGLE ───────────────────────────────────────────────────────────
 // Reseñas representativas basadas en el perfil real de Danichap
