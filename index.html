@@ -946,12 +946,42 @@
       </ul>
     </div>
   </div>
-  <div class="border-t border-outline-variant pb-24 px-6 flex flex-col items-center gap-1.5 text-center" style="background:linear-gradient(to bottom,transparent,rgba(0,30,75,0.04));padding-top:20px;">
-    <a href="https://www.manadigital.website" target="_blank" rel="noopener noreferrer"
-       class="font-headline font-bold text-xs uppercase tracking-[0.18em] hover:opacity-60 transition-opacity"
-       style="color:#e1000f;">MANADIGITAL</a>
-    <p class="text-[9px] text-secondary/40 font-label uppercase tracking-widest">Diseño &amp; Desarrollo Web</p>
-    <p class="text-[9px] text-secondary/30 font-body mt-0.5">© 2025 DANICHAP · Todos los derechos reservados.</p>
+  <!-- FOOTER BOTTOM BAR -->
+  <div class="border-t border-outline-variant px-6 pb-24" style="background:linear-gradient(to bottom,transparent,rgba(0,30,75,0.05));padding-top:24px;">
+    <div class="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <!-- Copyright -->
+      <p class="text-[10px] font-label uppercase tracking-[0.15em] order-2 sm:order-1" style="color:rgba(0,30,75,0.35);">
+        © 2025 DANICHAP · Todos los derechos reservados
+      </p>
+      <!-- Agency badge -->
+      <a href="https://www.manadigital.website" target="_blank" rel="noopener noreferrer"
+         class="order-1 sm:order-2 group flex items-center gap-3 no-underline"
+         aria-label="Diseñado por Mana Digital">
+        <!-- Pill badge -->
+        <span class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border transition-all duration-300"
+              style="border-color:rgba(0,30,75,0.15);background:rgba(255,255,255,0.6);backdrop-filter:blur(8px);"
+              onmouseenter="this.style.borderColor='rgba(225,0,15,0.4)';this.style.background='rgba(255,255,255,0.95)';"
+              onmouseleave="this.style.borderColor='rgba(0,30,75,0.15)';this.style.background='rgba(255,255,255,0.6)';">
+          <!-- Diamond accent -->
+          <span style="display:inline-block;width:5px;height:5px;background:#e1000f;transform:rotate(45deg);flex-shrink:0;"></span>
+          <!-- Label -->
+          <span class="flex flex-col leading-none">
+            <span class="font-label uppercase tracking-[0.2em] font-bold"
+                  style="font-size:8px;color:rgba(0,30,75,0.4);letter-spacing:0.18em;">Crafted by</span>
+            <span class="font-headline font-black uppercase tracking-[0.12em]"
+                  style="font-size:11px;color:#0a1f4e;letter-spacing:0.1em;">Mana Digital</span>
+          </span>
+          <!-- Arrow -->
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:rgba(0,30,75,0.08);flex-shrink:0;transition:background 0.2s;"
+                onmouseenter="this.style.background='#e1000f';"
+                onmouseleave="this.style.background='rgba(0,30,75,0.08)';">
+            <svg width="7" height="7" viewBox="0 0 7 7" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 6L6 1M6 1H2M6 1V5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </span>
+      </a>
+    </div>
   </div>
 </footer>
 
