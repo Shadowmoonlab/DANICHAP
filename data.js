@@ -1,5 +1,5 @@
 // data.js — Danichap: vehículos, categorías, productos, reseñas
-const WPP_NUMBER = "541175200352";
+const WPP_NUMBER = "541123409187";
 const WPP_BASE = `https://wa.me/${WPP_NUMBER}`;
 
 function wppLink(productoNombre, vehiculo) {

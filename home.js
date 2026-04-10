@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
              <div class="text-slate-400 text-xs font-label mt-1">Consultá sin compromiso</div>`
         }
       </div>
-      <a href="https://wa.me/541175200352?text=${encodeURIComponent(heroPromo.wpp_msg)}"
+      <a href="https://wa.me/541123409187?text=${encodeURIComponent(heroPromo.wpp_msg)}"
          target="_blank"
          class="flex items-center gap-2 bg-tertiary-container text-on-tertiary-container px-6 py-3.5 rounded-xl font-black text-sm hover:bg-tertiary transition-colors font-headline uppercase tracking-wide shadow-xl">
         <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">chat</span>
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
              </div>`
         }
       </div>
-      <a href="https://wa.me/541175200352?text=${encodeURIComponent(p.wpp_msg)}"
+      <a href="https://wa.me/541123409187?text=${encodeURIComponent(p.wpp_msg)}"
          target="_blank"
          class="flex items-center gap-1.5 bg-tertiary-container text-on-tertiary-container px-4 py-2.5 rounded-xl font-bold text-xs font-label uppercase tracking-wide hover:bg-tertiary transition-colors flex-shrink-0">
         <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>
