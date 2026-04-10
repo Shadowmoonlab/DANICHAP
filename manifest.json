@@ -1,0 +1,31 @@
+{
+  "name": "DANICHAP Repuestos",
+  "short_name": "DANICHAP",
+  "description": "Repuestos automotrices multimarca en Longchamps, Buenos Aires",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F2F0EC",
+  "theme_color": "#001e4b",
+  "lang": "es",
+  "dir": "ltr",
+  "orientation": "any",
+  "categories": ["shopping", "automotive"],
+  "icons": [
+    { "src": "docs/img/favicon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "docs/img/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Catálogo",
+      "short_name": "Catálogo",
+      "url": "/catalogo.html",
+      "icons": [{ "src": "docs/img/favicon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Contacto",
+      "short_name": "Contacto",
+      "url": "/contacto.html",
+      "icons": [{ "src": "docs/img/favicon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

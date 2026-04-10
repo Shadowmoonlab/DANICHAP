@@ -29,9 +29,9 @@
 <meta property="og:url"         content="https://danichap.com/"/>
 <meta property="og:title"       content="DANICHAP — Repuestos Automotrices Longchamps"/>
 <meta property="og:description" content="Repuestos automotrices de calidad en Longchamps. Frenos, iluminación, mecánica. Marcas premium. Consultá por WhatsApp."/>
-<meta property="og:image"       content="https://danichap.com/docs/img/favicon-512.png"/>
-<meta property="og:image:width" content="512"/>
-<meta property="og:image:height" content="512"/>
+<meta property="og:image"       content="https://danichap.com/docs/img/og-image.jpg"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
 <meta property="og:locale"      content="es_AR"/>
 <meta property="og:site_name"   content="DANICHAP"/>
 <!-- Twitter Card -->
@@ -151,14 +151,23 @@ tailwind.config = {
   },
 }
 </script>
+<!-- Preload LCP image -->
+<link rel="preload" as="image" href="docs/img/danichaplogo-transparent.webp" type="image/webp"/>
+<!-- Preload fuente crítica -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;900&family=Inter:wght@400;500;600&display=swap"/>
+<!-- Web App Manifest -->
+<link rel="manifest" href="manifest.json"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="DANICHAP"/>
 <!-- Supabase + módulos -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="toast.js"></script>
-<script src="supabase.js"></script>
-<script src="auth.js"></script>
-<script src="cart.js"></script>
-<script src="cart-ui.js"></script>
-<script src="data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
+<script src="toast.js" defer></script>
+<script src="supabase.js" defer></script>
+<script src="auth.js" defer></script>
+<script src="cart.js" defer></script>
+<script src="cart-ui.js" defer></script>
+<script src="data.js" defer></script>
 <script src="nav.js" defer></script>
 <script src="scroll-animations.js" defer></script>
 </head>
@@ -170,7 +179,10 @@ tailwind.config = {
   <div class="flex justify-between items-center px-6 py-4 max-w-screen-xl mx-auto">
     <!-- Logo -->
     <a href="index.html" class="flex items-center gap-3 group" aria-label="DANICHAP — Inicio">
-      <img src="docs/img/danichaplogo-transparent.png" alt="" width="38" height="38" class="amber-glow-sm rounded-sm object-contain" style="width:38px;height:38px;" aria-hidden="true"/>
+      <picture>
+        <source srcset="docs/img/danichaplogo-transparent.webp" type="image/webp"/>
+        <img src="docs/img/danichaplogo-transparent.png" alt="" width="38" height="38" class="amber-glow-sm rounded-sm object-contain" style="width:38px;height:38px;" aria-hidden="true" fetchpriority="high"/>
+      </picture>
       <div class="flex flex-col leading-none">
         <span class="text-xl font-black tracking-[-0.04em] text-on-surface font-headline uppercase" aria-hidden="true">DANICHAP</span>
         <span class="text-[9px] font-bold tracking-[0.22em] uppercase font-label text-primary-container" aria-hidden="true">REPUESTOS · LONGCHAMPS</span>
@@ -949,7 +961,10 @@ tailwind.config = {
   <div class="grid grid-cols-1 md:grid-cols-3 gap-12 px-6 py-16 max-w-screen-xl mx-auto">
     <div>
       <div class="flex items-center gap-3 mb-4">
-        <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="30" height="30" class="rounded-sm object-contain" style="width:30px;height:30px;"/>
+        <picture>
+          <source srcset="docs/img/danichaplogo-transparent.webp" type="image/webp"/>
+          <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="30" height="30" class="rounded-sm object-contain" style="width:30px;height:30px;" loading="lazy"/>
+        </picture>
         <div class="flex flex-col leading-none">
           <span class="text-lg font-black text-on-surface font-headline tracking-[-0.04em] uppercase">DANICHAP</span>
           <span class="text-[8px] font-bold tracking-[0.2em] uppercase font-label text-primary-container">REPUESTOS · LONGCHAMPS</span>

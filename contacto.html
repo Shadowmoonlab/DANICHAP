@@ -28,9 +28,9 @@
 <meta property="og:url"         content="https://danichap.com/contacto.html"/>
 <meta property="og:title"       content="Contacto — DANICHAP Repuestos"/>
 <meta property="og:description" content="Av. Hipólito Yrigoyen 19608, Longchamps. WhatsApp 011 2340-9187. Lunes a viernes 8-18hs, sábados 8-13hs."/>
-<meta property="og:image"       content="https://danichap.com/docs/img/favicon-512.png"/>
-<meta property="og:image:width" content="512"/>
-<meta property="og:image:height" content="512"/>
+<meta property="og:image"       content="https://danichap.com/docs/img/og-image.jpg"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
 <meta property="og:locale"      content="es_AR"/>
 <meta property="og:site_name"   content="DANICHAP"/>
 <!-- Structured Data: LocalBusiness (contacto) -->
@@ -98,13 +98,20 @@ tailwind.config = {
   },
 }
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="toast.js"></script>
-<script src="supabase.js"></script>
-<script src="auth.js"></script>
-<script src="cart.js"></script>
-<script src="cart-ui.js"></script>
-<script src="data.js"></script>
+<!-- Preload LCP image -->
+<link rel="preload" as="image" href="docs/img/danichaplogo-transparent.webp" type="image/webp"/>
+<!-- Web App Manifest -->
+<link rel="manifest" href="manifest.json"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="DANICHAP"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
+<script src="toast.js" defer></script>
+<script src="supabase.js" defer></script>
+<script src="auth.js" defer></script>
+<script src="cart.js" defer></script>
+<script src="cart-ui.js" defer></script>
+<script src="data.js" defer></script>
 <script src="nav.js" defer></script>
 </head>
 <body class="bg-surface font-body text-on-surface">
@@ -114,7 +121,10 @@ tailwind.config = {
 <nav class="fixed top-0 w-full z-50 bg-surface/95 backdrop-blur-md shadow-sm border-b border-outline-variant" aria-label="Navegación principal">
   <div class="flex justify-between items-center px-6 py-4 max-w-screen-xl mx-auto">
     <a href="index.html" class="flex items-center gap-3 group" aria-label="DANICHAP — Inicio">
-      <img src="docs/img/danichaplogo-transparent.png" alt="" width="38" height="38" class="amber-glow-sm rounded-sm object-contain" style="width:38px;height:38px;" aria-hidden="true"/>
+      <picture>
+        <source srcset="docs/img/danichaplogo-transparent.webp" type="image/webp"/>
+        <img src="docs/img/danichaplogo-transparent.png" alt="" width="38" height="38" class="amber-glow-sm rounded-sm object-contain" style="width:38px;height:38px;" aria-hidden="true" fetchpriority="high"/>
+      </picture>
       <div class="flex flex-col leading-none" aria-hidden="true">
         <span class="text-xl font-black tracking-[-0.04em] text-on-surface font-headline uppercase">DANICHAP</span>
         <span class="text-[9px] font-bold tracking-[0.22em] uppercase font-label text-primary-container">REPUESTOS · LONGCHAMPS</span>
@@ -506,7 +516,10 @@ tailwind.config = {
   <div class="grid grid-cols-1 md:grid-cols-3 gap-12 px-6 md:px-12 py-16 max-w-screen-xl mx-auto">
     <div>
       <div class="flex items-center gap-3 mb-4">
-        <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="28" height="28" class="rounded-sm object-contain" style="width:28px;height:28px;"/>
+        <picture>
+        <source srcset="docs/img/danichaplogo-transparent.webp" type="image/webp"/>
+        <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="28" height="28" class="rounded-sm object-contain" style="width:28px;height:28px;" loading="lazy"/>
+      </picture>
         <div class="flex flex-col leading-none">
           <span class="text-lg font-black text-white font-headline tracking-[-0.04em] uppercase">DANICHAP</span>
           <span class="text-[8px] font-bold tracking-[0.2em] uppercase font-label" style="color:#1a5aaa;">REPUESTOS · LONGCHAMPS</span>
