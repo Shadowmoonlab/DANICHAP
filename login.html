@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Ingresar — DANICHAP</title>
 <!-- Security -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://stambpkmtwtnhfjmxztl.supabase.co https://*.supabase.co; connect-src 'self' https://stambpkmtwtnhfjmxztl.supabase.co https://*.supabase.co wss://stambpkmtwtnhfjmxztl.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://stambpkmtwtnhfjmxztl.supabase.co https://*.supabase.co; connect-src 'self' https://stambpkmtwtnhfjmxztl.supabase.co https://*.supabase.co wss://stambpkmtwtnhfjmxztl.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"/>
 <meta http-equiv="X-Content-Type-Options" content="nosniff"/>
 <meta http-equiv="X-Frame-Options" content="DENY"/>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin"/>
@@ -17,7 +17,6 @@
 <link rel="apple-touch-icon" sizes="180x180" href="docs/img/favicon-180.png"/>
 <link rel="icon" type="image/svg+xml" href="docs/img/danichap-icon.svg"/>
 <meta name="theme-color" content="#001e4b"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <link rel="preconnect" href="https://stambpkmtwtnhfjmxztl.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -25,24 +24,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="shared.css"/>
-<script id="tailwind-config">
-tailwind.config = {
-  darkMode:"class",
-  theme:{extend:{colors:{
-    "primary":"#001e4b","primary-container":"#0a3270","primary-hi":"#1a5aaa",
-    "on-primary":"#ffffff","on-primary-container":"#dce8ff",
-    "accent":"#e1000f","accent-container":"#ff3322","on-accent":"#ffffff",
-    "surface":"#F2F0EC","surface-container-lowest":"#FAFAF9",
-    "surface-container-low":"#ECEAE5","surface-container":"#E2DFD9",
-    "on-surface":"#111827","secondary":"#4B5563",
-    "tertiary":"#1A9850","tertiary-container":"#25D366","on-tertiary-container":"#003b15",
-    "outline":"#9CA3AF","outline-variant":"#D1D5DB","error":"#ba1a1a",
-  },
-  fontFamily:{"headline":["Space Grotesk"],"body":["Inter"],"label":["Inter"]},
-  borderRadius:{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},
-  }},
-}
-</script>
+<link rel="stylesheet" href="tailwind.css"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="toast.js"></script>
 <script src="supabase.js"></script>
