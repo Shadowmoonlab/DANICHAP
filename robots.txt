@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin.html
 Disallow: /login.html
 
-Sitemap: https://danichap.com.ar/sitemap.xml
+Sitemap: https://danichap.com/sitemap.xml
