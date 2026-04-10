@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     btn.addEventListener('click', () => {
       const isOpen = !menu.classList.contains('hidden');
       menu.classList.toggle('hidden');
+      btn.setAttribute('aria-expanded', String(isOpen));
       if (icon) icon.textContent = isOpen ? 'menu' : 'close';
     });
     menu.querySelectorAll('a').forEach(a => {
@@ -41,18 +42,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   const userBtn = document.getElementById('nav-user-btn');
   if (userBtn) {
     const dropdown = userBtn.querySelector('div.hidden, div[class*="group-hover"]');
-    userBtn.querySelector('button')?.addEventListener('click', (e) => {
+    const triggerBtn = userBtn.querySelector('button');
+    triggerBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       const dd = userBtn.querySelector('div.absolute');
       if (dd) {
-        dd.classList.toggle('hidden');
-        dd.classList.toggle('block');
+        const isOpen = dd.classList.contains('block');
+        dd.classList.toggle('hidden', isOpen);
+        dd.classList.toggle('block', !isOpen);
+        triggerBtn.setAttribute('aria-expanded', String(!isOpen));
       }
     });
     document.addEventListener('click', (e) => {
       if (!userBtn.contains(e.target)) {
         const dd = userBtn.querySelector('div.absolute');
-        if (dd) { dd.classList.add('hidden'); dd.classList.remove('block'); }
+        if (dd) {
+          dd.classList.add('hidden');
+          dd.classList.remove('block');
+          userBtn.querySelector('button')?.setAttribute('aria-expanded', 'false');
+        }
       }
     });
   }
