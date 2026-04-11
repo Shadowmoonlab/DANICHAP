@@ -100,35 +100,56 @@ const AuthUI = {
 
     document.getElementById('form-login').addEventListener('submit', async e => {
       e.preventDefault();
+      const self  = AuthUI;
       const fd    = new FormData(e.target);
+      const email = (fd.get('email') || '').trim();
+      const pass  = fd.get('password') || '';
       const errEl = document.getElementById('login-error');
       const btn   = e.target.querySelector('button[type=submit]');
+
+      // — reset estado previo
       errEl.classList.add('hidden');
+      errEl.textContent = '';
+
+      // — validación cliente
+      if (!email || !pass) {
+        errEl.textContent = 'Completá email y contraseña.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      // — spinner
+      const originalHTML = btn.innerHTML;
       btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin align-middle mr-2"></span>Entrando…';
       btn.disabled = true;
 
+      const resetBtn = () => { btn.innerHTML = originalHTML; btn.disabled = false; };
+
       let data, error;
       try {
-        const timeout = new Promise((_, rej) =>
-          setTimeout(() => rej(new Error('timeout')), 12000)
+        const timeoutP = new Promise((_, rej) =>
+          setTimeout(() => rej(new Error('timeout')), 15000)
         );
         ({ data, error } = await Promise.race([
-          Auth.signIn(fd.get('email'), fd.get('password')),
-          timeout
+          Auth.signIn(email, pass),
+          timeoutP,
         ]));
       } catch (ex) {
         error = ex;
       }
 
-      btn.innerHTML = 'Entrar'; btn.disabled = false;
+      // — siempre liberar el botón
+      resetBtn();
 
       if (error) {
-        const msg = error.message || '';
+        const msg = (error.message || '').toLowerCase();
         if (msg === 'timeout') {
           errEl.textContent = 'La conexión tardó demasiado. Revisá tu internet e intentá de nuevo.';
-        } else if (msg.includes('Invalid login') || msg.includes('invalid_credentials')) {
+        } else if (msg.includes('invalid') || msg.includes('credentials') || msg.includes('not found')) {
           errEl.textContent = 'Email o contraseña incorrectos.';
-        } else if (msg.includes('network') || msg.includes('fetch')) {
+        } else if (msg.includes('email not confirmed')) {
+          errEl.textContent = 'Confirmá tu email antes de ingresar. Revisá tu casilla de correo.';
+        } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('failed')) {
           errEl.textContent = 'Sin conexión. Revisá tu internet.';
         } else {
           errEl.textContent = 'No se pudo iniciar sesión. Intentá más tarde.';
@@ -137,7 +158,15 @@ const AuthUI = {
         return;
       }
 
-      this.close();
+      // — verificar que realmente hay sesión (email sin confirmar devuelve error:null, user:null)
+      if (!data?.user?.id) {
+        errEl.textContent = 'Confirmá tu email antes de ingresar. Revisá tu casilla de correo.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      // — login OK: cerrar modal y dejar que onAuthChange actualice la UI
+      self.close();
     });
 
     document.getElementById('form-register').addEventListener('submit', async e => {
