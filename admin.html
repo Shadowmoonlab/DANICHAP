@@ -262,18 +262,22 @@
       <!-- Marca + Modelo -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label for="prod-marca" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Marca</label>
-          <input type="text" id="prod-marca" name="marca_rep" autocomplete="off"
+          <label for="prod-marca" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">
+            Marca <span class="ml-1 normal-case font-normal text-secondary/70">— escribí libre o elegí una existente</span>
+          </label>
+          <input type="text" id="prod-marca" name="marca_rep" list="marcas-datalist" autocomplete="off"
             class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline"
             placeholder="Ej: Bosch, NGK, Brembo"/>
+          <datalist id="marcas-datalist"></datalist>
         </div>
         <div>
           <label for="prod-modelo" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">
             Modelo <span class="ml-1 normal-case font-normal text-secondary/70">— separá con /</span>
           </label>
-          <input type="text" id="prod-modelo" name="modelo" autocomplete="off"
+          <input type="text" id="prod-modelo" name="modelo" list="modelos-datalist" autocomplete="off"
             class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline"
             placeholder="Ej: Corolla / Yaris / Etios"/>
+          <datalist id="modelos-datalist"></datalist>
         </div>
       </div>
 
@@ -410,6 +414,6 @@
   </div>
 </div>
 
-<script src="admin.js?v=2" defer></script>
+<script src="admin.js?v=3" defer></script>
 </body>
 </html>

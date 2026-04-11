@@ -283,6 +283,39 @@
     renderStats();
     renderTabla(allProductos);
     populateCatFilter();
+    populateMarcaModeloDatalists();
+  }
+
+  // Rellena <datalist> con valores únicos de marca/modelo usados en productos existentes.
+  // El input sigue siendo libre: el usuario puede escribir uno nuevo, solo se sugieren los ya usados.
+  function populateMarcaModeloDatalists() {
+    const marcasDL  = document.getElementById('marcas-datalist');
+    const modelosDL = document.getElementById('modelos-datalist');
+    if (!marcasDL || !modelosDL) return;
+
+    const marcasSet  = new Set();
+    const modelosSet = new Set();
+
+    allProductos.forEach(p => {
+      if (p.marca_rep && String(p.marca_rep).trim()) {
+        marcasSet.add(String(p.marca_rep).trim());
+      }
+      if (p.modelo && String(p.modelo).trim()) {
+        // Modelo puede ser "A / B / C" — split para ofrecer cada variante como sugerencia individual
+        String(p.modelo).split('/').forEach(m => {
+          const t = m.trim();
+          if (t) modelosSet.add(t);
+        });
+        // Además, ofrecer el string completo por si quiere reusarlo tal cual
+        modelosSet.add(String(p.modelo).trim());
+      }
+    });
+
+    const marcas  = [...marcasSet].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    const modelos = [...modelosSet].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+
+    marcasDL.innerHTML  = marcas.map(m  => `<option value="${m.replace(/"/g, '&quot;')}"></option>`).join('');
+    modelosDL.innerHTML = modelos.map(m => `<option value="${m.replace(/"/g, '&quot;')}"></option>`).join('');
   }
 
   function _showStaticBanner() {
