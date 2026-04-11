@@ -8,10 +8,12 @@
   const user = await Auth.getUser();
   if (!user) { window.location.href = 'login.html'; return; }
 
-  let perfil = await Perfiles.get(user.id);
-  if (!perfil) {
-    await new Promise(r => setTimeout(r, 900));
+  // Retry hasta 3 veces con backoff — el trigger de Supabase puede tardar en crear el perfil
+  let perfil = null;
+  for (let i = 0; i < 3; i++) {
     perfil = await Perfiles.get(user.id);
+    if (perfil) break;
+    await new Promise(r => setTimeout(r, 600 * (i + 1)));
   }
 
   document.getElementById('admin-loading').classList.add('hidden');
@@ -697,13 +699,19 @@
     };
 
     const isEditing = Boolean(editingId);
-    const { error } = isEditing
-      ? await Productos.update(editingId, payload)
-      : await Productos.create(payload);
+    let saveError;
+    try {
+      const { error } = isEditing
+        ? await Productos.update(editingId, payload)
+        : await Productos.create(payload);
+      saveError = error;
+    } catch (ex) {
+      saveError = ex;
+    }
 
     btn.innerHTML = orig; btn.disabled = false;
 
-    if (error) { setFormError(error.message); return; }
+    if (saveError) { setFormError(saveError.message || 'Error al guardar. Intentá de nuevo.'); return; }
 
     closeModal();
     showToast(isEditing ? 'Producto actualizado ✓' : 'Producto creado ✓');

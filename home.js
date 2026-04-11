@@ -1,6 +1,8 @@
 // home.js — Renderizado dinámico de index.html
 // Requiere: data.js (PROMOCIONES, CATEGORIAS, PRODUCTOS, RESENAS, wppLink)
 
+const _esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
 document.addEventListener('DOMContentLoaded', () => {
 
   // ─── PROMOCIONES ────────────────────────────────────────────────────────────
@@ -148,23 +150,23 @@ document.addEventListener('DOMContentLoaded', () => {
         : `<span class="text-sm font-bold text-tertiary font-body flex items-center gap-1"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>Consultar</span>`;
       const hasImg = !!p.imagen_url;
       const imagenHtml = hasImg
-        ? `<img src="${p.imagen_url}" alt="${p.nombre}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy"/>`
+        ? `<img src="${_esc(p.imagen_url)}" alt="${_esc(p.nombre)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy"/>`
         : `<span class="material-symbols-outlined text-7xl text-surface-dim group-hover:scale-110 transition-transform duration-500">${cat ? cat.icon : 'build'}</span>`;
       const badgeHtml = p.badge
-        ? `<span class="absolute top-3 right-3 bg-primary-container text-white text-[10px] font-black px-2 py-1 uppercase tracking-widest font-label rounded">${p.badge}</span>`
+        ? `<span class="absolute top-3 right-3 bg-primary-container text-white text-[10px] font-black px-2 py-1 uppercase tracking-widest font-label rounded">${_esc(p.badge)}</span>`
         : '';
       const marcaHtml = p.marca_rep
-        ? `<span class="absolute top-3 left-3 bg-inverse-surface text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest font-label rounded">${p.marca_rep}</span>`
+        ? `<span class="absolute top-3 left-3 bg-inverse-surface text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest font-label rounded">${_esc(p.marca_rep)}</span>`
         : '';
-      const compat = p.compatibilidades?.[0] || 'Universal';
+      const compat = _esc(p.compatibilidades?.[0] || 'Universal');
       const imgWrapClass = hasImg
         ? 'relative h-44 product-img-wrap'
         : 'relative h-44 bg-surface-container-low flex items-center justify-center overflow-hidden';
       return `<div class="bg-surface-container-lowest rounded-xl overflow-hidden group hover:shadow-xl transition-all duration-300 border border-surface-container flex flex-col">
         <div class="${imgWrapClass}">${imagenHtml}${badgeHtml}${marcaHtml}</div>
         <div class="p-5 flex flex-col flex-1">
-          <span class="text-[10px] font-bold uppercase tracking-widest text-secondary font-label mb-1">${cat ? cat.label : ''}</span>
-          <h3 class="font-headline font-bold text-base uppercase mb-2 leading-tight">${p.nombre}</h3>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-secondary font-label mb-1">${cat ? _esc(cat.label) : ''}</span>
+          <h3 class="font-headline font-bold text-base uppercase mb-2 leading-tight">${_esc(p.nombre)}</h3>
           <p class="text-xs text-tertiary font-body mb-4">✓ ${compat}</p>
           <div class="mt-auto flex items-center justify-between gap-3">
             ${precioHtml}
