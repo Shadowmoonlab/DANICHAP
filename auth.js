@@ -106,9 +106,29 @@ const AuthUI = {
       errEl.classList.add('hidden');
       btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin align-middle mr-2"></span>Entrando…';
       btn.disabled = true;
-      const { error } = await Auth.signIn(fd.get('email'), fd.get('password'));
+
+      let data, error;
+      try {
+        ({ data, error } = await Auth.signIn(fd.get('email'), fd.get('password')));
+      } catch (ex) {
+        error = ex;
+      }
+
       btn.innerHTML = 'Entrar'; btn.disabled = false;
-      if (error) { errEl.textContent = 'Email o contraseña incorrectos.'; errEl.classList.remove('hidden'); return; }
+
+      if (error) {
+        const msg = error.message || '';
+        if (msg.includes('Invalid login') || msg.includes('invalid_credentials')) {
+          errEl.textContent = 'Email o contraseña incorrectos.';
+        } else if (msg.includes('network') || msg.includes('fetch')) {
+          errEl.textContent = 'Sin conexión. Revisá tu internet.';
+        } else {
+          errEl.textContent = 'No se pudo iniciar sesión. Intentá más tarde.';
+        }
+        errEl.classList.remove('hidden');
+        return;
+      }
+
       this.close();
     });
 
@@ -121,9 +141,14 @@ const AuthUI = {
       errEl.classList.add('hidden'); okEl.classList.add('hidden');
       btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin align-middle mr-2"></span>Creando…';
       btn.disabled = true;
-      const { error } = await Auth.signUp(fd.get('email'), fd.get('password'), fd.get('nombre'));
+      let error;
+      try {
+        ({ error } = await Auth.signUp(fd.get('email'), fd.get('password'), fd.get('nombre')));
+      } catch (ex) {
+        error = ex;
+      }
       btn.innerHTML = 'Crear cuenta'; btn.disabled = false;
-      if (error) { errEl.textContent = error.message; errEl.classList.remove('hidden'); return; }
+      if (error) { errEl.textContent = error.message || 'No se pudo crear la cuenta.'; errEl.classList.remove('hidden'); return; }
       okEl.classList.remove('hidden');
       e.target.reset();
     });
