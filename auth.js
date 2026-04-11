@@ -109,7 +109,13 @@ const AuthUI = {
 
       let data, error;
       try {
-        ({ data, error } = await Auth.signIn(fd.get('email'), fd.get('password')));
+        const timeout = new Promise((_, rej) =>
+          setTimeout(() => rej(new Error('timeout')), 12000)
+        );
+        ({ data, error } = await Promise.race([
+          Auth.signIn(fd.get('email'), fd.get('password')),
+          timeout
+        ]));
       } catch (ex) {
         error = ex;
       }
@@ -118,7 +124,9 @@ const AuthUI = {
 
       if (error) {
         const msg = error.message || '';
-        if (msg.includes('Invalid login') || msg.includes('invalid_credentials')) {
+        if (msg === 'timeout') {
+          errEl.textContent = 'La conexión tardó demasiado. Revisá tu internet e intentá de nuevo.';
+        } else if (msg.includes('Invalid login') || msg.includes('invalid_credentials')) {
           errEl.textContent = 'Email o contraseña incorrectos.';
         } else if (msg.includes('network') || msg.includes('fetch')) {
           errEl.textContent = 'Sin conexión. Revisá tu internet.';
