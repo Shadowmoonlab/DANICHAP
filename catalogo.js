@@ -230,13 +230,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (filtros.marca || filtros.modelo) {
       const partes = [filtros.marca, filtros.modelo, filtros.año].filter(Boolean).map(s => s.toLowerCase());
-      lista = lista.filter(p =>
-        (p.compatibilidades || ['Universal']).some(c => {
+      const modeloFilt = (filtros.modelo || '').toLowerCase().trim();
+
+      lista = lista.filter(p => {
+        // 1. Match contra `compatibilidades` (legacy, productos estáticos)
+        const matchCompat = (p.compatibilidades || ['Universal']).some(c => {
           const cl = c.toLowerCase();
           if (cl === 'universal' || cl.includes('universal')) return true;
           return partes.every(parte => cl.includes(parte));
-        })
-      );
+        });
+        if (matchCompat) return true;
+
+        // 2. Match contra el nuevo campo `modelo` (DB, texto libre "A / B / C")
+        //    Solo aplica cuando el usuario filtró por modelo específico
+        if (modeloFilt && p.modelo) {
+          const modelosProducto = String(p.modelo).toLowerCase()
+            .split('/').map(s => s.trim()).filter(Boolean);
+          if (modelosProducto.some(m => m.includes(modeloFilt) || modeloFilt.includes(m))) {
+            return true;
+          }
+        }
+
+        return false;
+      });
     }
 
     if (filtros.sort === 'price-asc') {
