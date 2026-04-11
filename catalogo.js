@@ -220,6 +220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       lista = lista.filter(p =>
         p.nombre.toLowerCase().includes(q) ||
         (p.marca_rep || '').toLowerCase().includes(q) ||
+        (p.modelo || '').toLowerCase().includes(q) ||
         (p.descripcion || '').toLowerCase().includes(q) ||
         p.categoria.toLowerCase().includes(q)
       );
@@ -354,7 +355,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span class="text-[10px] font-bold uppercase tracking-widest text-secondary font-label">${cat ? cat.label : ''}</span>
             ${p.sub ? `<span class="text-[10px] text-secondary font-label">· ${subLabel}</span>` : ''}
           </div>
-          <h3 class="font-headline font-bold text-sm uppercase mb-2 leading-tight cursor-pointer hover:text-primary-container transition-colors" onclick="if(typeof openProductDetail==='function'&&window._prodStore)openProductDetail(window._prodStore['${p.id}'])">${p.nombre}</h3>
+          <h3 class="font-headline font-bold text-sm uppercase mb-1 leading-tight cursor-pointer hover:text-primary-container transition-colors" onclick="if(typeof openProductDetail==='function'&&window._prodStore)openProductDetail(window._prodStore['${p.id}'])">${p.nombre}</h3>
+          ${(p.marca_rep || p.modelo) ? `<p class="text-[11px] text-secondary font-body font-semibold mb-2 truncate">${[p.marca_rep, p.modelo].filter(Boolean).join(' · ')}</p>` : ''}
           <p class="text-xs text-tertiary font-body mb-4">✓ ${compat}${masCompat}</p>
           <div class="mt-auto space-y-2">
             ${stockBadge}
@@ -435,6 +437,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               categoria: p.categoria,
               sub: p.subcategoria || '',
               marca_rep: p.marca_rep || '',
+              modelo: p.modelo || '',
               precio: p.precio ? Number(p.precio) : null,
               precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
               imagen_url: p.imagen_url || null,

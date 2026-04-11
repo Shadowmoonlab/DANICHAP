@@ -158,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const marcaHtml = p.marca_rep
         ? `<span class="absolute top-3 left-3 bg-inverse-surface text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest font-label rounded">${_esc(p.marca_rep)}</span>`
         : '';
+      const marcaModeloText = [p.marca_rep, p.modelo].filter(Boolean).map(_esc).join(' · ');
       const compat = _esc(p.compatibilidades?.[0] || 'Universal');
       const imgWrapClass = hasImg
         ? 'relative h-44 product-img-wrap'
@@ -166,7 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="${imgWrapClass}">${imagenHtml}${badgeHtml}${marcaHtml}</div>
         <div class="p-5 flex flex-col flex-1">
           <span class="text-[10px] font-bold uppercase tracking-widest text-secondary font-label mb-1">${cat ? _esc(cat.label) : ''}</span>
-          <h3 class="font-headline font-bold text-base uppercase mb-2 leading-tight">${_esc(p.nombre)}</h3>
+          <h3 class="font-headline font-bold text-base uppercase mb-1 leading-tight">${_esc(p.nombre)}</h3>
+          ${marcaModeloText ? `<p class="text-[11px] text-secondary font-body font-semibold mb-2 truncate">${marcaModeloText}</p>` : ''}
           <p class="text-xs text-tertiary font-body mb-4">✓ ${compat}</p>
           <div class="mt-auto flex items-center justify-between gap-3">
             ${precioHtml}

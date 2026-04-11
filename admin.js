@@ -412,7 +412,8 @@
       tr.querySelector('.img-slot').replaceWith(imgWrap);
       tr.querySelector('.js-nombre').textContent = p.nombre;
       tr.querySelector('.js-cat').textContent    = p.categoria;
-      if (p.marca_rep) { const m = tr.querySelector('.js-marca'); m.textContent = p.marca_rep; m.classList.remove('hidden'); }
+      const marcaModelo = [p.marca_rep, p.modelo].filter(Boolean).join(' · ');
+      if (marcaModelo) { const m = tr.querySelector('.js-marca'); m.textContent = marcaModelo; m.classList.remove('hidden'); }
       if (p.badge)     { const b = tr.querySelector('.js-badge'); b.textContent = p.badge;     b.classList.remove('hidden'); }
 
       frag.appendChild(tr);
@@ -432,6 +433,7 @@
     if (q) r = r.filter(p =>
       p.nombre.toLowerCase().includes(q) ||
       (p.marca_rep||'').toLowerCase().includes(q) ||
+      (p.modelo||'').toLowerCase().includes(q) ||
       (p.categoria||'').toLowerCase().includes(q) ||
       (p.subcategoria||'').toLowerCase().includes(q) ||
       (p.badge||'').toLowerCase().includes(q)
@@ -538,6 +540,7 @@
     document.getElementById('prod-id').value                 = p?.id || '';
     document.getElementById('prod-nombre').value             = p?.nombre      || '';
     document.getElementById('prod-marca').value              = p?.marca_rep   || '';
+    document.getElementById('prod-modelo').value             = p?.modelo      || '';
     document.getElementById('prod-badge').value              = p?.badge       || '';
     document.getElementById('prod-precio').value             = p?.precio      != null ? p.precio : '';
     document.getElementById('prod-precio-antes').value       = p?.precio_antes != null ? p.precio_antes : '';
@@ -686,6 +689,7 @@
       categoria,
       subcategoria:    document.getElementById('prod-subcategoria').value.trim() || null,
       marca_rep:       document.getElementById('prod-marca').value.trim()        || null,
+      modelo:          document.getElementById('prod-modelo').value.trim()       || null,
       badge:           document.getElementById('prod-badge').value.trim().toUpperCase() || null,
       precio:          precioVal      ? parseFloat(precioVal)      : null,
       precio_antes:    precioAntesVal ? parseFloat(precioAntesVal) : null,
@@ -793,6 +797,7 @@
       categoria:      orig.categoria,
       subcategoria:   orig.subcategoria  || null,
       marca_rep:      orig.marca_rep     || null,
+      modelo:         orig.modelo        || null,
       badge:          orig.badge         || null,
       precio:         orig.precio        ?? null,
       precio_antes:   orig.precio_antes  ?? null,

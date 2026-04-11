@@ -79,7 +79,7 @@
 <script src="cart-ui.js" defer></script>
 <script src="data.js" defer></script>
 <script src="nav.js" defer></script>
-<script src="catalogo.js" defer></script>
+<script src="catalogo.js?v=2" defer></script>
 <script src="scroll-animations.js" defer></script>
 </head>
 <body class="bg-surface font-body text-on-surface">
@@ -510,7 +510,8 @@
 
     const marcaEl = document.getElementById('pd-marca');
     if (marcaEl) {
-      if (p.marca_rep) { marcaEl.textContent = p.marca_rep; marcaEl.classList.remove('hidden'); }
+      const marcaModelo = [p.marca_rep, p.modelo].filter(Boolean).join(' · ');
+      if (marcaModelo) { marcaEl.textContent = marcaModelo; marcaEl.classList.remove('hidden'); }
       else              marcaEl.classList.add('hidden');
     }
 

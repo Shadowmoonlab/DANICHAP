@@ -259,7 +259,7 @@
         </div>
       </div>
 
-      <!-- Marca + Badge -->
+      <!-- Marca + Modelo -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label for="prod-marca" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Marca</label>
@@ -267,6 +267,18 @@
             class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline"
             placeholder="Ej: Bosch, NGK, Brembo"/>
         </div>
+        <div>
+          <label for="prod-modelo" class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">
+            Modelo <span class="ml-1 normal-case font-normal text-secondary/70">— separá con /</span>
+          </label>
+          <input type="text" id="prod-modelo" name="modelo" autocomplete="off"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/30 transition-colors placeholder:text-outline"
+            placeholder="Ej: Corolla / Yaris / Etios"/>
+        </div>
+      </div>
+
+      <!-- Badge -->
+      <div class="grid grid-cols-1 gap-4">
         <div>
           <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">
             Badge <span class="ml-1 normal-case font-normal text-secondary/70">— etiqueta visible en catálogo</span>
@@ -398,6 +410,6 @@
   </div>
 </div>
 
-<script src="admin.js" defer></script>
+<script src="admin.js?v=2" defer></script>
 </body>
 </html>
