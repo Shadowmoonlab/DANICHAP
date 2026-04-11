@@ -1,5 +1,21 @@
 /* shared.css — Danichap Design System — Palette v4 Navy+Red */
 
+/* ── Review cards (forzado, contraste garantizado sobre fondo navy) ──────── */
+#resenas-grid > div {
+  background: #ffffff !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 14px !important;
+  padding: 18px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.28) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+#resenas-grid .review-name  { color: #0f172a !important; }
+#resenas-grid .review-date  { color: #64748b !important; }
+#resenas-grid .review-text  { color: #1e293b !important; }
+
+
 /* ── Skip to main content (accesibilidad) ────────────────────────────────── */
 .skip-link {
   position: absolute;
