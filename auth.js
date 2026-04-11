@@ -167,8 +167,17 @@ const AuthUI = {
         return;
       }
 
-      // — login OK: cerrar modal y dejar que onAuthChange actualice la UI
+      // — login OK: redirigir por rol (admin → admin.html, user → queda en la página)
       self.close();
+      try {
+        const perfil = await Perfiles.get(data.user.id);
+        if (perfil?.rol === 'admin') {
+          window.location.href = 'admin.html';
+        }
+        // usuarios normales: quedan en la página actual, onAuthChange actualiza la navbar
+      } catch (_) {
+        // fallo al leer perfil — igual está logueado, no hacer nada
+      }
     });
 
     document.getElementById('form-register').addEventListener('submit', async e => {
