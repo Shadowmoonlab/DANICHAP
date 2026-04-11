@@ -121,11 +121,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   btnLimpiar && btnLimpiar.addEventListener('click', () => {
+    // Resetear vehículo (desktop + mobile)
     filtros.marca = ''; filtros.modelo = ''; filtros.version = ''; filtros.año = '';
     selMarca.value = '';
     resetSelect(selModelo, 'Seleccioná una marca');
     resetSelect(selVersion, 'Seleccioná un modelo');
     resetSelect(selAño, 'Seleccioná un modelo');
+    if (mSelMarca) mSelMarca.value = '';
+    if (mSelModelo)  resetSelect(mSelModelo, 'Seleccioná una marca');
+    if (mSelVersion) resetSelect(mSelVersion, 'Seleccioná un modelo');
+    if (mSelAño)     resetSelect(mSelAño, 'Seleccioná un modelo');
+
     btnLimpiar.classList.add('hidden');
     renderProductos();
     actualizarBadge();
@@ -212,55 +218,88 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ── Filtrado y render ─────────────────────────────────────────────────────────
+  function normalizar(s) {
+    return String(s || '').toLowerCase().trim()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // sin acentos
+  }
+
   function getProductosFiltrados() {
     let lista = [...PRODUCTOS];
 
+    // 1. Búsqueda texto libre (normalizada, sin acentos)
     if (filtros.texto) {
-      const q = filtros.texto.toLowerCase();
+      const q = normalizar(filtros.texto);
       lista = lista.filter(p =>
-        p.nombre.toLowerCase().includes(q) ||
-        (p.marca_rep || '').toLowerCase().includes(q) ||
-        (p.modelo || '').toLowerCase().includes(q) ||
-        (p.descripcion || '').toLowerCase().includes(q) ||
-        p.categoria.toLowerCase().includes(q)
+        normalizar(p.nombre).includes(q) ||
+        normalizar(p.marca_rep).includes(q) ||
+        normalizar(p.modelo).includes(q) ||
+        normalizar(p.descripcion).includes(q) ||
+        normalizar(p.categoria).includes(q) ||
+        normalizar(p.sub).includes(q)
       );
     }
-    if (filtros.cat) lista = lista.filter(p => p.categoria === filtros.cat);
-    if (filtros.sub) lista = lista.filter(p => p.sub === filtros.sub);
 
-    if (filtros.marca || filtros.modelo) {
-      const partes = [filtros.marca, filtros.modelo, filtros.año].filter(Boolean).map(s => s.toLowerCase());
-      const modeloFilt = (filtros.modelo || '').toLowerCase().trim();
+    // 2. Categoría (case-insensitive, normalizado)
+    if (filtros.cat) {
+      const catFilt = normalizar(filtros.cat);
+      lista = lista.filter(p => normalizar(p.categoria) === catFilt);
+    }
+
+    // 3. Subcategoría
+    if (filtros.sub) {
+      const subFilt = normalizar(filtros.sub);
+      lista = lista.filter(p => normalizar(p.sub) === subFilt);
+    }
+
+    // 4. Vehículo (marca/modelo/version/año) — aplica si hay CUALQUIER campo
+    const vehParts = [filtros.marca, filtros.modelo, filtros.version, filtros.año]
+      .filter(Boolean).map(normalizar);
+
+    if (vehParts.length > 0) {
+      const modeloFilt = normalizar(filtros.modelo);
 
       lista = lista.filter(p => {
-        // 1. Match contra `compatibilidades` (legacy, productos estáticos)
-        const matchCompat = (p.compatibilidades || ['Universal']).some(c => {
-          const cl = c.toLowerCase();
-          if (cl === 'universal' || cl.includes('universal')) return true;
-          return partes.every(parte => cl.includes(parte));
-        });
-        if (matchCompat) return true;
-
-        // 2. Match contra el nuevo campo `modelo` (DB, texto libre "A / B / C")
-        //    Solo aplica cuando el usuario filtró por modelo específico
-        if (modeloFilt && p.modelo) {
-          const modelosProducto = String(p.modelo).toLowerCase()
+        // a) Match contra el campo `modelo` (DB, texto libre "A / B / C")
+        //    Prioridad: si tiene modelo específico, solo matchea por modelo
+        if (p.modelo && modeloFilt) {
+          const modelosProducto = normalizar(p.modelo)
             .split('/').map(s => s.trim()).filter(Boolean);
-          if (modelosProducto.some(m => m.includes(modeloFilt) || modeloFilt.includes(m))) {
-            return true;
-          }
+          return modelosProducto.some(m => m.includes(modeloFilt) || modeloFilt.includes(m));
         }
 
+        // b) Fallback contra `compatibilidades` (legacy, productos estáticos)
+        //    Solo consideramos producto como "universal" si NO tiene modelo específico
+        //    (evita falsos positivos de productos DB con fallback ['Universal'])
+        if (!p.modelo) {
+          return (p.compatibilidades || ['Universal']).some(c => {
+            const cl = normalizar(c);
+            if (cl.includes('universal')) return true;
+            return vehParts.every(parte => cl.includes(parte));
+          });
+        }
+
+        // c) Producto con modelo específico pero usuario no filtró por modelo → excluir
         return false;
       });
     }
 
+    // 5. Ordenamiento — null siempre al final, sin importar dirección
     if (filtros.sort === 'price-asc') {
-      lista.sort((a, b) => { if (a.precio === null) return 1; if (b.precio === null) return -1; return a.precio - b.precio; });
+      lista.sort((a, b) => {
+        if (a.precio == null && b.precio == null) return 0;
+        if (a.precio == null) return 1;
+        if (b.precio == null) return -1;
+        return a.precio - b.precio;
+      });
     } else if (filtros.sort === 'price-desc') {
-      lista.sort((a, b) => { if (a.precio === null) return 1; if (b.precio === null) return -1; return b.precio - a.precio; });
+      lista.sort((a, b) => {
+        if (a.precio == null && b.precio == null) return 0;
+        if (a.precio == null) return 1;
+        if (b.precio == null) return -1;
+        return b.precio - a.precio;
+      });
     } else if (filtros.sort === 'name-asc') {
-      lista.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      lista.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
     }
 
     return lista;
@@ -399,10 +438,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   function actualizarBadge() {
     const badge = document.getElementById('filtros-badge');
     if (!badge) return;
-    const activos = [filtros.marca, filtros.modelo, filtros.cat].filter(Boolean).length;
+    const activos = [
+      filtros.marca, filtros.modelo, filtros.version, filtros.año,
+      filtros.cat, filtros.sub, filtros.texto,
+    ].filter(Boolean).length;
     if (activos > 0) {
       badge.classList.remove('hidden');
       badge.classList.add('flex');
+      badge.textContent = String(activos);
     } else {
       badge.classList.add('hidden');
       badge.classList.remove('flex');
@@ -417,8 +460,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   function leerParamsURL() {
     const params = new URLSearchParams(window.location.search);
     const cat = params.get('cat');
-    if (cat) {
+    if (cat && typeof CATEGORIAS !== 'undefined' && CATEGORIAS.some(c => c.slug === cat)) {
       filtros.cat = cat;
+    }
+    const q = params.get('q');
+    if (q) {
+      filtros.texto = q.trim();
+      const searchInputEl = document.getElementById('search-text');
+      if (searchInputEl) searchInputEl.value = filtros.texto;
     }
   }
 
