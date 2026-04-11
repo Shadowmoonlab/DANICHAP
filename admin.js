@@ -5,8 +5,7 @@
   /* ══════════════════════════════════════════════════════════════════════════
      GUARD — solo admins
   ══════════════════════════════════════════════════════════════════════════ */
-  const session = await Auth.getSession();
-  const user    = session?.user ?? (await Auth.getUser());
+  const user = await Auth.getUser();
   if (!user) { window.location.href = 'login.html'; return; }
 
   let perfil = await Perfiles.get(user.id);

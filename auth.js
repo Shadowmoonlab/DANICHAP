@@ -11,6 +11,8 @@ const AuthUI = {
     // Escuchar cambios de sesión
     try {
       Auth.onAuthChange(async (event, session) => {
+        // INITIAL_SESSION ya lo maneja getUser() en init — evitar doble fetch de perfil
+        if (event === 'INITIAL_SESSION') return;
         try {
           _currentUser   = session?.user ?? null;
           _currentPerfil = _currentUser ? await Perfiles.get(_currentUser.id) : null;

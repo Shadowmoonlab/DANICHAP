@@ -14,12 +14,15 @@ const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 /* ── Auth ─────────────────────────────────────────────────────────────────── */
 const Auth = {
   async getUser() {
-    const { data } = await _supabase.auth.getUser();
-    return data.user;
+    // getSession() lee localStorage — instantáneo, sin roundtrip al servidor
+    // getUser() valida el JWT contra el servidor — puede tardar o fallar offline
+    // Usamos getSession para detección rápida de sesión activa
+    const { data } = await _supabase.auth.getSession();
+    return data?.session?.user ?? null;
   },
   async getSession() {
     const { data } = await _supabase.auth.getSession();
-    return data.session;
+    return data?.session ?? null;
   },
   async signIn(email, password) {
     return _supabase.auth.signInWithPassword({ email, password });

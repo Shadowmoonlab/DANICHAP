@@ -194,10 +194,15 @@
     const btn   = e.target.querySelector('button[type=submit]');
     errEl.classList.add('hidden'); okEl.classList.add('hidden');
     btn.textContent = 'Creando…'; btn.disabled = true;
-    const { error } = await Auth.signUp(fd.get('email'), fd.get('password'), fd.get('nombre'));
+    let error;
+    try {
+      ({ error } = await Auth.signUp(fd.get('email'), fd.get('password'), fd.get('nombre')));
+    } catch (ex) {
+      error = ex;
+    }
     btn.textContent = 'Crear cuenta'; btn.disabled = false;
     if (error) {
-      errEl.textContent = error.message;
+      errEl.textContent = error.message || 'No se pudo crear la cuenta. Intentá más tarde.';
       errEl.classList.remove('hidden');
       return;
     }
@@ -205,7 +210,7 @@
     e.target.reset();
   });
 
-  // Si ya está logueado, redirigir
+  // Si ya está logueado, redirigir (usa getSession — lectura local, sin roundtrip)
   Auth.getUser().then(async user => {
     if (!user) return;
     try {
@@ -214,7 +219,7 @@
     } catch (_) {
       window.location.href = 'index.html';
     }
-  }).catch(() => {/* no hacer nada si falla al verificar sesión */});
+  }).catch(() => {});
 </script>
 </body>
 </html>
