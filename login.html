@@ -124,17 +124,45 @@
     const btn   = e.target.querySelector('button[type=submit]');
     errEl.classList.add('hidden');
     btn.textContent = 'Entrando…'; btn.disabled = true;
-    const { error } = await Auth.signIn(fd.get('email'), fd.get('password'));
+
+    let data, error;
+    try {
+      ({ data, error } = await Auth.signIn(fd.get('email'), fd.get('password')));
+    } catch (ex) {
+      error = ex;
+    }
+
     if (error) {
-      errEl.textContent = 'Email o contraseña incorrectos.';
+      const msg = error.message || '';
+      if (msg.includes('Invalid login') || msg.includes('invalid_credentials') || msg.includes('Email not confirmed')) {
+        errEl.textContent = 'Email o contraseña incorrectos. Verificá tus datos.';
+      } else if (msg.includes('network') || msg.includes('fetch')) {
+        errEl.textContent = 'Sin conexión. Revisá tu internet e intentá de nuevo.';
+      } else {
+        errEl.textContent = 'No se pudo iniciar sesión. Intentá más tarde.';
+      }
       errEl.classList.remove('hidden');
       btn.textContent = 'Entrar'; btn.disabled = false;
       return;
     }
-    // Redirigir según rol
-    const user    = await Auth.getUser();
-    const perfil  = await Perfiles.get(user.id);
-    window.location.href = perfil?.rol === 'admin' ? 'admin.html' : 'index.html';
+
+    // Usar el user que viene directo en la respuesta del signIn (evita race condition)
+    const userId = data?.user?.id;
+    if (!userId) {
+      errEl.textContent = 'Error al obtener la sesión. Recargá la página e intentá de nuevo.';
+      errEl.classList.remove('hidden');
+      btn.textContent = 'Entrar'; btn.disabled = false;
+      return;
+    }
+
+    btn.textContent = 'Redirigiendo…';
+    try {
+      const perfil = await Perfiles.get(userId);
+      window.location.href = perfil?.rol === 'admin' ? 'admin.html' : 'index.html';
+    } catch (_) {
+      // Si falla la carga del perfil, igual redirigir al inicio
+      window.location.href = 'index.html';
+    }
   });
 
   // Register
@@ -160,9 +188,13 @@
   // Si ya está logueado, redirigir
   Auth.getUser().then(async user => {
     if (!user) return;
-    const perfil = await Perfiles.get(user.id);
-    window.location.href = perfil?.rol === 'admin' ? 'admin.html' : 'index.html';
-  });
+    try {
+      const perfil = await Perfiles.get(user.id);
+      window.location.href = perfil?.rol === 'admin' ? 'admin.html' : 'index.html';
+    } catch (_) {
+      window.location.href = 'index.html';
+    }
+  }).catch(() => {/* no hacer nada si falla al verificar sesión */});
 </script>
 </body>
 </html>
