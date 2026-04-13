@@ -722,7 +722,8 @@
       categoria,
       subcategoria:    document.getElementById('prod-subcategoria').value.trim() || null,
       marca_rep:       document.getElementById('prod-marca').value.trim()        || null,
-      modelo:          document.getElementById('prod-modelo').value.trim()       || null,
+      modelo:          (document.getElementById('prod-modelo').value.trim() || '')
+                         .split('/').map(s => s.trim()).filter(Boolean).join(' / ') || null,
       badge:           document.getElementById('prod-badge').value.trim().toUpperCase() || null,
       precio:          precioVal      ? parseFloat(precioVal)      : null,
       precio_antes:    precioAntesVal ? parseFloat(precioAntesVal) : null,
