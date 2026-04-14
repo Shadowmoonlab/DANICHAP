@@ -177,16 +177,20 @@
 
     // Botón cerrar
     const closeBtn = document.createElement('button');
+    closeBtn.setAttribute('aria-label', 'Cerrar');
     closeBtn.innerHTML = '×';
     Object.assign(closeBtn.style, {
       background: 'none', border: 'none', color: s.text,
-      opacity: '0.5', fontSize: '18px', lineHeight: '1',
-      cursor: 'pointer', padding: '0 0 0 4px', flexShrink: '0',
+      opacity: '0.7', fontSize: '20px', lineHeight: '1',
+      cursor: 'pointer',
+      padding: '4px 4px 4px 8px',  // área de toque amplia
+      flexShrink: '0',
+      minWidth: '28px', minHeight: '28px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
     });
-    closeBtn.addEventListener('click', (e) => { e.stopPropagation(); dismiss(id); });
+    closeBtn.addEventListener('click',       (e) => { e.stopPropagation(); dismiss(id); });
+    closeBtn.addEventListener('touchend',    (e) => { e.preventDefault(); e.stopPropagation(); dismiss(id); });
     el.appendChild(closeBtn);
-
-    el.addEventListener('click', () => dismiss(id));
     c.appendChild(el);
 
     let timer = null;
