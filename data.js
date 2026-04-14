@@ -110,7 +110,11 @@ const CATEGORIAS = [
   },
   {
     slug: "faros", label: "Faros", icon: "highlight",
-    subs: ["Delanteros","Traseros","Laterales"]
+    subs: ["Delanteros","Traseros"]
+  },
+  {
+    slug: "opticas", label: "Ópticas", icon: "remove_red_eye",
+    subs: ["Delanteras","Traseras"]
   },
   {
     slug: "chaperio", label: "Chaperio", icon: "car_repair",

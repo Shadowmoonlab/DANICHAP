@@ -70,15 +70,16 @@
         to   { opacity:1; transform:translateY(0)    scale(1);   }
       }
       @keyframes toast-out {
-        from { opacity:1; transform:translateY(0)    scale(1);   max-height:80px; margin:0; }
-        to   { opacity:0; transform:translateY(8px)  scale(.95); max-height:0;   margin:0; }
+        0%   { opacity:1; transform:translateY(0)    scale(1);    max-height:80px; margin:0; }
+        40%  { opacity:0; transform:translateY(10px) scale(.94);  max-height:80px; margin:0; }
+        100% { opacity:0; transform:translateY(10px) scale(.94);  max-height:0;    margin:0; padding:0; }
       }
       @keyframes toast-spin { to { transform:rotate(360deg); } }
       #toast-container > div {
         animation: toast-in .28s cubic-bezier(.16,1,.3,1) forwards;
       }
       #toast-container > div.toast-hiding {
-        animation: toast-out .22s ease-in forwards;
+        animation: toast-out .35s cubic-bezier(.4,0,1,1) forwards;
       }
     `;
     document.head.appendChild(s);
@@ -88,7 +89,8 @@
 
   /* ── Crear toast ─────────────────────────────────────────────────────────── */
   function create(msg, type = 'success', opts = {}) {
-    const { duration = type === 'loading' ? 0 : 4000, id: customId } = opts;
+    const defaultDuration = type === 'loading' ? 0 : type === 'success' ? 2000 : 4000;
+    const { duration = defaultDuration, id: customId } = opts;
     const c = getContainer();
 
     // Si hay customId, actualizar existente
