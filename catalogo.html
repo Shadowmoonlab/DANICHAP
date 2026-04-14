@@ -62,7 +62,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0..1&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="shared.css"/>
+<link rel="stylesheet" href="shared.css?v=3"/>
 <link rel="stylesheet" href="tailwind.css"/>
 <!-- Preload LCP image -->
 <link rel="preload" as="image" href="docs/img/danichaplogo-transparent.webp" type="image/webp"/>
@@ -590,14 +590,14 @@
     }
 
     // Carrusel
-    _renderSlides();
+    _renderSlides(p.nombre || '');
 
     // Mostrar modal
     const modal = document.getElementById('prod-detail-modal');
     if (modal) { modal.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
   }
 
-  function _renderSlides() {
+  function _renderSlides(nombreProducto) {
     const cont  = document.getElementById('pd-slides');
     const dots  = document.getElementById('pd-dots');
     const thumbs = document.getElementById('pd-thumbs');
@@ -614,7 +614,7 @@
       const slide = document.createElement('div');
       slide.style.cssText = `width:${100 / _slides.length}%;flex-shrink:0;`;
       const img = document.createElement('img');
-      img.src = url; img.alt = ''; img.className = 'w-full h-full object-cover';
+      img.src = url; img.alt = nombreProducto; img.className = 'w-full h-full object-cover';
       slide.appendChild(img);
       cont.appendChild(slide);
     });
@@ -646,7 +646,7 @@
         th.className = `w-12 h-12 rounded-lg overflow-hidden border-2 transition-colors flex-shrink-0 ${i === _idx ? 'border-primary-container' : 'border-transparent'}`;
         th.addEventListener('click', () => _goTo(i));
         const img = document.createElement('img');
-        img.src = url; img.alt = ''; img.className = 'w-full h-full object-cover';
+        img.src = url; img.alt = nombreProducto; img.className = 'w-full h-full object-cover';
         th.appendChild(img);
         thumbs.appendChild(th);
       });
