@@ -128,21 +128,21 @@
   initCatSelect();
 
   /* ══════════════════════════════════════════════════════════════════════════
-     WATERMARK (canvas 800×800, crop centrado)
+     PROCESAMIENTO DE IMAGEN (canvas 800×800)
      Estrategia:
-       1. Texto diagonal "DANICHAP" repetido en toda la imagen (sutil, 10% opac)
-       2. Logo SVG + texto en esquina inferior derecha (28% opac)
-     Fix vs versión anterior:
-       - Esperar document.fonts.ready para que Space Grotesk esté disponible en canvas
-       - Tile sin shadowBlur (evita sangrado en bordes del tile = falsos logos en esquinas)
-       - Save/restore stack correcto (una sola capa, no anidada)
+       1. Normalizar a 800×800 cuadrado:
+          - Si ratio ≤ 1.5:1 → crop centrado (comportamiento anterior)
+          - Si ratio > 1.5:1 (muy apaisada o muy vertical) → fit con padding
+            neutro (#f5f5f5) para que el producto se vea completo, no cortado
+       2. Texto diagonal "DANICHAP" repetido (sutil, 10% opac)
+       3. Logo SVG + texto en esquina inferior derecha (28% opac)
   ══════════════════════════════════════════════════════════════════════════ */
   async function applyWatermark(file) {
-    // Esperar fuente antes de dibujar en canvas
     await document.fonts.ready;
 
     return new Promise(resolve => {
       const SIZE = 800;
+      const PAD  = 32; // padding interior cuando se usa fit (px)
       const img  = new Image();
       const bUrl = URL.createObjectURL(file);
       img.onerror = () => { URL.revokeObjectURL(bUrl); resolve(file); };
@@ -152,11 +152,31 @@
         canvas.width = canvas.height = SIZE;
         const ctx = canvas.getContext('2d');
 
-        // ── 1. Dibujar imagen (crop cuadrado centrado) ───────────────────────
-        const side = Math.min(img.naturalWidth, img.naturalHeight);
-        const sx   = (img.naturalWidth  - side) / 2 | 0;
-        const sy   = (img.naturalHeight - side) / 2 | 0;
-        ctx.drawImage(img, sx, sy, side, side, 0, 0, SIZE, SIZE);
+        const W = img.naturalWidth;
+        const H = img.naturalHeight;
+        const ratio = Math.max(W, H) / Math.min(W, H);
+
+        // ── 1. Normalizar a cuadrado 800×800 ────────────────────────────────
+        if (ratio <= 1.5) {
+          // Imagen casi cuadrada → crop centrado (sin desperdiciar nada)
+          const side = Math.min(W, H);
+          const sx   = ((W - side) / 2) | 0;
+          const sy   = ((H - side) / 2) | 0;
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, SIZE, SIZE);
+        } else {
+          // Imagen muy apaisada o muy vertical → fit con fondo neutro
+          // Así el producto se ve completo, sin cortes
+          ctx.fillStyle = '#f2f0ec'; // mismo tono que surface-container-low del diseño
+          ctx.fillRect(0, 0, SIZE, SIZE);
+
+          const fitArea = SIZE - PAD * 2;
+          const scale   = Math.min(fitArea / W, fitArea / H);
+          const dw      = Math.round(W * scale);
+          const dh      = Math.round(H * scale);
+          const dx      = ((SIZE - dw) / 2) | 0;
+          const dy      = ((SIZE - dh) / 2) | 0;
+          ctx.drawImage(img, 0, 0, W, H, dx, dy, dw, dh);
+        }
 
         // ── 2. Patrón diagonal — texto en tile SIN shadowBlur ───────────────
         // shadowBlur sangra fuera del tile bounds → al repetir aparece en esquinas
