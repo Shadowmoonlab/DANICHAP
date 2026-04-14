@@ -106,11 +106,19 @@ function range(from, to) {
 const CATEGORIAS = [
   {
     slug: "iluminacion", label: "Iluminación", icon: "lightbulb",
-    subs: ["Faros delanteros","Faros traseros","Luces LED","Luces de posición","Focos H4/H7","Luces interiores","Linternas de placa"]
+    subs: ["Luces LED","Luces de posición","Focos H4/H7","Luces interiores","Linternas de placa"]
+  },
+  {
+    slug: "faros", label: "Faros", icon: "highlight",
+    subs: ["Delanteros","Traseros","Laterales"]
   },
   {
     slug: "chaperio", label: "Chaperio", icon: "car_repair",
-    subs: ["Paragolpes","Molduras","Espejos retrovisores","Bisagras","Capós","Guardabarros","Zócalos"]
+    subs: ["Capot","Guardabarro","Frente","Cola","Zócalo","Piso","Reparaciones","Paneles puerta","Techo"]
+  },
+  {
+    slug: "paragolpes", label: "Paragolpes", icon: "directions_car",
+    subs: ["Delanteros","Traseros"]
   },
   {
     slug: "mecanica", label: "Mecánica", icon: "settings",
