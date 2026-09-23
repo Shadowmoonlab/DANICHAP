@@ -48,11 +48,7 @@ const CartUI = {
               placeholder="Ej: Volkswagen Gol 2018 1.6"
               class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-container transition-colors placeholder:text-outline"/>
           </div>
-          <!-- Total -->
-          <div class="flex justify-between items-center">
-            <span class="font-body text-secondary text-sm">Total estimado</span>
-            <span id="cart-total" class="font-headline font-black text-xl text-on-surface"></span>
-          </div>
+          <p class="font-body text-secondary text-xs text-center">Te pasamos precio y stock por WhatsApp</p>
           <!-- WhatsApp -->
           <button id="cart-wpp-btn"
              class="flex items-center justify-center gap-2 w-full bg-tertiary-container text-on-tertiary-container py-3.5 rounded-xl font-bold font-headline uppercase text-sm hover:bg-tertiary transition-colors">
@@ -98,7 +94,6 @@ const CartUI = {
   _render() {
     const items   = Cart.items;
     const count   = Cart.count;
-    const total   = Cart.total;
     const isEmpty = items.length === 0;
 
     // Badge
@@ -130,8 +125,6 @@ const CartUI = {
     itemsEl.innerHTML = '';
     items.forEach(item => {
       const p      = item.productos;
-      const precio = p?.precio ? `$${Number(p.precio).toLocaleString('es-AR')}` : 'Consultar';
-      const subtotal = p?.precio ? `$${Number(p.precio * item.cantidad).toLocaleString('es-AR')}` : null;
 
       const row = document.createElement('div');
       row.className = 'flex gap-3 items-start py-2 border-b border-outline-variant/50 last:border-0';
@@ -165,20 +158,11 @@ const CartUI = {
         info.appendChild(marca);
       }
 
-      // Precio + subtotal
-      const precioRow = document.createElement('div');
-      precioRow.className = 'flex items-baseline gap-2 mt-1';
-      const precioEl = document.createElement('span');
-      precioEl.className = 'font-headline font-black text-primary-container text-sm';
-      precioEl.textContent = precio;
-      precioRow.appendChild(precioEl);
-      if (subtotal && item.cantidad > 1) {
-        const sub = document.createElement('span');
-        sub.className = 'text-[10px] text-secondary font-label';
-        sub.textContent = `= ${subtotal}`;
-        precioRow.appendChild(sub);
-      }
-      info.appendChild(precioRow);
+      // Precio: siempre a consultar
+      const precioEl = document.createElement('p');
+      precioEl.className = 'font-body font-bold text-tertiary text-xs mt-1';
+      precioEl.textContent = 'Precio a consultar';
+      info.appendChild(precioEl);
 
       // Controles cantidad
       const controls = document.createElement('div');
@@ -212,38 +196,21 @@ const CartUI = {
 
       row.append(imgWrap, info);
       itemsEl.appendChild(row);
-    });
-
-    // Total
-    const totalEl = document.getElementById('cart-total');
-    if (totalEl) {
-      totalEl.textContent = total > 0
-        ? `$${Number(total).toLocaleString('es-AR')}`
-        : 'A consultar';
-    }
-  },
+    });  },
 
   _buildWppText() {
     const items = Cart.items;
-    const total = Cart.total;
     const nota  = (document.getElementById('cart-nota')?.value || '').trim();
 
     const lineas = items.map(item => {
       const p    = item.productos;
       const nom  = p?.nombre || 'Producto';
-      const cant = item.cantidad;
-      const prec = p?.precio ? ` — $${Number(p.precio).toLocaleString('es-AR')} c/u` : '';
-      const sub  = p?.precio && cant > 1 ? ` (subtotal: $${Number(p.precio * cant).toLocaleString('es-AR')})` : '';
-      return `• ${nom} x${cant}${prec}${sub}`;
+      return `• ${nom} x${item.cantidad}`;
     }).join('\n');
-
-    const totalLinea = total > 0
-      ? `\n*Total estimado: $${Number(total).toLocaleString('es-AR')}*`
-      : '\n_(algunos precios se consultan)_';
 
     const autoLinea = nota ? `\n\n🚗 Mi auto: ${nota}` : '';
 
-    return `¡Hola DANICHAP! 👋 Quiero consultar por los siguientes repuestos:\n\n${lineas}${totalLinea}${autoLinea}\n\n¿Tienen stock y precio actualizado?`;
+    return `¡Hola DANICHAP! 👋 Quiero consultar por los siguientes repuestos:\n\n${lineas}${autoLinea}\n\n¿Me pasan precio y stock?`;
   },
 
   _sendWhatsApp() {

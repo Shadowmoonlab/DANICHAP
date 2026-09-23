@@ -354,16 +354,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (p.imagenes?.length) allPhotos.push(...p.imagenes.filter(u => u !== p.imagen_url));
     const hasMulti = allPhotos.length > 1;
 
-    const precioHtml = p.precio !== null
-      ? `<div class="flex items-baseline gap-2">
-           <span class="text-xl font-black text-on-surface font-headline">$ ${p.precio.toLocaleString('es-AR')}</span>
-           ${p.precio_antes ? `<span class="text-xs text-secondary line-through font-body">$ ${p.precio_antes.toLocaleString('es-AR')}</span>` : ''}
-         </div>`
-      : `<span class="inline-flex items-center gap-1 text-tertiary font-bold text-sm font-body">
-           <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">chat</span>
-           Precio por WhatsApp
-         </span>`;
-
     const compat = p.compatibilidades?.[0] || 'Universal';
     const masCompat = (p.compatibilidades?.length || 0) > 1 ? ` <span class="text-secondary">+${p.compatibilidades.length - 1}</span>` : '';
 
@@ -415,14 +405,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           <p class="text-xs text-tertiary font-body mb-4">✓ ${compat}${masCompat}</p>
           <div class="mt-auto space-y-2">
             ${stockBadge}
-            <div class="flex items-center justify-between gap-2">
-              ${precioHtml}
-              <a href="${wpp}" target="_blank" rel="noopener"
-                 class="flex-shrink-0 bg-tertiary-container text-on-tertiary-container px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 hover:bg-tertiary transition-colors font-label uppercase tracking-wide">
-                <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>
-                Consultar
-              </a>
-            </div>
+            <a href="${wpp}" target="_blank" rel="noopener"
+               class="w-full bg-tertiary-container text-on-tertiary-container px-3 py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-tertiary transition-colors font-label uppercase tracking-wide">
+              <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>
+              Consultar precio
+            </a>
             <button
               data-producto-id="${p.id}"
               onclick="agregarAlCarrito(event, this)"

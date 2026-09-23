@@ -35,13 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div class="relative z-10 flex items-end justify-between gap-4">
       <div>
-        ${heroPromo.antes ? `<div class="text-slate-400 text-sm line-through font-body mb-1">${heroPromo.antes}</div>` : ''}
-        ${heroPromo.precio
-          ? `<div class="text-primary-container font-black font-headline text-4xl leading-none">${heroPromo.precio}</div>
-             <div class="text-slate-400 text-xs font-label mt-1 uppercase">Precio final</div>`
-          : `<div class="text-tertiary-container font-black font-headline text-xl">Precio especial</div>
-             <div class="text-slate-400 text-xs font-label mt-1">Consultá sin compromiso</div>`
-        }
+        <div class="text-tertiary-container font-black font-headline text-xl">Precio especial</div>
+        <div class="text-slate-400 text-xs font-label mt-1">Consultá sin compromiso</div>
       </div>
       <a href="https://wa.me/541123409187?text=${encodeURIComponent(heroPromo.wpp_msg)}"
          target="_blank"
@@ -64,14 +59,10 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div class="flex items-center justify-between gap-2 mt-5 pt-4 border-t border-white/10">
       <div>
-        ${p.precio
-          ? `<div class="text-primary-container font-black font-headline text-2xl leading-none">${p.precio}</div>
-             ${p.antes ? `<div class="text-slate-600 text-xs line-through font-body">${p.antes}</div>` : ''}`
-          : `<div class="text-tertiary-container font-bold text-sm font-body flex items-center gap-1">
-               <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>
-               Por WhatsApp
-             </div>`
-        }
+        <div class="text-tertiary-container font-bold text-sm font-body flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>
+          Precio por WhatsApp
+        </div>
       </div>
       <a href="https://wa.me/541123409187?text=${encodeURIComponent(p.wpp_msg)}"
          target="_blank"
@@ -145,9 +136,6 @@ document.addEventListener('DOMContentLoaded', () => {
     container.innerHTML = destacados.map(p => {
       const cat = CATEGORIAS.find(c => c.slug === p.categoria);
       const wpp = wppLink(p.nombre, '');
-      const precioHtml = p.precio
-        ? `<span class="text-xl font-black text-on-surface font-headline">$ ${Number(p.precio).toLocaleString('es-AR')}</span>`
-        : `<span class="text-sm font-bold text-tertiary font-body flex items-center gap-1"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>Consultar</span>`;
       const hasImg = !!p.imagen_url;
       const imagenHtml = hasImg
         ? `<img src="${_esc(p.imagen_url)}" alt="${_esc(p.nombre)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy"/>`
@@ -170,13 +158,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <h3 class="font-headline font-bold text-base uppercase mb-1 leading-tight">${_esc(p.nombre)}</h3>
           ${marcaModeloText ? `<p class="text-[11px] text-secondary font-body font-semibold mb-2 truncate">${marcaModeloText}</p>` : ''}
           <p class="text-xs text-tertiary font-body mb-4">✓ ${compat}</p>
-          <div class="mt-auto flex items-center justify-between gap-3">
-            ${precioHtml}
-            <a href="${wpp}" target="_blank" rel="noopener"
-               class="flex-shrink-0 bg-tertiary-container text-on-tertiary-container px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 hover:bg-tertiary transition-colors font-label uppercase">
-              <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>Consultar
-            </a>
-          </div>
+          <a href="${wpp}" target="_blank" rel="noopener"
+             class="mt-auto w-full bg-tertiary-container text-on-tertiary-container px-3 py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-tertiary transition-colors font-label uppercase">
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>Consultar precio
+          </a>
         </div>
       </div>`;
     }).join('');
