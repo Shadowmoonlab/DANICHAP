@@ -148,9 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         : '';
       const marcaModeloText = [p.marca_rep, p.modelo].filter(Boolean).map(_esc).join(' · ');
       const compat = _esc(p.compatibilidades?.[0] || 'Universal');
-      const imgWrapClass = hasImg
-        ? 'relative h-44 product-img-wrap'
-        : 'relative h-44 bg-surface-container-low flex items-center justify-center overflow-hidden';
+      const imgWrapClass = 'product-media h-44 flex items-center justify-center';
       return `<div class="bg-surface-container-lowest rounded-xl overflow-hidden group hover:shadow-xl transition-all duration-300 border border-surface-container flex flex-col">
         <div class="${imgWrapClass}">${imagenHtml}${badgeHtml}${marcaHtml}</div>
         <div class="p-5 flex flex-col flex-1">

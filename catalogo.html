@@ -62,7 +62,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0..1&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="shared.css?v=3"/>
+<link rel="stylesheet" href="shared.css?v=4"/>
 <link rel="stylesheet" href="tailwind.css"/>
 <!-- Preload LCP image -->
 <link rel="preload" as="image" href="docs/img/danichaplogo-transparent.webp" type="image/webp"/>
@@ -79,7 +79,7 @@
 <script src="cart-ui.js" defer></script>
 <script src="data.js" defer></script>
 <script src="nav.js" defer></script>
-<script src="catalogo.js?v=4" defer></script>
+<script src="catalogo.js?v=5" defer></script>
 <script src="scroll-animations.js" defer></script>
 </head>
 <body class="bg-surface font-body text-on-surface">
@@ -418,7 +418,7 @@
 
       <!-- Carrusel de imágenes -->
       <div class="w-full sm:w-64 flex-shrink-0 mb-4 sm:mb-0">
-        <div class="relative w-full aspect-square rounded-2xl overflow-hidden bg-surface-container-low border border-outline-variant">
+        <div class="product-media w-full aspect-square rounded-2xl border border-outline-variant">
           <div id="pd-slides" class="flex h-full transition-transform duration-300"></div>
           <!-- Flechas -->
           <button id="pd-prev" class="hidden absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10">

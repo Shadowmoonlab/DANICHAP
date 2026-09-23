@@ -13,7 +13,7 @@ window.cardNav = function(e, id, total, dir) {
   let idx = parseInt(wrap.dataset.idx || '0') + dir;
   idx = ((idx % total) + total) % total;
   wrap.dataset.idx = idx;
-  slidesEl.style.transform = `translateX(-${idx * (100 / total)}%)`;
+  slidesEl.style.transform = `translateX(-${idx * 100}%)`;
   dots.forEach((d, i) => { d.style.background = i === idx ? 'white' : 'rgba(255,255,255,.4)'; });
 };
 window.cardPrev = (e, id, total) => window.cardNav(e, id, total, -1);
@@ -371,8 +371,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const imagenHtml = photoCount > 0
       ? `<div id="${imgAreaId}" class="w-full h-full relative overflow-hidden">
-           <div class="card-slides flex h-full" style="width:${photoCount*100}%;transition:transform .3s ease">
-             ${allPhotos.map(url => `<div style="width:${100/photoCount}%;flex-shrink:0;"><img src="${url}" alt="" class="w-full h-full object-cover"/></div>`).join('')}
+           <div class="card-slides">
+             ${allPhotos.map(url => `<div><img src="${url}" alt="" loading="lazy"/></div>`).join('')}
            </div>
            ${hasMulti ? `
            <button onclick="cardPrev(event,'${imgAreaId}',${photoCount})" class="absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10">
@@ -389,7 +389,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     return `
       <div class="product-card bg-surface-container-lowest rounded-xl overflow-hidden group border border-surface-container flex flex-col">
-        <div class="relative h-40 bg-surface-container-low flex items-center justify-center overflow-hidden cursor-pointer" onclick="if(typeof openProductDetail==='function'&&window._prodStore)openProductDetail(window._prodStore['${p.id}'])">
+        <div class="product-media h-40 flex items-center justify-center cursor-pointer" onclick="if(typeof openProductDetail==='function'&&window._prodStore)openProductDetail(window._prodStore['${p.id}'])">
           ${imagenHtml}
           ${p.badge ? `<span class="absolute top-3 right-3 bg-primary-container text-white text-[10px] font-black px-2 py-1 uppercase tracking-widest font-label rounded z-20">${p.badge}</span>` : ''}
           ${p.marca_rep ? `<span class="absolute top-3 left-3 bg-inverse-surface text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest font-label rounded z-20">${p.marca_rep}</span>` : ''}

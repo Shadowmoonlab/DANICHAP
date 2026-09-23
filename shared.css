@@ -140,6 +140,36 @@
   backdrop-filter: blur(2px);
 }
 
+/* ── Product media: foto centrada sobre fondo con marca de agua DANICHAP ────── */
+/* Nota: la CSP (style-src 'self') bloquea atributos style="" en el HTML,
+   por eso el layout del carrusel vive acá y no inline. */
+.product-media {
+  position: relative;
+  overflow: hidden;
+  background-color: #f2f0ec;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='120'%3E%3Cg font-family='Space Grotesk,Arial Black,Arial,sans-serif' font-weight='900' font-size='14' letter-spacing='3' fill='%23001e4b' fill-opacity='0.08' text-anchor='middle'%3E%3Ctext x='45' y='35' transform='rotate(-25 45 35)'%3EDANICHAP%3C/text%3E%3Ctext x='135' y='95' transform='rotate(-25 135 95)'%3EDANICHAP%3C/text%3E%3C/g%3E%3C/svg%3E");
+  background-size: 180px 120px;
+}
+.product-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+  box-sizing: border-box;
+  /* Aclara el fondo claro de la foto a blanco y lo "funde" con la marca de agua */
+  filter: brightness(1.07);
+  mix-blend-mode: multiply;
+}
+.card-slides {
+  display: flex;
+  height: 100%;
+  transition: transform .3s ease;
+}
+.card-slides > div {
+  flex: 0 0 100%;
+  height: 100%;
+}
+
 /* ── Apple-style scroll animations ─────────────────────────────────────────── */
 .reveal {
   opacity: 0;
