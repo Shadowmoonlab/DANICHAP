@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Gestión — DANICHAP</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://stambpkmtwtnhfjmxztl.supabase.co https://*.supabase.co; connect-src 'self' https://stambpkmtwtnhfjmxztl.supabase.co https://*.supabase.co wss://stambpkmtwtnhfjmxztl.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"/>
+<meta http-equiv="X-Content-Type-Options" content="nosniff"/>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="icon" type="image/png" sizes="32x32" href="docs/img/favicon-32.png"/>
+<link rel="icon" type="image/svg+xml" href="docs/img/danichap-icon.svg"/>
+<meta name="theme-color" content="#001e4b"/>
+<link rel="preconnect" href="https://stambpkmtwtnhfjmxztl.supabase.co"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="gestion.css?v=1"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
+<script src="toast.js?v=3" defer></script>
+<script src="supabase.js" defer></script>
+<script src="gestion.js?v=1" defer></script>
+</head>
+<body>
+
+<div id="g-loading" class="overlay-full">
+  <div><div class="spinner"></div><p class="muted">Verificando acceso…</p></div>
+</div>
+<div id="g-guard" class="overlay-full hidden">
+  <div>
+    <span class="ms" style="font-size:56px;color:#D1D5DB">lock</span>
+    <p class="muted" id="g-guard-msg">Acceso restringido.</p>
+    <a href="login.html" class="btn btn-primary">Iniciar sesión</a>
+  </div>
+</div>
+
+<header class="top">
+  <div class="top-row">
+    <div class="brand"><img src="docs/img/danichaplogo-transparent.png" alt=""/> Danichap <span class="hide-sm" style="font-weight:400;opacity:.7">· Gestión</span></div>
+    <div class="spacer"></div>
+    <a href="admin.html" title="Productos de la web"><span class="ms">inventory_2</span><span class="hide-sm">Productos web</span></a>
+    <span id="g-user" class="hide-sm" style="font-size:13px;opacity:.75"></span>
+    <button id="g-logout" class="link" title="Salir"><span class="ms">logout</span></button>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-view="mostrador"><span class="ms">point_of_sale</span>Mostrador</button>
+    <button class="tab" data-view="reposicion"><span class="ms">local_shipping</span>Reposición <span class="badge hidden" id="badge-repo">0</span></button>
+    <button class="tab" data-view="ventas"><span class="ms">receipt_long</span>Ventas</button>
+    <button class="tab" data-view="clientes"><span class="ms">group</span>Clientes</button>
+    <button class="tab" data-view="ajustes"><span class="ms">tune</span>Ajustes</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ═══ MOSTRADOR ═══ -->
+  <section id="view-mostrador" class="view">
+    <div class="pos">
+      <div>
+        <div class="search-box">
+          <span class="ms">search</span>
+          <input id="pos-search" type="search" autocomplete="off" placeholder="Buscar repuesto: nombre, código o vehículo…"/>
+        </div>
+        <div class="search-help">
+          <span><span class="kbd">F2</span> buscar</span>
+          <span><span class="kbd">↑</span><span class="kbd">↓</span> moverse</span>
+          <span><span class="kbd">Enter</span> agregar a la venta</span>
+          <span><span class="kbd">F9</span> cobrar</span>
+          <span><span class="kbd">Esc</span> limpiar</span>
+        </div>
+        <div class="card results" id="pos-results">
+          <div class="empty"><span class="ms">manage_search</span>Escribí lo que te piden.<br/>Busca en tu stock y en todos los distribuidores a la vez.</div>
+        </div>
+      </div>
+
+      <aside class="card ticket">
+        <div class="ticket-head">
+          <h3>Venta actual</h3>
+          <button class="btn btn-sm btn-red" id="pos-clear" title="Vaciar venta"><span class="ms">delete_sweep</span>Vaciar</button>
+        </div>
+        <div class="ticket-items" id="pos-items">
+          <div class="empty"><span class="ms">shopping_cart</span>Todavía no agregaste nada.</div>
+        </div>
+        <div class="ticket-foot">
+          <div class="field">
+            <label class="label" for="pos-cliente">Cliente (opcional)</label>
+            <div class="cli-row">
+              <input id="pos-cliente" class="input" list="dl-clientes" placeholder="Consumidor final"/>
+              <button class="btn btn-icon" id="pos-cliente-nuevo" title="Nuevo cliente"><span class="ms">person_add</span></button>
+            </div>
+            <datalist id="dl-clientes"></datalist>
+          </div>
+          <div class="field">
+            <label class="label" for="pos-pago">Forma de pago</label>
+            <select id="pos-pago" class="select">
+              <option value="efectivo">Efectivo</option>
+              <option value="transferencia">Transferencia</option>
+              <option value="debito">Débito</option>
+              <option value="credito">Crédito</option>
+              <option value="cuenta_corriente">Cuenta corriente</option>
+            </select>
+          </div>
+          <div class="total-row"><span class="label" style="margin:0">Total</span><span class="t num" id="pos-total">$ 0</span></div>
+          <div class="gain" id="pos-gain"></div>
+          <label class="check"><input type="checkbox" id="pos-print"/> Imprimir comprobante</label>
+          <button class="btn btn-green btn-xl" id="pos-cobrar" disabled><span class="ms">payments</span>Cobrar <span class="kbd" style="margin-left:6px">F9</span></button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ═══ REPOSICIÓN ═══ -->
+  <section id="view-reposicion" class="view hidden">
+    <div class="view-title">
+      <h2>Reposición</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <div class="subtabs">
+          <button class="subtab active" data-estado="pendiente">Para pedir</button>
+          <button class="subtab" data-estado="pedido">Pedidos (en camino)</button>
+        </div>
+        <button class="btn" id="repo-agregar"><span class="ms">add</span>Agregar faltante</button>
+      </div>
+    </div>
+    <p class="muted" style="margin:-6px 0 14px;font-size:14px" id="repo-hint">Todo lo que vendés aparece acá solo, agrupado por el distribuidor más conveniente. Tocá <b>Comparar</b> para ver el mismo repuesto en los otros.</p>
+    <div id="repo-list"></div>
+  </section>
+
+  <!-- ═══ VENTAS ═══ -->
+  <section id="view-ventas" class="view hidden">
+    <div class="view-title">
+      <h2>Ventas</h2>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="date" id="ventas-desde" class="input" style="width:auto"/>
+        <span class="muted">a</span>
+        <input type="date" id="ventas-hasta" class="input" style="width:auto"/>
+        <button class="btn" id="ventas-hoy">Hoy</button>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="card stat"><div class="v num" id="st-vendido">$ 0</div><div class="l">Vendido</div></div>
+      <div class="card stat good"><div class="v num" id="st-ganancia">$ 0</div><div class="l">Ganancia</div></div>
+      <div class="card stat"><div class="v num" id="st-cant">0</div><div class="l">Ventas</div></div>
+      <div class="card stat"><div class="v num" id="st-ticket">$ 0</div><div class="l">Promedio por venta</div></div>
+    </div>
+    <div class="card tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Nº</th><th>Fecha</th><th>Cliente</th><th>Pago</th><th class="right">Total</th><th class="right">Ganancia</th></tr></thead>
+        <tbody id="ventas-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══ CLIENTES ═══ -->
+  <section id="view-clientes" class="view hidden">
+    <div class="view-title">
+      <h2>Clientes</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="search" id="cli-search" class="input" placeholder="Buscar cliente…" style="width:220px"/>
+        <button class="btn" id="cli-export"><span class="ms">download</span>Exportar Excel</button>
+        <button class="btn btn-primary" id="cli-nuevo"><span class="ms">person_add</span>Nuevo cliente</button>
+      </div>
+    </div>
+    <div class="card tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Nombre</th><th>CUIT / DNI</th><th>Teléfono</th><th>Mail</th><th class="right">Compras</th><th class="right">Total comprado</th></tr></thead>
+        <tbody id="cli-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══ AJUSTES ═══ -->
+  <section id="view-ajustes" class="view hidden">
+    <div class="view-title"><h2>Ajustes</h2></div>
+    <div class="settings">
+      <div class="card card-pad">
+        <h3>Ganancia</h3>
+        <div class="field">
+          <label class="label" for="cfg-ganancia">Ganancia general (% sobre el costo)</label>
+          <input id="cfg-ganancia" type="number" min="0" step="0.5" class="input"/>
+        </div>
+        <p class="hint">Ejemplo: si un repuesto te cuesta $100 y ponés 82, se vende a $182.</p>
+        <div id="cfg-dist"></div>
+        <div class="field">
+          <label class="label" for="cfg-redondeo">Redondear precio de venta a</label>
+          <select id="cfg-redondeo" class="select">
+            <option value="1">Sin redondeo (al peso)</option>
+            <option value="10">Múltiplos de $10</option>
+            <option value="50">Múltiplos de $50</option>
+            <option value="100">Múltiplos de $100</option>
+          </select>
+        </div>
+        <h3 style="margin-top:20px">Datos del comprobante</h3>
+        <div class="field"><label class="label" for="cfg-nombre">Nombre del negocio</label><input id="cfg-nombre" class="input"/></div>
+        <div class="grid2">
+          <div class="field"><label class="label" for="cfg-dir">Dirección</label><input id="cfg-dir" class="input"/></div>
+          <div class="field"><label class="label" for="cfg-tel">Teléfono</label><input id="cfg-tel" class="input"/></div>
+        </div>
+        <div class="field"><label class="label" for="cfg-leyenda">Leyenda al pie</label><input id="cfg-leyenda" class="input"/></div>
+        <button class="btn btn-primary" id="cfg-guardar"><span class="ms">save</span>Guardar ajustes</button>
+      </div>
+      <div class="card card-pad">
+        <h3>Robots de precios</h3>
+        <p class="hint" style="margin-top:0">Se actualizan solos todos los días a las 6:00.</p>
+        <div id="robots"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Modal genérico -->
+<div id="modal-bg" class="modal-bg hidden">
+  <div class="modal" id="modal" role="dialog" aria-modal="true">
+    <div class="modal-head"><h3 id="modal-title"></h3><button class="btn btn-icon" id="modal-close" aria-label="Cerrar"><span class="ms">close</span></button></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
+<div id="print-area"></div>
+</body>
+</html>
