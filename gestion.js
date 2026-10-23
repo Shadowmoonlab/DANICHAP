@@ -59,7 +59,11 @@
   const PAGOS = { efectivo: 'Efectivo', transferencia: 'Transferencia', debito: 'Débito', credito: 'Crédito', cuenta_corriente: 'Cta. corriente' };
 
   // Palabras de búsqueda seguras para filtros de PostgREST
-  const palabras = q => q.toLowerCase().replace(/[,()*%\\:"']/g, ' ').split(/\s+/).filter(w => w.length > 1).slice(0, 6);
+  // Sin la "s" final (búsqueda por substring): "paragolpes" también encuentra "PARAGOLPE"
+  const palabras = q => q.toLowerCase().replace(/[,()*%\\:"']/g, ' ').split(/\s+/).filter(w => w.length > 1)
+    .map(w => (w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w)).slice(0, 6);
+  // Igual que la columna precios_distribuidor.busqueda: sin acentos ni - / . → "f100" encuentra "F-100"
+  const normalizar = q => q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[-/.]/g, '');
 
   function debounce(fn, ms) {
     let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
@@ -113,7 +117,7 @@
      BÚSQUEDA (stock propio + distribuidores)
   ══════════════════════════════════════════════════════════════════════ */
   async function buscarPrecios(q, limite = 40) {
-    const ws = palabras(q);
+    const ws = palabras(normalizar(q));
     if (!ws.length) return [];
     let query = db.from('precios_distribuidor')
       .select('id, distribuidor, codigo, descripcion, marca, rubro, precio_neto, precio_anterior, precio_cambio_at')
@@ -426,7 +430,9 @@
     const lista = h('div', {}, h('div', { class: 'empty' }, 'Buscando…'));
 
     const correr = async () => {
-      const res = await buscarPrecios(input.value, 30);
+      const q = input.value;
+      const res = await buscarPrecios(q, 30);
+      if (input.value !== q) return; // respuesta vieja: ya se escribió otra cosa
       if (!res.length) { lista.replaceChildren(h('div', { class: 'empty' }, 'Sin resultados. Probá con menos palabras.')); return; }
       lista.replaceChildren(h('table', { class: 'tbl' },
         h('thead', {}, h('tr', {}, h('th', {}, 'Distribuidor'), h('th', {}, 'Código'), h('th', {}, 'Descripción'), h('th', { class: 'right' }, 'Costo'), h('th', {}))),
@@ -481,14 +487,14 @@
     const desde = new Date(`${$('ventas-desde').value}T00:00:00`);
     const hasta = new Date(`${$('ventas-hasta').value}T23:59:59.999`);
     const { data, error } = await db.from('ventas')
-      .select('id, created_at, cliente_nombre, medio_pago, total, costo_total, impreso, anulada')
+      .select('id, created_at, cliente_nombre, medio_pago, total, costo_total, ganancia, impreso, anulada')
       .gte('created_at', desde.toISOString()).lte('created_at', hasta.toISOString())
       .order('created_at', { ascending: false }).limit(500);
     const body = $('ventas-body');
     if (error) { body.replaceChildren(h('tr', {}, h('td', { colspan: 6, class: 'empty' }, error.message))); return; }
     const validas = data.filter(v => !v.anulada);
     const vendido = validas.reduce((s, v) => s + Number(v.total), 0);
-    const ganancia = validas.reduce((s, v) => s + Number(v.total) - Number(v.costo_total), 0);
+    const ganancia = validas.reduce((s, v) => s + Number(v.ganancia), 0);
     $('st-vendido').textContent = money(vendido);
     $('st-ganancia').textContent = money(ganancia);
     $('st-cant').textContent = validas.length;
@@ -499,7 +505,7 @@
       h('td', {}, v.cliente_nombre || h('span', { class: 'muted' }, 'Consumidor final')),
       h('td', {}, PAGOS[v.medio_pago] || v.medio_pago),
       h('td', { class: 'right num' }, h('b', {}, money(v.total))),
-      h('td', { class: 'right num', style: 'color:#1A9850' }, money(v.total - v.costo_total)))));
+      h('td', { class: 'right num', style: 'color:#1A9850' }, money(v.ganancia)))));
   }
 
   async function verVenta(v) {

@@ -30,7 +30,7 @@ create table if not exists perfiles (
   telefono   text,
   rol        text default 'cliente' check (rol in ('cliente', 'admin')),
   created_at timestamptz default now()
-);P
+);
 
 -- ── Tabla carrito ─────────────────────────────────────────────────────────
 create table if not exists carrito (

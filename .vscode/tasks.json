@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "DANICHAP: ambiente local",
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "DANICHAP: reiniciar base local (borra datos de prueba)",
+      "type": "npm",
+      "script": "dev:reset",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "DANICHAP: compilar CSS (Tailwind)",
+      "type": "npm",
+      "script": "build:css",
+      "problemMatcher": []
+    }
+  ]
+}

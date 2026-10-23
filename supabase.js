@@ -1,18 +1,56 @@
 // supabase.js — Cliente Supabase singleton + helpers
-const SUPABASE_URL     = 'https://stambpkmtwtnhfjmxztl.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0YW1icGttdHd0bmhmam14enRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MjM5NjksImV4cCI6MjA5MDQ5OTk2OX0.f-0w0-NoJksWXPr5LCrH8uDbUvVR7LicVxEAixoMkZ8';
+
+// Ambiente de pruebas LOCAL (npm run dev): dev/server.mjs inyecta window.__DANICHAP_DEV__.
+// En producción no existe y todo apunta a Supabase real.
+const DEV = window.__DANICHAP_DEV__ || null;
+const DEV_KEY = 'danichap-dev-usuario';
+
+const SUPABASE_URL     = DEV ? DEV.url : 'https://stambpkmtwtnhfjmxztl.supabase.co';
+const SUPABASE_ANON_KEY = DEV ? DEV.anonKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0YW1icGttdHd0bmhmam14enRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MjM5NjksImV4cCI6MjA5MDQ5OTk2OX0.f-0w0-NoJksWXPr5LCrH8uDbUvVR7LicVxEAixoMkZ8';
 
 const { createClient } = supabase;
-const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  }
-});
+const _devUsuario = () => DEV?.users[localStorage.getItem(DEV_KEY)] || null;
+const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, DEV
+  ? { accessToken: async () => _devUsuario()?.token || DEV.anonKey }
+  : {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    }
+  });
 
-/* ── Auth ─────────────────────────────────────────────────────────────────── */
-const Auth = {
+/* ── Auth (local: login simulado con los usuarios de dev/seed.sql) ───────── */
+const _devListeners = [];
+const DevAuth = {
+  _user() { const u = _devUsuario(); return u ? { id: u.id, email: u.email } : null; },
+  async getUser() { return this._user(); },
+  async getSession() { const u = _devUsuario(); return u ? { user: this._user(), access_token: u.token } : null; },
+  async signIn(email, password) {
+    const [clave] = Object.entries(DEV.users).find(([, u]) => u.email === String(email).trim().toLowerCase()) || [];
+    if (!clave || password !== DEV.password) {
+      return { data: { user: null }, error: { message: 'Invalid login credentials' } };
+    }
+    localStorage.setItem(DEV_KEY, clave);
+    const session = await this.getSession();
+    _devListeners.forEach(cb => cb('SIGNED_IN', session));
+    return { data: { user: session.user, session }, error: null };
+  },
+  async signUp() {
+    return { data: { user: null }, error: { message: 'En el ambiente local usá admin@danichap.test o cliente@danichap.test' } };
+  },
+  async signOut() {
+    localStorage.removeItem(DEV_KEY);
+    _devListeners.forEach(cb => cb('SIGNED_OUT', null));
+    return { error: null };
+  },
+  onAuthChange(cb) {
+    _devListeners.push(cb);
+    return { data: { subscription: { unsubscribe() { _devListeners.splice(_devListeners.indexOf(cb), 1); } } } };
+  },
+};
+
+const Auth = DEV ? DevAuth : {
   async getUser() {
     // getSession() lee localStorage — instantáneo, sin roundtrip al servidor
     // getUser() valida el JWT contra el servidor — puede tardar o fallar offline

@@ -7,10 +7,15 @@
 -- ── 0. Búsqueda rápida en precios de distribuidores ───────────────────────
 -- Columna de búsqueda (código + descripción + marca + rubro + origen) con índice trigram:
 -- permite buscar por varias palabras sueltas en cualquier orden ("faro gol der").
+-- Normalizada: sin acentos ni - / . ,  → "F-100" y "F100" se encuentran igual (gestion.js normaliza lo mismo).
 alter table public.precios_distribuidor
   add column if not exists busqueda text generated always as (
-    lower(codigo || ' ' || descripcion || ' ' || coalesce(marca, '') || ' ' ||
-          coalesce(rubro, '') || ' ' || coalesce(origen, ''))
+    translate(
+      regexp_replace(
+        lower(codigo || ' ' || descripcion || ' ' || coalesce(marca, '') || ' ' ||
+              coalesce(rubro, '') || ' ' || coalesce(origen, '')),
+        '[-/.,]', '', 'g'),
+      'áéíóúüñ', 'aeiouun')
   ) stored;
 
 create index if not exists idx_precios_busqueda_trgm
@@ -54,6 +59,7 @@ create table if not exists public.ventas (
                   check (medio_pago in ('efectivo', 'transferencia', 'debito', 'credito', 'cuenta_corriente')),
   total           numeric(12,2) not null default 0,
   costo_total     numeric(12,2) not null default 0,
+  ganancia        numeric(12,2) not null default 0,   -- solo de los renglones con costo conocido
   impreso         boolean not null default false,
   anulada         boolean not null default false,
   notas           text,
@@ -173,10 +179,12 @@ begin
 
   update public.ventas v
   set total       = s.total,
-      costo_total = s.costo
+      costo_total = s.costo,
+      ganancia    = s.ganancia
   from (
     select sum(cantidad * precio_unit) as total,
-           sum(cantidad * coalesce(costo_unit, 0)) as costo
+           sum(cantidad * coalesce(costo_unit, 0)) as costo,
+           coalesce(sum(cantidad * (precio_unit - costo_unit)) filter (where costo_unit is not null), 0) as ganancia
     from public.venta_items where venta_id = v_id
   ) s
   where v.id = v_id;

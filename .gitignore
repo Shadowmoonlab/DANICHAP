@@ -10,3 +10,7 @@ Thumbs.db
 
 # Salida del robot explorador (HTML de sitios logueados)
 exploracion/
+
+# Ambiente local de pruebas (base, binarios, fotos subidas)
+.dev/
+.env.local
