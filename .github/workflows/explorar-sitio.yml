@@ -1,0 +1,46 @@
+name: Explorar sitio de distribuidor
+
+# Se corre a mano (Actions → Explorar sitio → Run workflow) una vez por sitio.
+# Deja un artifact descargable con el HTML y los datos que carga el sitio ya logueado.
+on:
+  workflow_dispatch:
+    inputs:
+      sitio:
+        description: 'Sitio a explorar'
+        required: true
+        type: choice
+        options: [delviso, cromosol, otero, prautopartes]
+
+jobs:
+  explorar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias (con Chrome de Puppeteer)
+        run: npm ci
+
+      - name: Explorar ${{ inputs.sitio }}
+        run: node scrapers/explorar.mjs ${{ inputs.sitio }}
+        env:
+          DELVISO_USER: ${{ secrets.DELVISO_USER }}
+          DELVISO_PASSWORD: ${{ secrets.DELVISO_PASSWORD }}
+          CROMOSOL_USER: ${{ secrets.CROMOSOL_USER }}
+          CROMOSOL_PASSWORD: ${{ secrets.CROMOSOL_PASSWORD }}
+          OTERO_USER: ${{ secrets.OTERO_USER }}
+          OTERO_PASSWORD: ${{ secrets.OTERO_PASSWORD }}
+          PR_USER: ${{ secrets.PR_USER }}
+          PR_PASSWORD: ${{ secrets.PR_PASSWORD }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exploracion-${{ inputs.sitio }}
+          path: exploracion/${{ inputs.sitio }}
+          retention-days: 7

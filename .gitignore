@@ -7,3 +7,6 @@ stitch_export/
 skills-lock.json
 .DS_Store
 Thumbs.db
+
+# Salida del robot explorador (HTML de sitios logueados)
+exploracion/

@@ -1,0 +1,42 @@
+name: Precios diarios de distribuidores
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # 06:00 hora Argentina (UTC-3)
+  workflow_dispatch:       # botón "Run workflow" para correrlo a mano
+
+concurrency:
+  group: precios-diarios
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false     # si un distribuidor falla, los demás siguen
+      matrix:
+        distribuidor: [dm, pr]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci --omit=dev
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+      - name: Scrapear ${{ matrix.distribuidor }}
+        run: node scrapers/${{ matrix.distribuidor }}.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          DM_EMAIL: ${{ secrets.DM_EMAIL }}
+          DM_PASSWORD: ${{ secrets.DM_PASSWORD }}
+          DM_COOKIE_ID: ${{ secrets.DM_COOKIE_ID }}
+          PR_USER: ${{ secrets.PR_USER }}
+          PR_PASSWORD: ${{ secrets.PR_PASSWORD }}
