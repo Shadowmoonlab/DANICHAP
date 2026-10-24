@@ -3,6 +3,38 @@
 // No importa el SDK: recibe un cliente de @anthropic-ai/sdk ya creado, así funciona igual en ambos entornos.
 
 export const MODELO = 'claude-opus-5-5';
+// Se puede cambiar sin tocar código con la variable LECTURA_MODELO (secreto de la Edge Function / .env.local).
+// USD por millón de tokens (entrada / salida). Ajustes usa la misma tabla para estimar el gasto.
+export const MODELOS = {
+  'claude-opus-5-5':   { entrada: 4,   salida: 20,  fallback: true },
+  'claude-sonnet-5-5': { entrada: 2,   salida: 10,  fallback: true },
+  'claude-haiku-5-5':  { entrada: 0.1, salida: 0.5, fallback: false }, // Haiku no tiene fallback del lado del servidor
+};
+export const elegirModelo = pedido => (MODELOS[pedido] ? pedido : MODELO);
+export const LIMITE_DIARIO_DEFECTO = 4;
+
+/** Comienzo del día en Argentina (UTC-3, sin horario de verano) como ISO UTC. */
+export function inicioDelDiaArgentina(ahora = Date.now()) {
+  const dia = new Date(ahora - 3 * 3600e3).toISOString().slice(0, 10);
+  return `${dia}T03:00:00.000Z`;
+}
+
+/**
+ * Lee un comprobante respetando el límite diario y dejando registro del consumo.
+ * Cada entorno (Edge Function / servidor local) pasa cómo contar y registrar en su base.
+ * @param {{ limite: () => Promise<number>, contarHoy: (desdeISO: string) => Promise<number>,
+ *           registrar: (fila: {modelo: string, input_tokens: number, output_tokens: number}) => Promise<void> }} base
+ */
+export async function leerFacturaConLimite(client, entrada, { modelo, base }) {
+  const [limite, usadas] = await Promise.all([base.limite(), base.contarHoy(inicioDelDiaArgentina())]);
+  if (usadas >= limite) {
+    throw new ErrorLectura(`Ya se leyeron ${usadas} facturas hoy (límite ${limite}). Cargá esta a mano o esperá a mañana.`, 'limite_diario');
+  }
+  validarArchivo(entrada); // antes de registrar nada
+  const resultado = await leerFactura(client, entrada, { modelo });
+  await base.registrar({ modelo: resultado.modelo, input_tokens: resultado.uso?.input_tokens ?? 0, output_tokens: resultado.uso?.output_tokens ?? 0 });
+  return { ...resultado, lecturas_hoy: usadas + 1, limite_diario: limite };
+}
 export const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 export const MAX_BYTES = 20 * 1024 * 1024; // el pedido completo a la API admite hasta 32 MB
 
@@ -81,16 +113,19 @@ function bloqueArchivo({ archivo, media_type }) {
  * Lee un comprobante y devuelve { datos, modelo, uso }.
  * @param {import('@anthropic-ai/sdk').default} client  cliente del SDK oficial
  * @param {{archivo: string, media_type: string, proveedor?: string}} entrada  archivo en base64
+ * @param {{modelo?: string}} [opciones]  modelo de MODELOS (por defecto MODELO)
  */
-export async function leerFactura(client, entrada) {
+export async function leerFactura(client, entrada, { modelo } = {}) {
   validarArchivo(entrada);
   const pista = entrada.proveedor ? `\nEl comprobante debería ser del proveedor "${String(entrada.proveedor).slice(0, 80)}".` : '';
+  const model = elegirModelo(modelo);
+  // Si el modelo declina por política, la API reintenta con el recomendado (no disponible en Haiku)
+  const respaldo = MODELOS[model].fallback ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } : {};
 
   const respuesta = await client.beta.messages.create({
-    model: MODELO,
+    model,
     max_tokens: 16000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',            // si el modelo declina por política, la API reintenta con el recomendado
+    ...respaldo,
     output_config: {
       effort: 'medium',
       format: { type: 'json_schema', schema: ESQUEMA },

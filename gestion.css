@@ -313,3 +313,4 @@ table.tbl { width: 100%; border-collapse: collapse; }
 @media (max-width: 380px) {
   .stats { grid-template-columns: 1fr; }
 }
+.ia-limite { margin-top: 14px; }

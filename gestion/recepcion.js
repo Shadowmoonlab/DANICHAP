@@ -62,16 +62,17 @@ function pasoArchivo() {
       if (error) {
         let detalle = {};
         try { detalle = await error.context?.json?.(); } catch { /* sin cuerpo */ }
-        if (detalle?.codigo === 'ia_no_configurada') {
-          toast('La lectura automática todavía no está activada: cargala a mano', 'error');
+        if (detalle?.codigo === 'ia_no_configurada' || detalle?.codigo === 'limite_diario') {
+          toast(detalle.codigo === 'limite_diario' ? detalle.error : 'La lectura automática todavía no está activada: cargala a mano', 'error');
           abrirEditor({ proveedor: prov.value, origen: 'manual', filas: [filaVacia()] });
           return;
         }
         throw new Error(detalle?.error || error.message);
       }
       const d = data.datos;
-      if (data.uso) db.from('lecturas_ia').insert({ modelo: data.modelo, input_tokens: data.uso.input_tokens ?? 0, output_tokens: data.uso.output_tokens ?? 0 }).then(() => {});
-      toast(`Leí ${d.renglones.length} renglones. Revisalos antes de guardar.`, 'success');
+      // El consumo lo registra la función del servidor (y controla el límite diario)
+      toast(`Leí ${d.renglones.length} renglones. Revisalos antes de guardar.` +
+        (data.limite_diario ? ` (hoy: ${data.lecturas_hoy} de ${data.limite_diario})` : ''), 'success');
       abrirEditor({
         proveedor: prov.value, nro: d.numero || '', fecha: d.fecha || hoyISO(), total: d.total, origen: 'ia',
         advertencias: d.advertencias, preciosConIva: d.precios_con_iva, iaUso: data.uso ? { modelo: data.modelo, input_tokens: data.uso.input_tokens, output_tokens: data.uso.output_tokens } : null,

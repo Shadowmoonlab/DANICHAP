@@ -89,12 +89,23 @@ async function leerFacturaLocal(req, res) {
   for await (const c of req) chunks.push(c);
   try {
     const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const { leerFactura, ErrorLectura } = await import('../supabase/functions/_shared/leer-factura.js');
+    const { leerFacturaConLimite, ErrorLectura, LIMITE_DIARIO_DEFECTO } = await import('../supabase/functions/_shared/leer-factura.js');
+    // Mismo límite diario y registro que la Edge Function, contra la base local vía PostgREST
+    const rest = (ruta, init = {}) => fetch(`http://127.0.0.1:${PORTS.postgrest}${ruta}`,
+      { ...init, headers: { Authorization: `Bearer ${TOKENS.admin}`, 'Content-Type': 'application/json', ...init.headers } });
+    const base = {
+      limite: async () => (await (await rest('/config_negocio?select=lecturas_ia_por_dia&id=eq.1')).json())[0]?.lecturas_ia_por_dia ?? LIMITE_DIARIO_DEFECTO,
+      contarHoy: async desde => {
+        const r = await rest(`/lecturas_ia?select=id&created_at=gte.${encodeURIComponent(desde)}`, { headers: { Prefer: 'count=exact', Range: '0-0' } });
+        return Number(r.headers.get('content-range')?.split('/')[1] ?? 0);
+      },
+      registrar: async fila => { await rest('/lecturas_ia', { method: 'POST', body: JSON.stringify(fila) }); },
+    };
     try {
-      const resultado = await leerFactura(new Anthropic(), JSON.parse(Buffer.concat(chunks).toString('utf8')));
+      const resultado = await leerFacturaConLimite(new Anthropic(), JSON.parse(Buffer.concat(chunks).toString('utf8')), { modelo: process.env.LECTURA_MODELO, base });
       return json(res, 200, resultado);
     } catch (e) {
-      if (e instanceof ErrorLectura) return json(res, e.codigo === 'entrada' ? 400 : 422, { error: e.message, codigo: e.codigo });
+      if (e instanceof ErrorLectura) return json(res, e.codigo === 'entrada' ? 400 : e.codigo === 'limite_diario' ? 429 : 422, { error: e.message, codigo: e.codigo });
       if (e instanceof Anthropic.RateLimitError) return json(res, 429, { error: 'Muchas lecturas seguidas, probá en un minuto', codigo: 'limite' });
       if (e instanceof Anthropic.APIError) return json(res, 502, { error: `Error del servicio de lectura (${e.status})`, codigo: 'api' });
       throw e;

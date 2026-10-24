@@ -245,6 +245,14 @@
         <div class="card card-pad">
           <h3>Lectura de facturas con IA</h3>
           <div id="cfg-ia" class="ia"></div>
+          <div class="field ia-limite">
+            <label class="label" for="cfg-limite-ia">Máximo de facturas por día</label>
+            <div class="cli-row">
+              <input id="cfg-limite-ia" type="number" min="0" max="100" class="input"/>
+              <button class="btn" id="cfg-guardar-ia"><span class="ms">save</span>Guardar</button>
+            </div>
+          </div>
+          <p class="hint">Al llegar al límite, la factura se carga a mano. Con 4 por día el gasto queda en unos pocos dólares por mes.</p>
         </div>
       </div>
     </div>

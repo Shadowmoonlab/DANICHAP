@@ -39,6 +39,9 @@ create index if not exists idx_costos_proveedor_codigo on public.productos_costo
 
 -- ── 2b. Datos del negocio: alias para cobrar por transferencia ────────────
 alter table public.config_negocio add column if not exists alias_transferencia text;
+-- Tope de facturas leídas con IA por día (lo controla la Edge Function leer-factura)
+alter table public.config_negocio
+  add column if not exists lecturas_ia_por_dia integer not null default 4 check (lecturas_ia_por_dia between 0 and 100);
 
 -- ── 4. Cuenta corriente: pagos de clientes ────────────────────────────────
 create table if not exists public.pagos_clientes (
