@@ -3,7 +3,7 @@
 // Deploy:  supabase functions deploy leer-factura
 // Secreto: supabase secrets set ANTHROPIC_API_KEY=...   (SUPABASE_URL y SUPABASE_ANON_KEY ya existen)
 // Opcional: supabase secrets set LECTURA_MODELO=claude-haiku-5-5   (más barato; ver MODELOS)
-import Anthropic from 'npm:@anthropic-ai/sdk';
+import Anthropic from 'npm:@anthropic-ai/sdk@1.3.0';   // misma versión que se probó en local
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { ErrorLectura, LIMITE_DIARIO_DEFECTO, leerFacturaConLimite } from '../_shared/leer-factura.js';
 
