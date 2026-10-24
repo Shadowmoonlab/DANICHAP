@@ -13,6 +13,19 @@ const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_KEY'), {
   auth: { persistSession: false },
 });
 
+// Reintenta ante caídas momentáneas del sitio del distribuidor (espera 30 s y 90 s)
+export async function conReintentos(fn, { intentos = 3, esperasMs = [30_000, 90_000], etiqueta = '' } = {}) {
+  for (let i = 1; ; i++) {
+    try { return await fn(); }
+    catch (err) {
+      if (i >= intentos) throw err;
+      const espera = esperasMs[Math.min(i - 1, esperasMs.length - 1)];
+      console.warn(`[${etiqueta}] intento ${i} falló (${err.message}). Reintento en ${espera / 1000} s…`);
+      await new Promise(ok => setTimeout(ok, espera));
+    }
+  }
+}
+
 // Corre un scraper, guarda sus filas y deja registro en scraper_runs.
 // `scrape` devuelve [{ codigo, descripcion, marca, rubro, origen, precio_lista, precio_neto, imagen_url }]
 export async function correrScraper(distribuidor, scrape) {
@@ -21,7 +34,7 @@ export async function correrScraper(distribuidor, scrape) {
     .insert({ distribuidor, inicio: visto }).select('id').single();
 
   try {
-    const filas = (await scrape()).map(f => ({ ...f, distribuidor }));
+    const filas = (await conReintentos(scrape, { etiqueta: distribuidor })).map(f => ({ ...f, distribuidor }));
     if (filas.length === 0) throw new Error('El distribuidor no devolvió productos');
 
     let guardados = 0;

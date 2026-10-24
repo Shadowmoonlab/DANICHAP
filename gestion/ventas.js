@@ -1,0 +1,74 @@
+// gestion/ventas.js — Historial de ventas con ganancia real y cierre de caja por forma de pago.
+import { $, h, icon, vacio, db, toast, money, fecha, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista } from './core.js';
+import { imprimirComprobante } from './comprobante.js';
+
+async function cargar() {
+  const desde = new Date(`${$('ventas-desde').value}T00:00:00`);
+  const hasta = new Date(`${$('ventas-hasta').value}T23:59:59.999`);
+  const { data, error } = await db.from('ventas')
+    .select('id, created_at, cliente_nombre, medio_pago, total, costo_total, ganancia, impreso, anulada')
+    .gte('created_at', desde.toISOString()).lte('created_at', hasta.toISOString())
+    .order('created_at', { ascending: false }).limit(1000);
+  const body = $('ventas-body');
+  if (error) { body.replaceChildren(h('tr', {}, h('td', { colspan: 6 }, error.message))); return; }
+
+  const validas = data.filter(v => !v.anulada);
+  const vendido = validas.reduce((s, v) => s + Number(v.total), 0);
+  const ganancia = validas.reduce((s, v) => s + Number(v.ganancia), 0);
+  $('st-vendido').textContent = money(vendido);
+  $('st-ganancia').textContent = money(ganancia);
+  $('st-cant').textContent = validas.length;
+  $('st-ticket').textContent = money(validas.length ? vendido / validas.length : 0);
+
+  // Cierre de caja: cuánto entró por cada forma de pago
+  const porPago = {};
+  for (const v of validas) porPago[v.medio_pago] = (porPago[v.medio_pago] || 0) + Number(v.total);
+  $('ventas-caja').replaceChildren(...Object.keys(PAGOS).filter(k => porPago[k]).map(k =>
+    h('div', { class: 'caja-item' + (k === 'cuenta_corriente' ? ' fiado' : '') }, h('span', {}, PAGOS[k]), h('b', { class: 'num' }, money(porPago[k])))));
+  $('ventas-caja').classList.toggle('hidden', !validas.length);
+
+  if (!data.length) { body.replaceChildren(h('tr', {}, h('td', { colspan: 6 }, vacio('receipt_long', 'No hay ventas en estas fechas.')))); return; }
+  body.replaceChildren(...data.map(v => h('tr', { class: 'clickable' + (v.anulada ? ' anulada' : ''), onclick: () => verVenta(v), tabindex: 0,
+    onkeydown: e => { if (e.key === 'Enter') verVenta(v); } },
+    h('td', { class: 'num' }, v.id), h('td', {}, fecha(v.created_at)),
+    h('td', {}, v.cliente_nombre || h('span', { class: 'muted' }, 'Consumidor final')),
+    h('td', {}, PAGOS[v.medio_pago] || v.medio_pago),
+    h('td', { class: 'right num' }, h('b', {}, money(v.total))),
+    h('td', { class: 'right num ganancia' }, money(v.ganancia)))));
+}
+
+async function verVenta(v) {
+  const { data: items } = await db.from('venta_items').select('codigo, descripcion, cantidad, precio_unit, costo_unit').eq('venta_id', v.id);
+  openModal({
+    title: `Venta Nº ${v.id}`, wide: true,
+    body: h('div', {},
+      h('p', { class: 'muted', style: 'margin-top:0' }, `${fecha(v.created_at)} · ${v.cliente_nombre || 'Consumidor final'} · ${PAGOS[v.medio_pago] || v.medio_pago}`,
+        v.anulada ? ' · ANULADA' : ''),
+      h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' },
+        h('thead', {}, h('tr', {}, h('th', {}, 'Cant.'), h('th', {}, 'Descripción'), h('th', { class: 'right' }, 'Precio'), h('th', { class: 'right' }, 'Subtotal'), h('th', { class: 'right' }, 'Ganancia'))),
+        h('tbody', {}, ...(items || []).map(i => h('tr', {}, h('td', {}, i.cantidad), h('td', {}, i.descripcion),
+          h('td', { class: 'right num' }, money(i.precio_unit)), h('td', { class: 'right num' }, money(i.cantidad * i.precio_unit)),
+          h('td', { class: 'right num ganancia' }, i.costo_unit != null ? money(i.cantidad * (i.precio_unit - i.costo_unit)) : h('span', { class: 'muted' }, 'sin costo')))))))),
+    foot: [
+      !v.anulada ? h('button', { class: 'btn btn-red', onclick: async () => {
+        closeModal();
+        if (!(await confirmar('Anular venta', `¿Anular la venta Nº ${v.id}? No se borra: queda tachada y deja de sumar en caja y cuenta corriente.`, { ok: 'Anular', peligro: true }))) return;
+        const { error } = await db.from('ventas').update({ anulada: true }).eq('id', v.id);
+        if (error) return toast(error.message, 'error');
+        toast('Venta anulada'); cargar();
+      } }, icon('block'), 'Anular') : null,
+      h('button', { class: 'btn btn-primary', onclick: () => imprimirComprobante({ ...v, items: items || [] }) }, icon('print'), 'Imprimir comprobante'),
+    ],
+  });
+}
+
+export function iniciarVentas() {
+  $('ventas-desde').value = $('ventas-hasta').value = hoyISO();
+  $('ventas-desde').addEventListener('change', cargar);
+  $('ventas-hasta').addEventListener('change', cargar);
+  $('ventas-hoy').addEventListener('click', () => { $('ventas-desde').value = $('ventas-hasta').value = hoyISO(); cargar(); });
+  $('ventas-mes').addEventListener('click', () => {
+    const hoy = hoyISO(); $('ventas-desde').value = hoy.slice(0, 8) + '01'; $('ventas-hasta').value = hoy; cargar();
+  });
+  registrarVista('ventas', cargar);
+}

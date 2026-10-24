@@ -1,17 +1,22 @@
 name: Precios diarios de distribuidores
 
+# Corre en servidores de GitHub (gratis en repos públicos). No usa IA: los robots leen
+# las APIs/páginas de cada distribuidor con las credenciales guardadas en Secrets.
 on:
   schedule:
-    - cron: '0 9 * * *'   # 06:00 hora Argentina (UTC-3)
+    - cron: '0 9 * * *'   # 06:00 hora Argentina (UTC-3). GitHub puede atrasarlo unos minutos.
   workflow_dispatch:       # botón "Run workflow" para correrlo a mano
 
 concurrency:
   group: precios-diarios
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   scrape:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest   # Plan B si un sitio bloquea IPs de fuera de Argentina: runs-on: self-hosted (PC del local)
     timeout-minutes: 30
     strategy:
       fail-fast: false     # si un distribuidor falla, los demás siguen
@@ -40,3 +45,16 @@ jobs:
           DM_COOKIE_ID: ${{ secrets.DM_COOKIE_ID }}
           PR_USER: ${{ secrets.PR_USER }}
           PR_PASSWORD: ${{ secrets.PR_PASSWORD }}
+
+  # En repos públicos GitHub desactiva los workflows programados tras 60 días sin actividad.
+  # Volver a habilitarlo por API cada vez que corre reinicia ese contador (mismo método que usa
+  # la acción keepalive-workflow), sin commits ni cambios en el repo.
+  mantener-activo:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Mantener el workflow programado activo
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/precios-diarios.yml/enable"
+        env:
+          GH_TOKEN: ${{ github.token }}

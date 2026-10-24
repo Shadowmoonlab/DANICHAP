@@ -159,3 +159,39 @@ Criterios (skill *supabase-postgres-best-practices*): `bigint identity`, `numeri
 3. La "otra página más" (audio 16:43).
 4. ¿El usuario de Metalúrgica del Viso es el CUIT? (solo pasó la clave)
 5. Foto de un comprobante/presupuesto que use hoy, para copiar el formato.
+
+---
+
+## 9. Versión 2 (24/10) — lo que se agregó
+
+| Módulo | Qué hace | Archivo |
+|---|---|---|
+| Recepción | Foto/PDF de la factura → Claude la lee (`claude-opus-5-5`, salida estructurada, fallback automático) → tabla editable → stock, costos y pedidos recibidos. Lo ilegible se marca, nunca se inventa; la misma factura no entra dos veces; cruza precio y cantidad con lo pedido | `gestion/recepcion.js`, `supabase/functions/leer-factura` |
+| Presupuestos | Desde el mostrador por WhatsApp; quedan guardados y se convierten en venta | `gestion/mostrador.js` |
+| Cuenta corriente | Fiado por cliente, pagos, saldo, recordatorio por WhatsApp | `gestion/clientes.js` |
+| Logística | Días de visita, pedido mínimo y WhatsApp por proveedor; "pasa hoy" primero | `gestion/reposicion.js`, `gestion/proveedores.js` |
+| Listas en Excel | Importa .xls/.xlsx/.csv detectando columnas, secciones (rubro) y "sin IVA" | `gestion/listas.js` |
+| Caja | Cierre del día por forma de pago | `gestion/ventas.js` |
+| Consumo IA | Facturas leídas y costo estimado del mes | `gestion/ajustes.js` |
+
+SQL: `docs/add-gestion-v2.sql` (después de `add-gestion.sql`). Guía para Daniel: `docs/guia-gestion.html`.
+
+## 10. Automatización diaria y costos
+
+**Precios (GitHub Actions, sin IA):** `precios-diarios.yml` corre a las 06:00 ART en servidores de GitHub,
+un job por distribuidor (si uno falla los demás siguen), 3 reintentos con espera, y un job que reactiva el
+workflow para que GitHub no lo desactive tras 60 días sin actividad (repos públicos).
+- Repo público: minutos gratis e ilimitados. Privado: ~300 min/mes de los 2.000 gratis.
+- Si un sitio bloquea IPs de fuera de Argentina: `runs-on: self-hosted` con un runner en una PC del local.
+- El robot diario además mantiene activo el proyecto gratuito de Supabase (se pausa a los 7 días sin uso).
+
+**IA (solo al leer facturas):** Claude Opus 5.5, US$4 / US$20 por millón de tokens (entrada / salida).
+Una factura ≈ 3.000 de entrada + 2.000 de salida ≈ **US$ 0,05**. 100 facturas/mes ≈ US$ 5. Se ve en Ajustes.
+
+## 11. Pasos para pasar a producción
+
+1. Supabase → SQL Editor, en orden: `add-precios-distribuidor.sql`, `add-gestion.sql`, `add-gestion-v2.sql`.
+2. GitHub → Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, credenciales de cada distribuidor.
+3. Lectura con IA: `supabase functions deploy leer-factura` y `supabase secrets set ANTHROPIC_API_KEY=...`.
+4. Push a `main` (publica `gestion.html`, `login.html` corregido y `toast.css`).
+5. Actions → Precios diarios → Run workflow (primera corrida) y revisar Proveedores en el panel.

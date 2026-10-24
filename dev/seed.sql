@@ -66,3 +66,44 @@ insert into public.scraper_runs (distribuidor, inicio, fin, ok, productos, error
   ('dm',           now() - interval '3 hours', now() - interval '179 minutes', true,  10, null),
   ('prautopartes', now() - interval '3 hours', now() - interval '178 minutes', true,  5,  null),
   ('otero',        now() - interval '3 hours', now() - interval '178 minutes', false, null, 'Ejemplo: login rechazado');
+
+-- ── v2: logística, cuenta corriente, costos, pedidos en camino ────────────
+update public.proveedores set dias_visita = '{1,3,5}', pedido_minimo = 150000, notas = 'Reparto lunes, miércoles y viernes' where slug = 'dm';
+update public.proveedores set dias_visita = '{0,1,2,3,4,5,6}' where slug = 'prautopartes';
+update public.proveedores set dias_visita = '{2,4}', pedido_minimo = 60000 where slug = 'otero';
+update public.config_negocio set alias_transferencia = 'DANICHAP.REPUESTOS' where id = 1;
+
+
+-- Taller Gómez: compró fiado y pagó una parte → saldo pendiente
+insert into public.ventas (cliente_id, cliente_nombre, medio_pago, total, costo_total, ganancia, created_at)
+select id, nombre, 'cuenta_corriente', 182000, 100000, 82000, now() - interval '12 days' from public.clientes where nombre = 'Taller Gómez';
+insert into public.ventas (cliente_id, cliente_nombre, medio_pago, total, costo_total, ganancia, created_at)
+select id, nombre, 'cuenta_corriente', 95000, 52000, 43000, now() - interval '5 days' from public.clientes where nombre = 'Taller Gómez';
+insert into public.pagos_clientes (cliente_id, monto, medio, notas, created_at)
+select id, 150000, 'transferencia', 'Pago parcial', now() - interval '3 days' from public.clientes where nombre = 'Taller Gómez';
+-- Juan Pérez: última compra hace 3 meses → aparece como inactivo
+insert into public.ventas (cliente_id, cliente_nombre, medio_pago, total, costo_total, ganancia, created_at)
+select id, nombre, 'efectivo', 25000, 14000, 11000, now() - interval '90 days' from public.clientes where nombre = 'Juan Pérez';
+
+-- Costo de productos propios (vinculados al código del proveedor)
+insert into public.productos_costos (producto_id, costo, proveedor, codigo_proveedor)
+select id, 13500, 'prautopartes', 'PR-60001' from public.productos where nombre = 'Faro auxiliar LED universal 27W';
+insert into public.productos_costos (producto_id, costo, proveedor, codigo_proveedor)
+select id, 3200, 'otero', 'OT-5002' from public.productos where nombre = 'Lámpara H4 halógena 60/55W';
+
+-- Pedido en camino a PR: sirve para probar el cruce de la recepción con lo pedido
+insert into public.reposicion_items (codigo, descripcion, cantidad, precio_distribuidor_id, estado, pedido_at)
+select codigo, descripcion, 10, id, 'pedido', now() - interval '1 day' from public.precios_distribuidor where codigo = 'PR-50013';
+insert into public.reposicion_items (codigo, descripcion, cantidad, precio_distribuidor_id, estado, pedido_at)
+select codigo, descripcion, 2, id, 'pedido', now() - interval '1 day' from public.precios_distribuidor where codigo = 'PR-20877';
+
+-- Un presupuesto abierto
+insert into public.presupuestos (cliente_id, cliente_nombre, items, total, valido_hasta)
+select c.id, c.nombre, jsonb_build_array(jsonb_build_object(
+  'producto_id', null, 'precio_distribuidor_id', p.id, 'codigo', p.codigo, 'descripcion', p.descripcion,
+  'origen', 'DM', 'cantidad', 1, 'precio_unit', 81560, 'costo_unit', p.precio_neto)), 81560, current_date + 2
+from public.clientes c, public.precios_distribuidor p
+where c.nombre = 'Mecánica Los Hermanos' and p.codigo = '01/001/018';
+
+-- Lecturas con IA de ejemplo (para el tablero de consumo)
+insert into public.lecturas_ia (modelo, input_tokens, output_tokens) values ('claude-opus-5-5', 3100, 2400), ('claude-opus-5-5', 2800, 1900);

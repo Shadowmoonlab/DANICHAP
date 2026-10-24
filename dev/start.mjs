@@ -12,6 +12,9 @@ import {
 } from './config.mjs';
 import { iniciarServidor } from './server.mjs';
 
+// .env.local (opcional): ANTHROPIC_API_KEY para leer facturas, credenciales de robots
+if (fs.existsSync(path.join(ROOT, '.env.local'))) process.loadEnvFile(path.join(ROOT, '.env.local'));
+
 const RESET = process.argv.includes('--reset');
 const SOLO_DB = process.argv.includes('--solo-db');
 const log = (...a) => console.log('[dev]', ...a);

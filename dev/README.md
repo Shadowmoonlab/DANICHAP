@@ -47,3 +47,22 @@ Entrá por `http://localhost:8080/login.html`.
 ## Datos locales
 
 Todo vive en `.dev/` (ignorado por git). Borrar esa carpeta = empezar de cero.
+
+## Lectura de facturas con IA (local)
+
+`dev/server.mjs` atiende `/functions/v1/leer-factura` con el mismo módulo que la Edge Function de
+producción (`supabase/functions/_shared/leer-factura.js`). Sin clave responde "no configurada" y la
+pantalla pasa sola a la carga manual. Para probarla de verdad, en `.env.local`:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Para probar sin gastar tokens se puede apuntar el SDK a un servidor falso con
+`ANTHROPIC_BASE_URL=http://127.0.0.1:PUERTO` (así se verificó el flujo completo).
+
+## Tests
+
+```bash
+npm test     # node --test: búsqueda, teléfonos, listas Excel, plantillas WhatsApp, lectura con IA (cliente simulado)
+```

@@ -12,7 +12,7 @@ const MIME = {
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.pdf': 'application/pdf',
   '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml', '.woff2': 'font/woff2',
 };
-const PRIVADO = /^\/(\.dev|\.git|\.github|\.claude|\.agents|node_modules|dev|scrapers|exploracion)(\/|$)|\/\.env/i;
+const PRIVADO = /^\/(\.dev|\.git|\.github|\.claude|\.agents|\.vscode|node_modules|dev|scrapers|supabase|tests|exploracion)(\/|$)|\/\.env/i;
 
 const devConfig = `// Generado por dev/server.mjs — SOLO ambiente local de pruebas
 window.__DANICHAP_DEV__ = ${JSON.stringify({
@@ -76,6 +76,35 @@ async function servirArchivo(res, archivo, inyectar = false) {
   }
 }
 
+// Equivalente local de la Edge Function supabase/functions/leer-factura (mismo módulo compartido)
+async function leerFacturaLocal(req, res) {
+  if (req.method !== 'POST') return json(res, 405, { error: 'Método no permitido' });
+  if (req.headers.authorization !== `Bearer ${TOKENS.admin}`) {
+    return json(res, 403, { error: 'Solo el administrador puede leer comprobantes' });
+  }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return json(res, 501, { error: 'La lectura automática no está configurada', codigo: 'ia_no_configurada' });
+  }
+  const chunks = [];
+  for await (const c of req) chunks.push(c);
+  try {
+    const { default: Anthropic } = await import('@anthropic-ai/sdk');
+    const { leerFactura, ErrorLectura } = await import('../supabase/functions/_shared/leer-factura.js');
+    try {
+      const resultado = await leerFactura(new Anthropic(), JSON.parse(Buffer.concat(chunks).toString('utf8')));
+      return json(res, 200, resultado);
+    } catch (e) {
+      if (e instanceof ErrorLectura) return json(res, e.codigo === 'entrada' ? 400 : 422, { error: e.message, codigo: e.codigo });
+      if (e instanceof Anthropic.RateLimitError) return json(res, 429, { error: 'Muchas lecturas seguidas, probá en un minuto', codigo: 'limite' });
+      if (e instanceof Anthropic.APIError) return json(res, 502, { error: `Error del servicio de lectura (${e.status})`, codigo: 'api' });
+      throw e;
+    }
+  } catch (e) {
+    console.error('[leer-factura]', e);
+    return json(res, 500, { error: 'Error inesperado leyendo el comprobante', codigo: 'interno' });
+  }
+}
+
 function json(res, status, body) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(body));
@@ -91,6 +120,7 @@ export function iniciarServidor() {
     if (url.pathname.startsWith('/rest/v1')) return proxyPostgrest(req, res);
     if (url.pathname.startsWith('/storage/v1')) return storage(req, res, url);
     if (url.pathname.startsWith('/auth/v1')) return json(res, 501, { message: 'En local el login lo simula supabase.js' });
+    if (url.pathname === '/functions/v1/leer-factura') return leerFacturaLocal(req, res);
 
     const ruta = decodeURIComponent(url.pathname);
     if (PRIVADO.test(ruta)) return json(res, 404, { message: 'no disponible' });
