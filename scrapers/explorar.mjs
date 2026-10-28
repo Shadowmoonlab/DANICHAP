@@ -14,7 +14,7 @@ const SITIOS = {
     user: 'DELVISO_USER', pass: 'DELVISO_PASSWORD',
   },
   cromosol: {
-    inicio: 'https://slaweb.cromosol.com/',
+    inicio: 'http://slaweb.cromosol.com/login',   // solo responde por http (https se cuelga)
     user: 'CROMOSOL_USER', pass: 'CROMOSOL_PASSWORD',
   },
   otero: {
@@ -24,6 +24,30 @@ const SITIOS = {
   prautopartes: {
     inicio: 'https://prautopartes.com.ar/',
     user: 'PR_USER', pass: 'PR_PASSWORD',
+  },
+  goicoechea: {
+    inicio: 'https://goicoechea.com.ar/',
+    user: 'GOICOECHEA_USER', pass: 'GOICOECHEA_PASSWORD',
+  },
+  tytsa: {   // Laravel con reCAPTCHA v3: puede bloquear al robot
+    inicio: 'https://www.tytsa.com.ar/',
+    user: 'TYTSA_USER', pass: 'TYTSA_PASSWORD',
+  },
+  primeraalternativa: {
+    inicio: 'https://www.laprimeraalternativa.com.ar/login/',
+    user: 'PRIMERAALT_USER', pass: 'PRIMERAALT_PASSWORD',
+  },
+  distrisuper: {   // Next.js; API en /api/auth/login
+    inicio: 'https://lupa.distrisuper.com/',
+    user: 'DISTRISUPER_USER', pass: 'DISTRISUPER_PASSWORD',
+  },
+  distriferr: {    // la clave viaja en MD5 (campo hpassword)
+    inicio: 'https://clientes.distriferr.com.ar/ingreso/',
+    user: 'DISTRIFERR_USER', pass: 'DISTRIFERR_PASSWORD',
+  },
+  fal: {           // WordPress + WooCommerce
+    inicio: 'https://autopartesfal.com/mi-cuenta/',
+    user: 'FAL_USER', pass: 'FAL_PASSWORD',
   },
 };
 

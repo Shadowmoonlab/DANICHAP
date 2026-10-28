@@ -9,7 +9,7 @@ on:
         description: 'Sitio a explorar'
         required: true
         type: choice
-        options: [delviso, cromosol, otero, prautopartes]
+        options: [delviso, cromosol, otero, prautopartes, goicoechea, tytsa, primeraalternativa, distrisuper, distriferr, fal]
 
 jobs:
   explorar:
@@ -37,6 +37,18 @@ jobs:
           OTERO_PASSWORD: ${{ secrets.OTERO_PASSWORD }}
           PR_USER: ${{ secrets.PR_USER }}
           PR_PASSWORD: ${{ secrets.PR_PASSWORD }}
+          GOICOECHEA_USER: ${{ secrets.GOICOECHEA_USER }}
+          GOICOECHEA_PASSWORD: ${{ secrets.GOICOECHEA_PASSWORD }}
+          TYTSA_USER: ${{ secrets.TYTSA_USER }}
+          TYTSA_PASSWORD: ${{ secrets.TYTSA_PASSWORD }}
+          PRIMERAALT_USER: ${{ secrets.PRIMERAALT_USER }}
+          PRIMERAALT_PASSWORD: ${{ secrets.PRIMERAALT_PASSWORD }}
+          DISTRISUPER_USER: ${{ secrets.DISTRISUPER_USER }}
+          DISTRISUPER_PASSWORD: ${{ secrets.DISTRISUPER_PASSWORD }}
+          DISTRIFERR_USER: ${{ secrets.DISTRIFERR_USER }}
+          DISTRIFERR_PASSWORD: ${{ secrets.DISTRIFERR_PASSWORD }}
+          FAL_USER: ${{ secrets.FAL_USER }}
+          FAL_PASSWORD: ${{ secrets.FAL_PASSWORD }}
 
       - uses: actions/upload-artifact@v4
         if: always()
