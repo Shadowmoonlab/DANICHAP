@@ -1,33 +1,39 @@
 name: Explorar sitio de distribuidor
 
-# Se corre a mano (Actions → Explorar sitio → Run workflow) una vez por sitio.
-# Deja un artifact descargable con el HTML y los datos que carga el sitio ya logueado.
+# Se corre a mano (Actions → Explorar sitio → Run workflow). "todos" explora los 9 sitios en paralelo.
+# Deja UN artifact descargable (exploracion-<sitio> o exploracion-todos) con el HTML, capturas y los
+# datos que carga cada sitio ya logueado. Las credenciales quedan tapadas como [OCULTO].
 on:
   workflow_dispatch:
     inputs:
       sitio:
         description: 'Sitio a explorar'
         required: true
+        default: todos
         type: choice
-        options: [delviso, cromosol, otero, prautopartes, goicoechea, tytsa, primeraalternativa, distrisuper, distriferr, fal]
+        options: [todos, delviso, cromosol, otero, prautopartes, goicoechea, tytsa, primeraalternativa, distrisuper, distriferr, fal]
 
 jobs:
   explorar:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false     # si un sitio falla, los demás siguen
+      matrix:
+        sitio: ${{ inputs.sitio == 'todos' && fromJSON('["delviso","cromosol","otero","goicoechea","tytsa","primeraalternativa","distrisuper","distriferr","fal"]') || fromJSON(format('["{0}"]', inputs.sitio)) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Instalar dependencias (con Chrome de Puppeteer)
         run: npm ci
 
-      - name: Explorar ${{ inputs.sitio }}
-        run: node scrapers/explorar.mjs ${{ inputs.sitio }}
+      - name: Explorar ${{ matrix.sitio }}
+        run: node scrapers/explorar.mjs ${{ matrix.sitio }}
         env:
           DELVISO_USER: ${{ secrets.DELVISO_USER }}
           DELVISO_PASSWORD: ${{ secrets.DELVISO_PASSWORD }}
@@ -53,6 +59,24 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          name: parcial-${{ matrix.sitio }}
+          path: exploracion/${{ matrix.sitio }}
+          retention-days: 1
+
+  # Junta lo de todos los sitios en un solo archivo para descargar
+  juntar:
+    needs: explorar
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: parcial-*
+          path: exploracion
+      - name: Resumen de logins
+        run: for f in exploracion/*/resumen.json; do echo "== $f"; cat "$f"; echo; done
+      - uses: actions/upload-artifact@v4
+        with:
           name: exploracion-${{ inputs.sitio }}
-          path: exploracion/${{ inputs.sitio }}
+          path: exploracion
           retention-days: 7

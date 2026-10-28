@@ -41,22 +41,29 @@ async function scrape() {
   const login = await api('Login/authenticate', { user: env('PR_USER'), password: env('PR_PASSWORD') });
   if (!login?.token) throw new Error('Login rechazado: revisar PR_USER / PR_PASSWORD');
 
+  // No se confía en el total que informa la API (la 1ª corrida trajo solo 1 página de 36):
+  // se piden páginas hasta que una venga vacía o repita artículos ya vistos.
   const filas = [];
-  let pagina = 1, total = 1;
-  do {
+  const vistos = new Set();
+  for (let pagina = 1; pagina <= MAX_PAGINAS; pagina++) {
     const r = await api('Articulos/Buscar', {
       idMarcas: 0, idRubros: 0, busqueda: '', pagina,
       isNovedades: false, isOfertas: false, equivalencia: '',
     }, login.token);
     if (pagina === 1) {
       if (!Array.isArray(r?.items)) throw new Error(`Articulos/Buscar: formato inesperado ${JSON.stringify(r).slice(0, 300)}`);
-      console.log('[pr] ejemplo de artículo:', JSON.stringify(r.items[0]).slice(0, 600));
+      const { items, ...meta } = r;
+      console.log('[pr] respuesta de la página 1 (sin items):', JSON.stringify(meta).slice(0, 600));
+      console.log('[pr] ejemplo de artículo:', JSON.stringify(items[0]).slice(0, 600));
     }
-    total = r.totalPages ?? total;
-    filas.push(...r.items.map(mapear));
-    pagina++;
+    const nuevas = (r.items ?? []).map(mapear).filter(f => f.codigo && !vistos.has(f.codigo));
+    if (nuevas.length === 0) break;
+    nuevas.forEach(f => vistos.add(f.codigo));
+    filas.push(...nuevas);
+    if (pagina % 50 === 0) console.log(`[pr] página ${pagina}: ${filas.length} artículos`);
     await new Promise(ok => setTimeout(ok, PAUSA_MS));
-  } while (pagina <= total && pagina <= MAX_PAGINAS);
+  }
+  console.log(`[pr] total: ${filas.length} artículos`);
 
   // Un mismo código puede repetirse entre páginas: me quedo con el último
   return [...new Map(filas.filter(f => f.codigo).map(f => [f.codigo, f])).values()];

@@ -71,6 +71,7 @@ await page.setViewport({ width: 1366, height: 900 });
 
 let nJson = 0;
 const indice = [];
+const resumen = { sitio, inicio: cfg.inicio, login: 'no intentado', paginas: 0 };
 page.on('response', async res => {
   const tipo = res.headers()['content-type'] || '';
   const tipoReq = res.request().resourceType();
@@ -96,15 +97,22 @@ async function login() {
   await page.goto(cfg.inicio, { waitUntil: 'networkidle2', timeout: 60_000 });
   await guardarPagina('00-inicio');
 
-  // SPA (PR): abrir el modal de login si existe
-  const botonLogin = await page.$('::-p-text(Login)');
-  if (!(await page.$('input[type=password]')) && botonLogin) {
-    await botonLogin.click().catch(() => {});
-    await new Promise(ok => setTimeout(ok, 1500));
+  // Algunos sitios tienen el formulario duplicado y oculto (versión móvil): usar el visible
+  const passVisible = () => page.evaluateHandle(() =>
+    [...document.querySelectorAll('input[type=password]')].find(i => i.offsetParent !== null) || null);
+
+  // SPA / modal: si no hay contraseña a la vista, tocar el botón de ingreso
+  for (const texto of ['Login', 'Ingresar', 'Iniciar sesión', 'Iniciar Sesión', 'Acceder', 'Mi cuenta', 'Clientes']) {
+    if ((await passVisible()).asElement()) break;
+    const boton = await page.$(`::-p-text(${texto})`);
+    if (boton) {
+      await boton.click().catch(() => {});
+      await new Promise(ok => setTimeout(ok, 1500));
+    }
   }
 
-  const pass = await page.$('input[type=password]');
-  if (!pass) { console.log('No encontré campo de contraseña en la página de inicio'); return; }
+  const pass = (await passVisible()).asElement();
+  if (!pass) { console.log('No encontré campo de contraseña en la página de inicio'); resumen.login = 'sin formulario'; return; }
 
   // Campo de usuario: el input de texto/email visible más cercano antes del password
   const user = await page.evaluateHandle(p => {
@@ -120,6 +128,24 @@ async function login() {
     pass.press('Enter'),
   ]);
   await new Promise(ok => setTimeout(ok, 3000));
+
+  // Formularios que se envían por JavaScript (onsubmit="return false"): apretar el botón
+  if ((await passVisible()).asElement()) {
+    const enviar = await page.evaluateHandle(() => {
+      const visibles = [...document.querySelectorAll('button, input[type=submit], a')].filter(b => b.offsetParent !== null);
+      return visibles.find(b => b.type === 'submit') ||
+             visibles.find(b => /ingresar|entrar|iniciar|acceder|login/i.test(b.textContent || b.value || '')) || null;
+    });
+    if (enviar.asElement()) {
+      await Promise.all([
+        page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30_000 }).catch(() => {}),
+        enviar.asElement().click().catch(() => {}),
+      ]);
+      await new Promise(ok => setTimeout(ok, 3000));
+    }
+  }
+  resumen.login = (await passVisible()).asElement() ? 'probablemente falló (sigue el formulario)' : 'ok';
+  resumen.url_despues_login = tapar(page.url());
   await guardarPagina('01-despues-login');
 }
 
@@ -135,6 +161,7 @@ async function recorrer() {
     try {
       await page.goto(url, { waitUntil: 'networkidle2', timeout: 45_000 });
       await guardarPagina(String(n++).padStart(2, '0') + '-' + new URL(url).pathname.replace(/[^a-z0-9]+/gi, '_').slice(0, 40));
+      resumen.paginas++;
       for (const u of await enlaces(origen)) if (!vistos.has(u)) cola.push(u);
     } catch (e) { console.log(`No pude abrir ${url}: ${e.message}`); }
   }
@@ -152,6 +179,7 @@ try {
   await recorrer();
 } finally {
   await fs.writeFile(path.join(salida, 'indice.json'), JSON.stringify(indice, null, 2));
+  await fs.writeFile(path.join(salida, 'resumen.json'), JSON.stringify({ ...resumen, respuestas_json: indice.length }, null, 2));
   await browser.close();
   console.log(`Listo: ${indice.length} respuestas JSON guardadas en ${salida}`);
 }
