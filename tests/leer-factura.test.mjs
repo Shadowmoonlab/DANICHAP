@@ -90,3 +90,51 @@ test('el día se cuenta en hora argentina', () => {
   assert.equal(inicioDelDiaArgentina(Date.parse('2026-10-24T02:30:00Z')), '2026-10-23T03:00:00.000Z'); // 23:30 del 23 en ARG
   assert.equal(inicioDelDiaArgentina(Date.parse('2026-10-24T03:30:00Z')), '2026-10-24T03:00:00.000Z'); // 00:30 del 24 en ARG
 });
+
+// ── Gemini (plan gratuito de Google AI Studio) ────────────────────────────
+import { leerFacturaGemini, MODELO_GEMINI } from '../supabase/functions/_shared/leer-factura.js';
+
+const respGemini = (datos, extra = {}) => ({ ok: true, status: 200, json: async () => ({
+  modelVersion: 'gemini-2.5-flash', usageMetadata: { promptTokenCount: 1500, candidatesTokenCount: 700 },
+  candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(datos) }] } }], ...extra }) });
+const fetchFalso = respuesta => { const llamadas = []; const f = async (url, init) => { llamadas.push({ url, init }); return respuesta; }; f.llamadas = llamadas; return f; };
+
+test('Gemini: arma el pedido REST (modelo, clave en header, archivo inline, JSON) y normaliza la salida', async () => {
+  const f = fetchFalso(respGemini(DATOS));
+  const r = await leerFacturaGemini('CLAVE', { archivo: B64, media_type: 'application/pdf', proveedor: 'DM' }, { fetchFn: f });
+  const { url, init } = f.llamadas[0];
+  assert.match(url, new RegExp(`/models/${MODELO_GEMINI}:generateContent$`));
+  assert.equal(init.headers['x-goog-api-key'], 'CLAVE');
+  assert.equal(url.includes('CLAVE'), false);               // la clave nunca va en la URL
+  const body = JSON.parse(init.body);
+  assert.equal(body.contents[0].parts[0].inline_data.mime_type, 'application/pdf');
+  assert.equal(body.generationConfig.responseMimeType, 'application/json');
+  assert.match(body.contents[0].parts[1].text, /proveedor "DM"/);
+  assert.equal(r.datos.renglones.length, 1);
+  assert.deepEqual(r.uso, { input_tokens: 1500, output_tokens: 700 });
+});
+
+test('Gemini: modelo inválido cae en el de defecto; cupo agotado, bloqueo y corte se informan', async () => {
+  const f = fetchFalso(respGemini(DATOS));
+  await leerFacturaGemini('K', { archivo: B64, media_type: 'image/png' }, { modelo: 'x/../y', fetchFn: f });
+  assert.match(f.llamadas[0].url, new RegExp(`/models/${MODELO_GEMINI}:`));
+  const e = (resp, cod) => assert.rejects(leerFacturaGemini('K', { archivo: B64, media_type: 'image/png' }, { fetchFn: fetchFalso(resp) }), x => x.codigo === cod);
+  await e({ ok: false, status: 429 }, 'limite');
+  await e({ ok: false, status: 500 }, 'api');
+  await e({ ok: true, status: 200, json: async () => ({ promptFeedback: { blockReason: 'SAFETY' } }) }, 'rechazo');
+  await e(respGemini(DATOS, { candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [] } }] }), 'largo');
+});
+
+test('Gemini: respeta el límite diario y registra el consumo igual que Claude', async () => {
+  const registros = [];
+  const base = { limite: async () => 4, contarHoy: async () => 1, registrar: async f => { registros.push(f); } };
+  const lector = (_c, e) => leerFacturaGemini('K', e, { fetchFn: fetchFalso(respGemini(DATOS)) });
+  const r = await leerFacturaConLimite(null, { archivo: B64, media_type: 'image/png' }, { base, lector });
+  assert.equal(r.lecturas_hoy, 2);
+  assert.deepEqual(registros, [{ modelo: 'gemini-2.5-flash', input_tokens: 1500, output_tokens: 700 }]);
+});
+
+test('Gemini: si devuelve el objeto dentro de una lista lo desenvuelve', async () => {
+  const r = await leerFacturaGemini('K', { archivo: B64, media_type: 'image/png' }, { fetchFn: fetchFalso(respGemini([DATOS])) });
+  assert.equal(r.datos.renglones.length, 1);
+});

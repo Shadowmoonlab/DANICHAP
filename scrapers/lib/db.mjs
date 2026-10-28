@@ -26,7 +26,7 @@ export async function conReintentos(fn, { intentos = 3, esperasMs = [30_000, 90_
   for (let i = 1; ; i++) {
     try { return await fn(); }
     catch (err) {
-      if (i >= intentos) throw err;
+      if (i >= intentos || /^Login rechazado/.test(err.message)) throw err;   // una clave mal no se arregla reintentando
       const espera = esperasMs[Math.min(i - 1, esperasMs.length - 1)];
       console.warn(`[${etiqueta}] intento ${i} falló (${err.message}). Reintento en ${espera / 1000} s…`);
       await new Promise(ok => setTimeout(ok, espera));

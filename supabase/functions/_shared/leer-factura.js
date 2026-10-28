@@ -25,13 +25,13 @@ export function inicioDelDiaArgentina(ahora = Date.now()) {
  * @param {{ limite: () => Promise<number>, contarHoy: (desdeISO: string) => Promise<number>,
  *           registrar: (fila: {modelo: string, input_tokens: number, output_tokens: number}) => Promise<void> }} base
  */
-export async function leerFacturaConLimite(client, entrada, { modelo, base }) {
+export async function leerFacturaConLimite(client, entrada, { modelo, base, lector = leerFactura }) {
   const [limite, usadas] = await Promise.all([base.limite(), base.contarHoy(inicioDelDiaArgentina())]);
   if (usadas >= limite) {
     throw new ErrorLectura(`Ya se leyeron ${usadas} facturas hoy (límite ${limite}). Cargá esta a mano o esperá a mañana.`, 'limite_diario');
   }
   validarArchivo(entrada); // antes de registrar nada
-  const resultado = await leerFactura(client, entrada, { modelo });
+  const resultado = await lector(client, entrada, { modelo });
   await base.registrar({ modelo: resultado.modelo, input_tokens: resultado.uso?.input_tokens ?? 0, output_tokens: resultado.uso?.output_tokens ?? 0 });
   return { ...resultado, lecturas_hoy: usadas + 1, limite_diario: limite };
 }
@@ -151,6 +151,59 @@ export async function leerFactura(client, entrada, { modelo } = {}) {
   catch { throw new ErrorLectura('La lectura devolvió un formato inválido', 'formato'); }
 
   return { datos: normalizarDatos(datos), modelo: respuesta.model, uso: respuesta.usage };
+}
+
+// Alias que Google mantiene apuntando al Flash vigente (los nombres con versión se dan de baja seguido)
+export const MODELO_GEMINI = 'gemini-flash-latest';
+
+/**
+ * Alternativa gratuita: lee el comprobante con Gemini (Google AI Studio, plan sin costo) por REST, sin SDK.
+ * Mismo contrato que leerFactura: devuelve { datos, modelo, uso }. El esquema va en el texto del pedido
+ * porque responseSchema de Gemini no admite todo JSON Schema; normalizarDatos limpia lo que vuelva.
+ * @param {string} apiKey  clave de Google AI Studio
+ * @param {{modelo?: string, fetchFn?: typeof fetch}} [opciones]
+ */
+export async function leerFacturaGemini(apiKey, entrada, { modelo, fetchFn = fetch } = {}) {
+  validarArchivo(entrada);
+  const pista = entrada.proveedor ? `\nEl comprobante debería ser del proveedor "${String(entrada.proveedor).slice(0, 80)}".` : '';
+  const model = /^gemini-[a-z0-9.-]+$/.test(modelo || '') ? modelo : MODELO_GEMINI;
+  const res = await fetchFn(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: INSTRUCCIONES }] },
+      contents: [{ role: 'user', parts: [
+        { inline_data: { mime_type: entrada.media_type, data: entrada.archivo.replace(/\s+/g, '') } },
+        { text: `Transcribí este comprobante.${pista}\nRespondé SOLO con un JSON que cumpla este esquema:\n${JSON.stringify(ESQUEMA)}` },
+      ] }],
+      generationConfig: { responseMimeType: 'application/json', temperature: 0, maxOutputTokens: 16000 },
+    }),
+  });
+  if (res.status === 429) throw new ErrorLectura('Se agotó el cupo gratuito de lecturas por ahora. Probá en un rato o cargá a mano.', 'limite');
+  if (!res.ok) throw new ErrorLectura(`Error del servicio de lectura (${res.status})`, 'api');
+
+  const r = await res.json();
+  const cand = r.candidates?.[0];
+  if (!cand || r.promptFeedback?.blockReason || cand.finishReason === 'SAFETY') {
+    throw new ErrorLectura('No se pudo leer este archivo. Cargalo a mano.', 'rechazo');
+  }
+  if (cand.finishReason === 'MAX_TOKENS') {
+    throw new ErrorLectura('El comprobante es demasiado largo para leerlo de una vez. Dividilo en partes.', 'largo');
+  }
+  const texto = cand.content?.parts?.map(p => p.text || '').join('');
+  if (!texto) throw new ErrorLectura('La lectura no devolvió datos', 'vacio');
+
+  let datos;
+  try { datos = JSON.parse(texto); }
+  catch { throw new ErrorLectura('La lectura devolvió un formato inválido', 'formato'); }
+  if (Array.isArray(datos)) datos = datos[0];   // a veces Gemini envuelve el objeto en una lista
+  if (!datos || typeof datos !== 'object') throw new ErrorLectura('La lectura devolvió un formato inválido', 'formato');
+
+  return {
+    datos: normalizarDatos(datos),
+    modelo: r.modelVersion || model,
+    uso: { input_tokens: r.usageMetadata?.promptTokenCount ?? 0, output_tokens: r.usageMetadata?.candidatesTokenCount ?? 0 },
+  };
 }
 
 /** Limpia la salida: renglones sin descripción fuera, cantidades/precios negativos a null. */

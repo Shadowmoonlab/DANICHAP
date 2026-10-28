@@ -82,14 +82,14 @@ async function leerFacturaLocal(req, res) {
   if (req.headers.authorization !== `Bearer ${TOKENS.admin}`) {
     return json(res, 403, { error: 'Solo el administrador puede leer comprobantes' });
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.ANTHROPIC_API_KEY && !process.env.GEMINI_API_KEY) {
     return json(res, 501, { error: 'La lectura automática no está configurada', codigo: 'ia_no_configurada' });
   }
   const chunks = [];
   for await (const c of req) chunks.push(c);
   try {
     const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const { leerFacturaConLimite, ErrorLectura, LIMITE_DIARIO_DEFECTO } = await import('../supabase/functions/_shared/leer-factura.js');
+    const { leerFacturaConLimite, leerFacturaGemini, ErrorLectura, LIMITE_DIARIO_DEFECTO } = await import('../supabase/functions/_shared/leer-factura.js');
     // Mismo límite diario y registro que la Edge Function, contra la base local vía PostgREST
     const rest = (ruta, init = {}) => fetch(`http://127.0.0.1:${PORTS.postgrest}${ruta}`,
       { ...init, headers: { Authorization: `Bearer ${TOKENS.admin}`, 'Content-Type': 'application/json', ...init.headers } });
@@ -102,10 +102,13 @@ async function leerFacturaLocal(req, res) {
       registrar: async fila => { await rest('/lecturas_ia', { method: 'POST', body: JSON.stringify(fila) }); },
     };
     try {
-      const resultado = await leerFacturaConLimite(new Anthropic(), JSON.parse(Buffer.concat(chunks).toString('utf8')), { modelo: process.env.LECTURA_MODELO, base });
+      const entrada = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      const resultado = process.env.GEMINI_API_KEY
+        ? await leerFacturaConLimite(null, entrada, { base, lector: (_c, e) => leerFacturaGemini(process.env.GEMINI_API_KEY, e, { modelo: process.env.GEMINI_MODELO }) })
+        : await leerFacturaConLimite(new Anthropic(), entrada, { modelo: process.env.LECTURA_MODELO, base });
       return json(res, 200, resultado);
     } catch (e) {
-      if (e instanceof ErrorLectura) return json(res, e.codigo === 'entrada' ? 400 : e.codigo === 'limite_diario' ? 429 : 422, { error: e.message, codigo: e.codigo });
+      if (e instanceof ErrorLectura) return json(res, e.codigo === 'entrada' ? 400 : e.codigo === 'limite_diario' || e.codigo === 'limite' ? 429 : e.codigo === 'api' ? 502 : 422, { error: e.message, codigo: e.codigo });
       if (e instanceof Anthropic.RateLimitError) return json(res, 429, { error: 'Muchas lecturas seguidas, probá en un minuto', codigo: 'limite' });
       if (e instanceof Anthropic.APIError) return json(res, 502, { error: `Error del servicio de lectura (${e.status})`, codigo: 'api' });
       throw e;

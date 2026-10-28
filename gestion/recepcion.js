@@ -62,8 +62,8 @@ function pasoArchivo() {
       if (error) {
         let detalle = {};
         try { detalle = await error.context?.json?.(); } catch { /* sin cuerpo */ }
-        if (detalle?.codigo === 'ia_no_configurada' || detalle?.codigo === 'limite_diario') {
-          toast(detalle.codigo === 'limite_diario' ? detalle.error : 'La lectura automática todavía no está activada: cargala a mano', 'error');
+        if (['ia_no_configurada', 'limite_diario', 'limite'].includes(detalle?.codigo)) {
+          toast(detalle.codigo === 'ia_no_configurada' ? 'La lectura automática todavía no está activada: cargala a mano' : detalle.error, 'error');
           abrirEditor({ proveedor: prov.value, origen: 'manual', filas: [filaVacia()] });
           return;
         }

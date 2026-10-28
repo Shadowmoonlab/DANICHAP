@@ -40,6 +40,7 @@ export const MIGRACIONES = [
   'docs/add-precios-distribuidor.sql',
   'docs/add-gestion.sql',
   'docs/add-gestion-v2.sql',
+  'docs/ajustes-2026-10.sql',
 ];
 export const SEED = 'dev/seed.sql';
 

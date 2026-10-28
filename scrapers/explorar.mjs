@@ -10,7 +10,7 @@ import puppeteer from 'puppeteer';
 
 const SITIOS = {
   delviso: {
-    inicio: 'https://metalurgicadelviso.com.ar/index.php',
+    inicio: 'https://metalurgicadelviso.com.ar/admgenexel.php',   // acceso de clientes (usuario + pass)
     user: 'DELVISO_USER', pass: 'DELVISO_PASSWORD',
   },
   cromosol: {
@@ -62,8 +62,13 @@ const salida = path.join('exploracion', sitio);
 await fs.mkdir(salida, { recursive: true });
 
 // Nunca guardar las credenciales en lo que se sube como artifact
-const tapar = txt => [usuario, clave].filter(v => v && v.length > 2)
-  .reduce((t, v) => t.split(v).join('[OCULTO]'), txt);
+// Incluye las formas codificadas en que viajan en formularios y URLs (danichap%40gmail.com, espacios como +)
+const variantes = v => [v, encodeURIComponent(v), encodeURIComponent(v).replace(/%20/g, '+'), JSON.stringify(v).slice(1, -1)];
+const secretos = [...new Set([usuario, clave].filter(v => v && v.length > 2).flatMap(variantes))]
+  .sort((a, b) => b.length - a.length);
+// Además, cualquier campo JSON con forma de clave o token (algunos sitios devuelven la clave hasheada)
+const CAMPOS_SECRETOS = /("(?:clave[a-z_]*|password|pass|token|access_token|refresh_token|user_token)"\s*:\s*)"[^"]*"/gi;
+const tapar = txt => secretos.reduce((t, v) => t.split(v).join('[OCULTO]'), txt).replace(CAMPOS_SECRETOS, '$1"[OCULTO]"');
 
 const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
 const page = await browser.newPage();

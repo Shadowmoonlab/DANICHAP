@@ -8,6 +8,7 @@ const PRECIOS_IA = {
   'claude-haiku-5-5':  { entrada: 0.1, salida: 0.5 },
 };
 const costoLectura = r => {
+  if (String(r.modelo).startsWith('gemini')) return 0;   // plan gratuito de Google AI Studio
   const p = PRECIOS_IA[r.modelo] || PRECIOS_IA['claude-opus-5-5'];
   return (r.input_tokens * p.entrada + r.output_tokens * p.salida) / 1e6;
 };

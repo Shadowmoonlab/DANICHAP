@@ -2,10 +2,11 @@
 // Recibe { archivo: base64, media_type, proveedor? } de un admin y devuelve los renglones leídos.
 // Deploy:  supabase functions deploy leer-factura
 // Secreto: supabase secrets set ANTHROPIC_API_KEY=...   (SUPABASE_URL y SUPABASE_ANON_KEY ya existen)
+// Gratis:   supabase secrets set GEMINI_API_KEY=...   (Google AI Studio; si está, se usa en lugar de Claude)
 // Opcional: supabase secrets set LECTURA_MODELO=claude-haiku-5-5   (más barato; ver MODELOS)
 import Anthropic from 'npm:@anthropic-ai/sdk@1.3.0';   // misma versión que se probó en local
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { ErrorLectura, LIMITE_DIARIO_DEFECTO, leerFacturaConLimite } from '../_shared/leer-factura.js';
+import { ErrorLectura, LIMITE_DIARIO_DEFECTO, leerFacturaConLimite, leerFacturaGemini } from '../_shared/leer-factura.js';
 
 const ORIGENES = ['https://danichap.com', 'https://www.danichap.com'];
 let CORS: Record<string, string> = {};
@@ -30,8 +31,9 @@ Deno.serve(async (req) => {
   const { data: esAdmin, error: errAdmin } = await sb.rpc('is_admin');
   if (errAdmin || esAdmin !== true) return json(403, { error: 'Solo el administrador puede leer comprobantes' });
 
+  const geminiKey = Deno.env.get('GEMINI_API_KEY');
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-  if (!apiKey) return json(501, { error: 'La lectura automática no está configurada', codigo: 'ia_no_configurada' });
+  if (!geminiKey && !apiKey) return json(501, { error: 'La lectura automática no está configurada', codigo: 'ia_no_configurada' });
 
   // Límite diario y registro de consumo con el JWT de quien llama (RLS: solo admin)
   const base = {
@@ -49,10 +51,12 @@ Deno.serve(async (req) => {
 
   try {
     const entrada = await req.json();
-    const resultado = await leerFacturaConLimite(new Anthropic({ apiKey }), entrada, { modelo: Deno.env.get('LECTURA_MODELO'), base });
+    const resultado = geminiKey
+      ? await leerFacturaConLimite(null, entrada, { base, lector: (_c: unknown, e: any) => leerFacturaGemini(geminiKey, e, { modelo: Deno.env.get('GEMINI_MODELO') }) })
+      : await leerFacturaConLimite(new Anthropic({ apiKey }), entrada, { modelo: Deno.env.get('LECTURA_MODELO'), base });
     return json(200, resultado);
   } catch (e) {
-    if (e instanceof ErrorLectura) return json(e.codigo === 'entrada' ? 400 : e.codigo === 'limite_diario' ? 429 : 422, { error: e.message, codigo: e.codigo });
+    if (e instanceof ErrorLectura) return json(e.codigo === 'entrada' ? 400 : e.codigo === 'limite_diario' || e.codigo === 'limite' ? 429 : e.codigo === 'api' ? 502 : 422, { error: e.message, codigo: e.codigo });
     if (e instanceof Anthropic.RateLimitError) return json(429, { error: 'Muchas lecturas seguidas, probá en un minuto', codigo: 'limite' });
     if (e instanceof Anthropic.APIError) return json(502, { error: `Error del servicio de lectura (${e.status})`, codigo: 'api' });
     console.error('[leer-factura]', e);
