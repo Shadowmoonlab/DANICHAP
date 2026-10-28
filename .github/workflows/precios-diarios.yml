@@ -1,7 +1,7 @@
 name: Precios diarios de distribuidores
 
-# Corre en servidores de GitHub (gratis en repos públicos). No usa IA: los robots leen
-# las APIs/páginas de cada distribuidor con las credenciales guardadas en Secrets.
+# Corre solo todos los días en servidores de GitHub (gratis en repos públicos). No usa IA.
+# Qué distribuidores corren lo decide scrapers/distribuidores.mjs (activo: true): sumar uno no requiere tocar este archivo.
 on:
   schedule:
     - cron: '0 9 * * *'   # 06:00 hora Argentina (UTC-3). GitHub puede atrasarlo unos minutos.
@@ -15,13 +15,24 @@ permissions:
   contents: read
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      lista: ${{ steps.plan.outputs.lista }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: plan
+        run: node scrapers/plan.mjs
+
   scrape:
+    needs: plan
+    name: ${{ matrix.d.slug }}
     runs-on: ubuntu-latest   # Plan B si un sitio bloquea IPs de fuera de Argentina: runs-on: self-hosted (PC del local)
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false     # si un distribuidor falla, los demás siguen
       matrix:
-        distribuidor: [dm, pr]
+        d: ${{ fromJSON(needs.plan.outputs.lista) }}
     steps:
       - uses: actions/checkout@v5
 
@@ -35,16 +46,11 @@ jobs:
         env:
           PUPPETEER_SKIP_DOWNLOAD: 'true'
 
-      - name: Scrapear ${{ matrix.distribuidor }}
-        run: node scrapers/${{ matrix.distribuidor }}.mjs
+      - name: Robot ${{ matrix.d.slug }}
+        run: node scrapers/${{ matrix.d.archivo }}.mjs
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          DM_EMAIL: ${{ secrets.DM_EMAIL }}
-          DM_PASSWORD: ${{ secrets.DM_PASSWORD }}
-          DM_COOKIE_ID: ${{ secrets.DM_COOKIE_ID }}
-          PR_USER: ${{ secrets.PR_USER }}
-          PR_PASSWORD: ${{ secrets.PR_PASSWORD }}
+          # Todos los secrets del repo (GitHub los oculta en los logs); cada robot usa los suyos.
+          SECRETS_JSON: ${{ toJSON(secrets) }}
 
   # En repos públicos GitHub desactiva los workflows programados tras 60 días sin actividad.
   # Volver a habilitarlo por API cada vez que corre reinicia ese contador (mismo método que usa
