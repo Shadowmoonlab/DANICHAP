@@ -2,11 +2,12 @@
 // Login: POST /api/Login/authenticate {user, password} → { token, ... }
 // Artículos: POST /api/Articulos/Buscar (Bearer) { idMarcas, idRubros, busqueda, pagina, ... } → { totalPages, currentPage, items }
 import { correrScraper, env, numero } from './lib/db.mjs';
+import { enParalelo } from './lib/sesion.mjs';
 
 const BASE = 'https://prautopartes.com.ar';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
-const PAUSA_MS = 300;   // entre páginas, para no saturar el sitio
-const MAX_PAGINAS = 2000;
+const SIMULTANEOS = 16;   // páginas pedidas a la vez (la API trae 36 por página, sin opción de más)
+const MAX_PAGINAS = 3000;
 
 async function api(ruta, body, token) {
   const res = await fetch(`${BASE}/api/${ruta}`, {
@@ -42,26 +43,35 @@ async function scrape() {
   if (!login?.token) throw new Error('Login rechazado: revisar PR_USER / PR_PASSWORD');
 
   // No se confía en el total que informa la API (la 1ª corrida trajo solo 1 página de 36):
-  // se piden páginas hasta que una venga vacía o repita artículos ya vistos.
-  const filas = [];
-  const vistos = new Set();
-  for (let pagina = 1; pagina <= MAX_PAGINAS; pagina++) {
-    const r = await api('Articulos/Buscar', {
-      idMarcas: 0, idRubros: 0, busqueda: '', pagina,
-      isNovedades: false, isOfertas: false, equivalencia: '',
-    }, login.token);
-    if (pagina === 1) {
-      if (!Array.isArray(r?.items)) throw new Error(`Articulos/Buscar: formato inesperado ${JSON.stringify(r).slice(0, 300)}`);
-      const { items, ...meta } = r;
-      console.log('[pr] respuesta de la página 1 (sin items):', JSON.stringify(meta).slice(0, 600));
-      console.log('[pr] ejemplo de artículo:', JSON.stringify(items[0]).slice(0, 600));
-    }
-    const nuevas = (r.items ?? []).map(mapear).filter(f => f.codigo && !vistos.has(f.codigo));
-    if (nuevas.length === 0) break;
-    nuevas.forEach(f => vistos.add(f.codigo));
-    filas.push(...nuevas);
-    if (pagina % 50 === 0) console.log(`[pr] página ${pagina}: ${filas.length} artículos`);
-    await new Promise(ok => setTimeout(ok, PAUSA_MS));
+  // se piden páginas hasta que vengan vacías o repitan artículos ya vistos.
+  const pagina = n => api('Articulos/Buscar', {
+    idMarcas: 0, idRubros: 0, busqueda: '', pagina: n,
+    isNovedades: false, isOfertas: false, equivalencia: '',
+  }, login.token);
+
+  const primera = await pagina(1);
+  if (!Array.isArray(primera?.items)) throw new Error(`Articulos/Buscar: formato inesperado ${JSON.stringify(primera).slice(0, 300)}`);
+  console.log(`[pr] totalPages informado: ${primera.totalPages}`);
+
+  const filas = primera.items.map(mapear).filter(f => f.codigo);
+  const vistos = new Set(filas.map(f => f.codigo));
+  const sumar = items => {
+    const nuevas = items.map(mapear).filter(f => f.codigo && !vistos.has(f.codigo));
+    nuevas.forEach(f => { vistos.add(f.codigo); filas.push(f); });
+    return nuevas.length;
+  };
+
+  // Las páginas que informa la API, en paralelo sin esperas entre tandas
+  const informadas = Math.min(Number(primera.totalPages) || 1, MAX_PAGINAS);
+  const reintentar = n => pagina(n).catch(() => pagina(n));
+  await enParalelo(Array.from({ length: informadas - 1 }, (_, i) => i + 2), SIMULTANEOS,
+    async n => sumar((await reintentar(n)).items ?? []));
+  console.log(`[pr] ${informadas} páginas: ${filas.length} artículos`);
+
+  // Por si la API informa menos páginas de las que tiene: seguir de a tandas hasta que no aparezca nada nuevo
+  for (let desde = informadas + 1; desde <= MAX_PAGINAS; desde += SIMULTANEOS) {
+    const tanda = await Promise.all(Array.from({ length: SIMULTANEOS }, (_, i) => reintentar(desde + i)));
+    if (sumar(tanda.flatMap(r => r.items ?? [])) === 0) break;
   }
   console.log(`[pr] total: ${filas.length} artículos`);
 

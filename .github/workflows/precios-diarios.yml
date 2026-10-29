@@ -35,7 +35,7 @@ jobs:
     if: needs.plan.outputs.lista != '[]'
     name: ${{ matrix.d.slug }}
     runs-on: ubuntu-latest   # Plan B si un sitio bloquea IPs de fuera de Argentina: runs-on: self-hosted (PC del local)
-    timeout-minutes: 90   # Goicoechea (~70.000) y PR tardan; en repo público los minutos son gratis
+    timeout-minutes: 20   # cada robot tarda 1-2 min; si uno se cuelga no frena a los demás ni al reintento
     strategy:
       fail-fast: false     # si un distribuidor falla, los demás siguen
       matrix:
@@ -43,15 +43,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Sin npm install: los robots solo usan Node y la planilla de vendor/ (arranca en segundos)
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: npm
-
-      - name: Instalar dependencias
-        run: npm ci --omit=dev
-        env:
-          PUPPETEER_SKIP_DOWNLOAD: 'true'
 
       - name: Robot ${{ matrix.d.slug }}
         run: node scrapers/${{ matrix.d.archivo }}.mjs

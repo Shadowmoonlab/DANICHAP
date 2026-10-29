@@ -7,7 +7,8 @@ import { UA, enParalelo } from './lib/sesion.mjs';
 
 const AUTH = 'https://apidistri.distrisuper.com';
 const API = 'https://api-lupa.uc.r.appspot.com/lupa';
-const SIMULTANEOS = 4;
+const SIMULTANEOS = 12;
+const POR_PAGINA = 500;   // la API acepta limit (por defecto 10): 25.000 artículos en ~50 pedidos
 
 async function pedir(url, { token, method = 'GET', json, intentos = 3 } = {}) {
   for (let i = 1; ; i++) {
@@ -34,20 +35,24 @@ async function scrape() {
   const token = login?.access_token;
   if (!token) throw new Error('Login rechazado: revisar DISTRISUPER_USER / DISTRISUPER_PASSWORD');
 
+  // Descuentos del cliente, nombres de rubro y la 1ª página, a la vez
+  const url = n => `${API}/articles?search=&page=${n}&rubroCodes=&brandCar=&modelCar=&brandCodes=&limit=${POR_PAGINA}`;
+  const [cli, superRubros, primera] = await Promise.all([
+    pedir(`${API}/clients?particularCode=${encodeURIComponent(usuario)}`, { token }).catch(() => null),
+    pedir(`${API}/articles/getSuperRubros`, { token }).catch(() => null),
+    pedir(url(1), { token }),
+  ]);
+
   // Descuento del cliente: el de la marca si tiene uno propio, si no el general
-  const cli = await pedir(`${API}/clients?particularCode=${encodeURIComponent(usuario)}`, { token }).catch(() => null);
   const c = Array.isArray(cli?.data) ? cli.data[0] : (cli?.data ?? cli);
   const general = numero(c?.general_discount) ?? 0;
   const porMarca = new Map((c?.BrandClientsDiscounts ?? []).map(d => [String(d.brand_code), numero(d.percentage)]));
   console.log(`[distrisuper] descuento general ${general}%, ${porMarca.size} marcas con descuento propio`);
 
   // Nombre de rubro: los artículos traen solo el código ("00109"); getSuperRubros agrupa códigos con nombre
-  const superRubros = await pedir(`${API}/articles/getSuperRubros`, { token }).catch(() => null);
   const nombreRubro = new Map();
   for (const sr of (superRubros?.data ?? superRubros ?? [])) for (const cod of sr.RUBROS ?? []) nombreRubro.set(cod, sr.DESCRIPCION);
 
-  const url = n => `${API}/articles?search=&page=${n}&rubroCodes=&brandCar=&modelCar=&brandCodes=`;
-  const primera = await pedir(url(1), { token });
   if (!Array.isArray(primera?.data)) throw new Error('lupa/articles: formato inesperado');
   if (primera.canViewPrices === false) throw new Error('La cuenta no tiene permiso para ver precios');
   const porPagina = Math.max(primera.data.length, 1);
@@ -56,7 +61,7 @@ async function scrape() {
 
   const resto = await enParalelo(Array.from({ length: paginas - 1 }, (_, i) => i + 2), SIMULTANEOS, async n => {
     const r = await pedir(url(n), { token });
-    if (n % 250 === 0) console.log(`[distrisuper] página ${n}/${paginas}`);
+    if (n % 10 === 0) console.log(`[distrisuper] página ${n}/${paginas}`);
     return r.data ?? [];
   });
 

@@ -41,6 +41,7 @@ export const MIGRACIONES = [
   'docs/add-gestion.sql',
   'docs/add-gestion-v2.sql',
   'docs/ajustes-2026-10.sql',
+  'docs/robots-conservar-datos.sql',
 ];
 export const SEED = 'dev/seed.sql';
 

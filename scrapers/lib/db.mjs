@@ -1,8 +1,10 @@
 // db.mjs — Escritura en Supabase para los scrapers (service_role, solo en GitHub Actions)
+// Habla directo con la API REST de Supabase (sin @supabase/supabase-js): los robots no necesitan npm install.
 import fs from 'node:fs';
-import { createClient } from '@supabase/supabase-js';
+import { enParalelo } from './sesion.mjs';
 
 const LOTE = 1000;
+const LOTES_SIMULTANEOS = 6;   // 70.000 filas = 70 lotes: de a 6 tarda segundos en vez de minutos
 const PRECIO_MAX = 1e9;   // la columna es numeric(12,2): un precio absurdo del sitio no debe tirar abajo toda la corrida
 
 function precioValido(v) {
@@ -15,9 +17,23 @@ export function env(nombre) {
   return v;
 }
 
-const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_KEY'), {
-  auth: { persistSession: false },
-});
+const URL_API = `${env('SUPABASE_URL').replace(/\/$/, '')}/rest/v1`;
+const KEY = env('SUPABASE_SERVICE_KEY');
+
+async function rest(ruta, { method = 'POST', body, prefer } = {}) {
+  const res = await fetch(`${URL_API}/${ruta}`, {
+    method,
+    headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json', ...(prefer ? { Prefer: prefer } : {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const texto = await res.text();
+  if (!res.ok) {
+    let motivo = texto.slice(0, 200);
+    try { motivo = JSON.parse(texto).message ?? motivo; } catch {}
+    throw new Error(`${ruta.split('?')[0]}: ${motivo}`);
+  }
+  return texto ? JSON.parse(texto) : null;
+}
 
 // Reintenta ante caídas momentáneas del sitio del distribuidor (espera 30 s y 90 s)
 export async function conReintentos(fn, { intentos = 3, esperasMs = [30_000, 90_000], etiqueta = '' } = {}) {
@@ -36,8 +52,8 @@ export async function conReintentos(fn, { intentos = 3, esperasMs = [30_000, 90_
 // `scrape` devuelve [{ codigo, descripcion, marca, rubro, origen, precio_lista, precio_neto, imagen_url }]
 export async function correrScraper(distribuidor, scrape) {
   const visto = new Date().toISOString();
-  const { data: run } = await db.from('scraper_runs')
-    .insert({ distribuidor, inicio: visto }).select('id').single();
+  const run = (await rest('scraper_runs?select=id', { body: { distribuidor, inicio: visto }, prefer: 'return=representation' })
+    .catch(() => null))?.[0];
 
   try {
     const filas = (await conReintentos(scrape, { etiqueta: distribuidor })).map(f => ({
@@ -47,19 +63,12 @@ export async function correrScraper(distribuidor, scrape) {
     const raros = filas.filter(f => f.precio_lista == null && f.precio_neto == null).length;
     if (raros) console.warn(`[${distribuidor}] ${raros} artículos sin precio válido (se guardan sin precio)`);
 
-    let guardados = 0;
-    for (let i = 0; i < filas.length; i += LOTE) {
-      const { data, error } = await db.rpc('upsert_precios', {
-        p_rows: filas.slice(i, i + LOTE), p_visto: visto,
-      });
-      if (error) throw new Error(`upsert_precios: ${error.message}`);
-      guardados += data;
-    }
+    const lotes = Array.from({ length: Math.ceil(filas.length / LOTE) }, (_, i) => filas.slice(i * LOTE, (i + 1) * LOTE));
+    const guardados = (await enParalelo(lotes, LOTES_SIMULTANEOS, async lote => {
+      return rest('rpc/upsert_precios', { body: { p_rows: lote, p_visto: visto } });
+    })).reduce((a, b) => a + b, 0);
 
-    const { data: inactivos, error } = await db.rpc('desactivar_no_vistos', {
-      p_distribuidor: distribuidor, p_visto: visto,
-    });
-    if (error) throw new Error(`desactivar_no_vistos: ${error.message}`);
+    const inactivos = await rest('rpc/desactivar_no_vistos', { body: { p_distribuidor: distribuidor, p_visto: visto } });
 
     await terminarRun(run?.id, { ok: true, productos: guardados });
     console.log(`[${distribuidor}] OK — ${guardados} productos, ${inactivos} desactivados`);
@@ -79,7 +88,7 @@ function resumen(linea) {
 
 async function terminarRun(id, datos) {
   if (!id) return;
-  await db.from('scraper_runs').update({ ...datos, fin: new Date().toISOString() }).eq('id', id);
+  await rest(`scraper_runs?id=eq.${id}`, { method: 'PATCH', body: { ...datos, fin: new Date().toISOString() } }).catch(() => {});
 }
 
 export function numero(v) {

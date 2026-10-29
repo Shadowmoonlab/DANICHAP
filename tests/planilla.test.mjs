@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { leerPlanilla, deducirColumnas } from '../scrapers/lib/planilla.mjs';
+import { leerPlanilla, deducirColumnas, leerCsv } from '../scrapers/lib/planilla.mjs';
 
 const XLSX = createRequire(import.meta.url)('../vendor/xlsx-0.20.3.full.min.js');
 const aXls = filas => {
@@ -32,4 +32,12 @@ test('con encabezado usa el detector del panel', () => {
 
 test('una página web en vez de la planilla da un error claro', () => {
   assert.throws(() => leerPlanilla(Buffer.from('<!DOCTYPE html><html><body>Ingresar</body></html>')), /página web/);
+});
+
+test('CSV con encabezado y separador | (Goicoechea "códigos corridos")', () => {
+  const csv = 'Codigo|Descripcion|Marca|Linea|Precio Lista|Precio Neto\r\nA-1|BOMBA DE AGUA|SKF|MOTOR|1000,50|800,40\r\nA-2|FILTRO|MANN|FILTROS|200|150\r\n';
+  const filas = leerCsv(csv);
+  assert.equal(filas.length, 2);
+  assert.deepEqual(filas[0], { codigo: 'A-1', descripcion: 'BOMBA DE AGUA', marca: 'SKF', rubro: 'MOTOR', origen: null,
+    precio_lista: 1000.5, precio_neto: 800.4, imagen_url: null });
 });

@@ -6,6 +6,45 @@ import { parsearLista, aFilasDePrecio, aNumero } from '../../gestion/listas.js';
 
 const XLSX = createRequire(import.meta.url)('../../vendor/xlsx-0.20.3.full.min.js');
 
+/** CSV/TXT con encabezado (ej. Goicoechea "códigos corridos", separador |): columnas por nombre del encabezado. */
+export function leerCsv(texto) {
+  const lineas = texto.split(/\r?\n/).filter(l => l.trim());
+  const iEnc = lineas.findIndex(l => /cod/i.test(l) && /precio|lista|neto/i.test(l));
+  if (iEnc === -1) throw new Error(`CSV sin encabezado reconocible: "${lineas[0]?.replace(/\d/g, '#').slice(0, 200)}"`);
+  const sep = (lineas[iEnc].match(/[|;\t,]/g) ?? ['|']).sort((a, b) =>
+    lineas[iEnc].split(b).length - lineas[iEnc].split(a).length)[0];
+  const enc = lineas[iEnc].split(sep).map(sinAcentos);
+  const col = re => enc.findIndex(c => re.test(c));
+  const c = {
+    codigo: col(/^(cod|codigo|articulo|nro)/),
+    descripcion: col(/desc|detalle|nombre|producto/),
+    marca: col(/marca|fabric|familia/),
+    rubro: col(/rubro|linea|categ/),
+    lista: col(/lista/),
+    neto: col(/neto|cliente|final|costo/),
+  };
+  if (c.lista === -1 && c.neto === -1) c.lista = col(/precio/);
+  if (c.codigo === -1 || (c.lista === -1 && c.neto === -1)) {
+    throw new Error(`CSV: no encuentro código/precio en el encabezado "${lineas[iEnc].slice(0, 200)}"`);
+  }
+    const celda = (p, i) => (i >= 0 ? String(p[i] ?? '').replace(/^"|"$/g, '').trim() : '');
+  return lineas.slice(iEnc + 1).map(l => {
+    const p = l.split(sep);
+    const lista = aNumero(celda(p, c.lista));
+    const neto = aNumero(celda(p, c.neto));
+    return {
+      codigo: celda(p, c.codigo),
+      descripcion: celda(p, c.descripcion) || celda(p, c.codigo),
+      marca: celda(p, c.marca) || null,
+      rubro: celda(p, c.rubro) || null,
+      origen: null,
+      precio_lista: lista ?? neto,
+      precio_neto: neto ?? lista,
+      imagen_url: null,
+    };
+  }).filter(f => f.codigo && (f.precio_lista ?? f.precio_neto) != null);
+}
+
 const sinAcentos = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 const texto = v => String(v ?? '').trim();
 
