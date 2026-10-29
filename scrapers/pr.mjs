@@ -6,7 +6,7 @@ import { enParalelo } from './lib/sesion.mjs';
 
 const BASE = 'https://prautopartes.com.ar';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
-const SIMULTANEOS = 16;   // páginas pedidas a la vez (la API trae 36 por página, sin opción de más)
+const SIMULTANEOS = 8;   // páginas a la vez (36 por página, sin opción de más): más pedidos arriesgan que bloqueen la cuenta
 const MAX_PAGINAS = 3000;
 
 async function api(ruta, body, token) {

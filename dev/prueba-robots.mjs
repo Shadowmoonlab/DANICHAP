@@ -1,5 +1,6 @@
 // dev/prueba-robots.mjs — Prueba de carga de los robots contra la base LOCAL, antes de subir cambios.
-// Corre Goicoechea (70.459), PR (28.620), Distrisuper (25.116) y Fal (1.612) a la vez, dos veces (la 2ª actualiza
+// Corre los 7 robots a la vez con volumen real (DM 32.370, Goicoechea 70.459, PR 28.620, Distrisuper 25.116,
+// Del Viso 11.859, Otero 6.000, Fal 1.612), dos veces (la 2ª actualiza
 // filas existentes, como pasa todos los días), con los sitios simulados (dev/mock-distribuidores.mjs).
 // Con --estricto los guardados de los robots se cortan a los 200 ms (en vez de 5 min, como en producción tras
 // docs/robots-conservar-datos.sql): imita una base mucho más lenta y obliga a partir lotes.
@@ -12,7 +13,8 @@ import { PORTS, PG_SUPERUSER } from './config.mjs';
 
 const RAIZ = fileURLToPath(new URL('..', import.meta.url));
 const ENV = `${RAIZ}.dev/supabase.env`;
-const ROBOTS = ['goicoechea', 'pr', 'distrisuper', 'fal'];
+// Los 7 robots activos, a la vez, como en GitHub Actions
+const ROBOTS = ['dm', 'pr', 'goicoechea', 'distrisuper', 'otero', 'fal', 'delviso'];
 const estricto = process.argv.includes('--estricto');
 
 if (!fs.existsSync(ENV)) {
@@ -48,7 +50,8 @@ function correr(robot, vuelta) {
       `scrapers/${robot}.mjs`], {
       cwd: RAIZ,
       env: { ...process.env, PRUEBA_VUELTA: String(vuelta), GOICOECHEA_USER: 'u', GOICOECHEA_PASSWORD: 'p',
-             PR_USER: 'u', PR_PASSWORD: 'p', DISTRISUPER_USER: 'u', DISTRISUPER_PASSWORD: 'p', FAL_USER: 'u', FAL_PASSWORD: 'p' },
+             PR_USER: 'u', PR_PASSWORD: 'p', DISTRISUPER_USER: 'u', DISTRISUPER_PASSWORD: 'p', FAL_USER: 'u', FAL_PASSWORD: 'p',
+             DM_EMAIL: 'u', DM_PASSWORD: 'p', OTERO_USER: 'u', OTERO_PASSWORD: 'p', DELVISO_USER: 'u', DELVISO_PASSWORD: 'p' },
     });
     let salida = '';
     hijo.stdout.on('data', d => { salida += d; });

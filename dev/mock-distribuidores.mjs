@@ -6,7 +6,7 @@ const XLSX = createRequire(import.meta.url)('../vendor/xlsx-0.20.3.full.min.js')
 const real = globalThis.fetch;
 const json = (o, h = {}) => new Response(JSON.stringify(o), { status: 200, headers: { 'Content-Type': 'application/json', ...h } });
 const html = (t, h = {}) => new Response(t, { status: 200, headers: { 'Content-Type': 'text/html', ...h } });
-const N = { goicoechea: 70_459, prPaginas: 795, distrisuper: 25_116, fal: 1_612 };
+const N = { goicoechea: 70_459, prPaginas: 795, distrisuper: 25_116, fal: 1_612, dm: 32_370, delviso: 11_859, oteroGrupos: 300 };
 // Cada corrida cambia algunos precios, como pasa en la realidad
 const ajuste = Number(process.env.PRUEBA_VUELTA || 0);
 
@@ -24,6 +24,7 @@ globalThis.fetch = async (input, init = {}) => {
 
   if (url.startsWith('https://goicoechea.com.ar')) {
     if (url.endsWith('.com.ar/')) return html('<html></html>', { 'Set-Cookie': 'PHPSESSID=s1; path=/' });
+    if (url.includes('/account/log/logout')) return html('');
     if (url.includes('/account/log/login')) return json({ success: cookie.includes('PHPSESSID=s1') });
     if (url.includes('/exportExcel/8/csv')) {
       const l = ['Codigo|Descripcion|Marca|Linea|Precio Lista|Precio Neto'];
@@ -62,6 +63,45 @@ globalThis.fetch = async (input, init = {}) => {
   }
   if (url === 'https://autopartesfal.com/') return html('<a href="/logout">Cerrar sesión</a>');
   if (url.startsWith('https://www.dropbox.com/')) return new Response(falXlsx, { status: 200 });
+
+  // DM: login por querystring → cookie "id"; catálogo entero en un JSON doblemente codificado (26 columnas)
+  if (url.startsWith('https://dmcompras.com/login')) return html('1', { 'Set-Cookie': 'id=dm1; path=/' });
+  if (url.startsWith('https://dmcompras.com/getProductos')) {
+    if (!cookie.includes('id=dm1')) return html('');
+    const data = Array.from({ length: N.dm }, (_, i) => {
+      const f = Array(26).fill('');
+      Object.assign(f, { 0: `DM${i}`, 1: `REPUESTO DM ${i}`, 2: 'NAC', 3: String(3000 + i + ajuste), 4: 'RUBRO', 5: 'MARCA', 9: [], 15: String(2500 + i + ajuste) });
+      return f;
+    });
+    return new Response(JSON.stringify(JSON.stringify({ data })), { status: 200 });
+  }
+
+  // Otero: lista-excel.php es una tabla HTML con "Precio" en dos celdas ("$" | número) y filas de grupo
+  if (url.startsWith('https://www.autopartesotero.com.ar/')) {
+    if (url.endsWith('/ingresar.php')) return html('<form>', { 'Set-Cookie': 'PHPSESSID=ot1; path=/' });
+    if (url.endsWith('/lista.php')) return html(cookie.includes('PHPSESSID=ot1') ? '<a>Cerrar sesión</a> Mis pedidos' : 'Ingresar');
+    if (url.endsWith('/lista-excel.php')) {
+      let t = '<table><tr><td colspan="8">Autopartes Otero</td></tr><tr><th>Marca</th><th>Modelo</th><th>Subrubro</th>'
+        + '<th>C&oacute;digo</th><th>Nombre</th><th colspan="2">Precio</th><th>Foto</th></tr>';
+      for (let g = 0; g < N.oteroGrupos; g++) {
+        t += `<tr><td>MARCA ${g}</td><td>MODELO ${g}</td><td>ILUMINACION</td><td></td><td></td><td></td><td></td><td></td></tr>`;
+        for (let i = 0; i < 20; i++) t += `<tr><td></td><td></td><td></td><td>OT${g}-${i}</td><td>FARO ${g}-${i}</td><td>$</td><td>${(10000 + i + ajuste).toLocaleString('es-AR')},00</td><td><img src="f.jpg"></td></tr>`;
+      }
+      return new Response(`${t}</table>`, { status: 200, headers: { 'Content-Type': 'application/vnd.ms-excel' } });
+    }
+  }
+
+  // Del Viso: el formulario EXCEL devuelve la planilla del cliente
+  if (url.startsWith('https://metalurgicadelviso.com.ar/')) {
+    if (url.endsWith('/admgenexel.php')) return html('<form>');
+    if (url.endsWith('/exelconphp.php')) {
+      const filas = [['Codigo', 'Descripcion', 'Precio']];
+      for (let i = 0; i < N.delviso; i++) filas.push([`DV${i}`, `CAÑO ESCAPE ${i}`, 7000 + i + ajuste]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(filas), 'Lista');
+      return new Response(XLSX.write(wb, { type: 'buffer', bookType: 'xls' }), { status: 200 });
+    }
+  }
 
   if (/goicoechea|distrisuper|appspot|autopartesfal|dropbox|prautopartes|dmcompras|otero|delviso/.test(url)) {
     throw new Error(`Sitio sin simular en la prueba: ${url}`);

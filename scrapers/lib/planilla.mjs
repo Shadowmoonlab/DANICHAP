@@ -126,7 +126,8 @@ export function leerPlanilla(buffer, opciones = {}) {
   if (/^\s*(<!doctype html|<html)/i.test(inicio) && !/<table/i.test(buffer.toString('latin1'))) {
     throw new Error(`Se recibió una página web en vez de la planilla (${buffer.length} bytes)`);
   }
-  const wb = XLSX.read(buffer, { type: 'buffer' });
+  // raw: en tablas HTML/CSV no convertir textos a número (leería "10.021,00" como 10,021); aNumero los lee en formato argentino
+  const wb = XLSX.read(buffer, { type: 'buffer', raw: true });
   const hojas = wb.SheetNames.map(nombre => [nombre, XLSX.utils.sheet_to_json(wb.Sheets[nombre], { header: 1, defval: '' })]);
   const texto = buffer.toString('latin1');
   if (/<table/i.test(texto.slice(0, 20000))) {

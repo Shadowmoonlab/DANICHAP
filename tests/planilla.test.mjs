@@ -52,3 +52,22 @@ test('tabla HTML con tablas anidadas por grupo (formato Otero: Marca | Modelo | 
   const { filas } = leerPlanilla(Buffer.from(html.padEnd(5000, ' ')));
   assert.deepEqual(filas.map(f => [f.codigo, f.precio_lista]), [['OT1', 12345.5], ['OT2', 9000], ['OT3', 1234]]);
 });
+
+test('Otero: "Precio" en dos celdas ("$" | número) y filas de grupo Marca/Modelo/Subrubro', () => {
+  const { filas } = leerPlanilla(aXls([
+    ['Autopartes Otero'],
+    ['Marca', 'Modelo', 'Subrubro', 'Código', 'Nombre', 'Precio', '', 'Foto'],
+    ['ALFA ROMEO', '145/146 1996/2002', 'ACCESORIOS Y PARAGOLPES', '', '', '', '', ''],
+    ['', '', '', 'OT-1', 'PARAGOLPE DELANTERO', '$', '12.345,50', ''],
+    ['', '', '', 'OT-2', 'FARO IZQUIERDO', '$', 9000, ''],
+  ]));
+  assert.deepEqual(filas.map(f => [f.codigo, f.descripcion, f.precio_lista]),
+    [['OT-1', 'PARAGOLPE DELANTERO', 12345.5], ['OT-2', 'FARO IZQUIERDO', 9000]]);
+});
+
+test('tabla HTML con precios en formato argentino ("10.021,00" son diez mil, no diez)', () => {
+  const html = '<table><tr><th>Código</th><th>Nombre</th><th colspan="2">Precio</th></tr>'
+    + '<tr><td>OT1</td><td>FARO</td><td>$</td><td>10.021,00</td></tr><tr><td>OT2</td><td>ESPEJO</td><td>$</td><td>1.234.567,89</td></tr></table>';
+  const { filas } = leerPlanilla(Buffer.from(html.padEnd(3000, ' ')));
+  assert.deepEqual(filas.map(f => f.precio_lista), [10021, 1234567.89]);
+});

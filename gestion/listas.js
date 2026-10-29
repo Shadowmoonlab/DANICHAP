@@ -44,6 +44,11 @@ export function detectarColumnas(filas) {
   const col = { encabezado: iEnc, codigo: enc.findIndex(c => ES_CODIGO.test(c)), precio: -1, descripcion: enc.findIndex(c => ES_DESC.test(c)) };
   // Precio: la última columna de precio (suele ser el precio final de la fila)
   enc.forEach((c, i) => { if (ES_PRECIO.test(c)) col.precio = i; });
+  // "Precio" ocupando dos celdas ("$" | 12.345): si la de al lado no tiene encabezado y trae más números, es esa
+  if (col.precio >= 0 && !enc[col.precio + 1]) {
+    const numeros = i => filas.slice(iEnc + 1, iEnc + 200).filter(f => aNumero(f[i]) != null).length;
+    if (numeros(col.precio + 1) > numeros(col.precio)) col.precio += 1;
+  }
 
   // Descripción sin encabezado: la columna con textos más largos en las filas de datos
   if (col.descripcion === -1 || col.descripcion === col.codigo) {
