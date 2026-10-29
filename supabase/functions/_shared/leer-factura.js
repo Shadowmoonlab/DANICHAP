@@ -190,7 +190,9 @@ export async function leerFacturaGemini(apiKey, entrada, { modelo, fetchFn = fet
   if (cand.finishReason === 'MAX_TOKENS') {
     throw new ErrorLectura('El comprobante es demasiado largo para leerlo de una vez. Dividilo en partes.', 'largo');
   }
-  const texto = cand.content?.parts?.map(p => p.text || '').join('');
+  // Solo el texto de la respuesta (no las partes de "razonamiento"), sin el ```json que a veces agrega
+  const texto = cand.content?.parts?.filter(p => !p.thought).map(p => p.text || '').join('')
+    .trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   if (!texto) throw new ErrorLectura('La lectura no devolvió datos', 'vacio');
 
   let datos;

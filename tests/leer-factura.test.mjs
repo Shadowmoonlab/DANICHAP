@@ -138,3 +138,12 @@ test('Gemini: si devuelve el objeto dentro de una lista lo desenvuelve', async (
   const r = await leerFacturaGemini('K', { archivo: B64, media_type: 'image/png' }, { fetchFn: fetchFalso(respGemini([DATOS])) });
   assert.equal(r.datos.renglones.length, 1);
 });
+
+test('Gemini: tolera el JSON envuelto en ```json y descarta las partes de razonamiento', async () => {
+  const resp = respGemini(DATOS, { candidates: [{ finishReason: 'STOP', content: { parts: [
+    { text: 'pensando…', thought: true },
+    { text: '```json\n' + JSON.stringify(DATOS) + '\n```' },
+  ] } }] });
+  const r = await leerFacturaGemini('K', { archivo: B64, media_type: 'image/jpeg' }, { fetchFn: fetchFalso(resp) });
+  assert.equal(r.datos.renglones.length, 1);
+});

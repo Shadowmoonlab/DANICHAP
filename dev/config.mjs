@@ -45,6 +45,7 @@ export const MIGRACIONES = [
   'docs/robots-sincronizar.sql',
   'docs/add-libro-diario.sql',
   'docs/seguridad-perfiles.sql',
+  'docs/seguridad-anon.sql',
 ];
 export const SEED = 'dev/seed.sql';
 

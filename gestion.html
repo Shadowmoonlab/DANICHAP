@@ -16,11 +16,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="gestion.css?v=4"/>
+<link rel="stylesheet" href="gestion.css?v=5"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
 <script src="toast.js?v=3" defer></script>
 <script src="supabase.js?v=2" defer></script>
-<script type="module" src="gestion/main.js?v=4"></script>
+<script type="module" src="gestion/main.js?v=5"></script>
 </head>
 <body>
 
@@ -67,6 +67,7 @@
           <input id="pos-search" type="search" autocomplete="off" placeholder="Buscar repuesto: nombre, código o vehículo…" aria-label="Buscar repuesto"/>
         </div>
         <div class="search-help">
+          <span>Tocá el repuesto para sumarlo a la venta y después <b>Cobrar</b>. Con teclado:</span>
           <span><span class="kbd">F2</span> buscar</span>
           <span><span class="kbd">↑</span><span class="kbd">↓</span> moverse</span>
           <span><span class="kbd">Enter</span> agregar</span>
@@ -168,6 +169,7 @@
       <div class="card stat"><div class="v num" id="st-cant">0</div><div class="l">Ventas</div></div>
       <div class="card stat"><div class="v num" id="st-ticket">$ 0</div><div class="l">Promedio por venta</div></div>
     </div>
+    <p class="view-hint">Cada venta del Mostrador queda acá. Tocá una para ver qué se llevó, reimprimir el comprobante o anularla. Los recuadros de colores son el cierre de caja: cuánto entró por cada forma de pago.</p>
     <div class="caja hidden" id="ventas-caja" aria-label="Caja por forma de pago"></div>
     <div class="card tbl-wrap">
       <table class="tbl">
@@ -187,6 +189,7 @@
         <button class="btn" id="libro-imprimir"><span class="ms">print</span>Imprimir</button>
       </div>
     </div>
+    <p class="view-hint">Ventas, compras y gastos juntos, para saber si el negocio gana. Elegí <b>Día, Mes o Año</b> y tocá una fila para ver el detalle. Las ventas y las compras se anotan solas; los gastos del local (alquiler, luz, sueldos) cargalos con <b>Cargar gasto</b>.</p>
     <div class="libro-nav">
       <div class="subtabs" id="libro-modos" role="group" aria-label="Período">
         <button class="subtab active" data-modo="dia">Día</button>
@@ -228,7 +231,7 @@
         <button class="btn btn-primary" id="cli-nuevo"><span class="ms">person_add</span>Nuevo cliente</button>
       </div>
     </div>
-    <p class="view-hint"><span id="cli-deuda" class="cli-deuda"></span></p>
+    <p class="view-hint">Para vender fiado el cliente tiene que estar cargado acá. Tocá uno para ver cuánto debe, anotar un pago o mandarle el recordatorio por WhatsApp. <span id="cli-deuda" class="cli-deuda"></span></p>
     <div class="card tbl-wrap">
       <table class="tbl">
         <thead><tr><th>Cliente</th><th>Teléfono</th><th>Última compra</th><th class="right">Total comprado</th><th class="right">Saldo</th></tr></thead>
@@ -252,6 +255,7 @@
   <!-- ═══ AJUSTES ═══ -->
   <section id="view-ajustes" class="view hidden">
     <div class="view-title"><h2>Ajustes</h2></div>
+    <p class="view-hint">Lo que cambies acá vale para todo el sistema: con la ganancia se calcula el precio de venta de cada repuesto en el Mostrador. Tocá <b>Guardar</b> al terminar.</p>
     <div class="settings">
       <div class="card card-pad">
         <h3>Ganancia</h3>

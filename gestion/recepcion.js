@@ -80,9 +80,11 @@ function pasoArchivo() {
           cantidad: r.cantidad ?? 1, costo: r.precio_unitario, legible: r.legible, nota: r.nota })),
       });
     } catch (e) {
+      // Cualquier falla (sin conexión, cupo agotado, foto ilegible): seguir a mano, sin perder el proveedor elegido
       estadoLectura.textContent = '';
       btnLeer.disabled = false;
-      toast('No se pudo leer: ' + e.message, 'error');
+      toast(`No se pudo leer la factura (${e.message}). Cargala a mano.`, 'error');
+      abrirEditor({ proveedor: prov.value, origen: 'manual', filas: [filaVacia()] });
     }
   });
 
@@ -271,7 +273,7 @@ async function cargarLista() {
   borrador = null;
   $('recepcion-trabajo').replaceChildren(h('div', { class: 'recep-cta card card-pad' },
     h('div', {}, h('h3', { style: 'margin:0 0 4px' }, '¿Llegó mercadería?'),
-      h('p', { class: 'muted', style: 'margin:0' }, 'Sacale una foto a la factura o remito: se lee sola y se suma al stock cuando la confirmás.')),
+      h('p', { class: 'muted', style: 'margin:0' }, 'Sacale una foto a la factura o remito (o cargala a mano): revisás los renglones y, al confirmar, se suma al stock y queda anotado como compra en el Libro diario.')),
     h('button', { class: 'btn btn-primary btn-lg', onclick: pasoArchivo }, icon('photo_camera'), 'Cargar factura o remito')));
   if (sessionStorage.getItem('danichap-recepcion-prov') !== null) pasoArchivo();
 
