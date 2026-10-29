@@ -4,7 +4,9 @@ name: Precios diarios de distribuidores
 # Qué distribuidores corren lo decide scrapers/distribuidores.mjs (activo: true): sumar uno no requiere tocar este archivo.
 on:
   schedule:
-    - cron: '0 9 * * *'   # 06:00 hora Argentina (UTC-3). GitHub puede atrasarlo unos minutos.
+    - cron: '0 9 * * *'    # 06:00 hora Argentina (UTC-3): todos. GitHub puede atrasarlo unos minutos.
+    - cron: '0 15 * * *'   # 12:00: reintento solo de los que fallaron (sitio caído, etc.)
+    - cron: '0 21 * * *'   # 18:00: último reintento del día
   workflow_dispatch:       # botón "Run workflow" para correrlo a mano
 
 concurrency:
@@ -23,12 +25,17 @@ jobs:
       - uses: actions/checkout@v5
       - id: plan
         run: node scrapers/plan.mjs
+        env:
+          SOLO_PENDIENTES: ${{ github.event_name == 'schedule' && github.event.schedule != '0 9 * * *' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
   scrape:
     needs: plan
+    if: needs.plan.outputs.lista != '[]'
     name: ${{ matrix.d.slug }}
     runs-on: ubuntu-latest   # Plan B si un sitio bloquea IPs de fuera de Argentina: runs-on: self-hosted (PC del local)
-    timeout-minutes: 45
+    timeout-minutes: 90   # Goicoechea (~70.000) y PR tardan; en repo público los minutos son gratis
     strategy:
       fail-fast: false     # si un distribuidor falla, los demás siguen
       matrix:

@@ -1,11 +1,66 @@
 // planilla.mjs — Lee una lista de precios en Excel/CSV (o tabla HTML exportada como .xls) con el mismo
 // detector de columnas que usa el importador del panel (gestion/listas.js). Elige la hoja con más productos.
+// Si la planilla no tiene encabezados reconocibles, deduce las columnas por el contenido (código / texto / precio).
 import { createRequire } from 'node:module';
-import { parsearLista, aFilasDePrecio } from '../../gestion/listas.js';
+import { parsearLista, aFilasDePrecio, aNumero } from '../../gestion/listas.js';
 
 const XLSX = createRequire(import.meta.url)('../../vendor/xlsx-0.20.3.full.min.js');
 
 const sinAcentos = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+const texto = v => String(v ?? '').trim();
+
+/**
+ * Sin encabezado: código = columna de textos cortos casi todos distintos; descripción = la de textos más
+ * largos; precio = la columna numérica de valores más altos (si hay varias, suele ser el precio de lista).
+ */
+export function deducirColumnas(filas) {
+  const datos = filas.filter(f => f.filter(v => texto(v)).length >= 3).slice(0, 300);
+  if (datos.length < 5) return null;
+  const ancho = Math.max(...datos.map(f => f.length));
+  const stats = Array.from({ length: ancho }, (_, i) => {
+    const vals = datos.map(f => texto(f[i])).filter(Boolean);
+    const nums = datos.map(f => aNumero(f[i])).filter(n => n != null && n > 0);
+    return {
+      i,
+      lleno: vals.length / datos.length,
+      numerico: nums.length / datos.length,
+      distintos: new Set(vals).size / Math.max(vals.length, 1),
+      largo: vals.reduce((s, v) => s + v.length, 0) / Math.max(vals.length, 1),
+      mediana: nums.sort((a, b) => a - b)[Math.floor(nums.length / 2)] ?? 0,
+      conDecimales: nums.some(n => !Number.isInteger(n)),
+    };
+  });
+  const precio = stats.filter(s => s.numerico >= 0.8).sort((a, b) => (b.conDecimales - a.conDecimales) || (b.mediana - a.mediana))[0];
+  const descripcion = stats.filter(s => s.i !== precio?.i && s.numerico < 0.5 && s.lleno >= 0.8).sort((a, b) => b.largo - a.largo)[0];
+  const codigo = stats.find(s => s.i !== precio?.i && s.i !== descripcion?.i && s.lleno >= 0.9 && s.distintos >= 0.9 && s.largo <= 25);
+  if (!precio || !descripcion || !codigo) return null;
+  return { codigo: codigo.i, descripcion: descripcion.i, precio: precio.i };
+}
+
+function porContenido(filas) {
+  const col = deducirColumnas(filas);
+  if (!col) return null;
+  const productos = [];
+  let descartadas = 0;
+  for (const f of filas) {
+    const codigo = texto(f[col.codigo]);
+    const descripcion = texto(f[col.descripcion]).replace(/\s+/g, ' ');
+    const precio = aNumero(f[col.precio]);
+    if (codigo && descripcion && precio > 0) productos.push({ codigo, descripcion, rubro: null, precio });
+    else if (codigo || descripcion) descartadas++;
+  }
+  return { columnas: { ...col, encabezado: -1 }, productos, descartadas };
+}
+
+// Para el log cuando no se reconoce: solo los textos de las primeras filas (encabezados), nunca números
+function muestra(wb) {
+  return wb.SheetNames.map(nombre => {
+    const filas = XLSX.utils.sheet_to_json(wb.Sheets[nombre], { header: 1, defval: '' })
+      .filter(f => f.some(v => texto(v))).slice(0, 3)
+      .map(f => f.map(v => (aNumero(v) != null ? '#' : texto(v).slice(0, 25))).join(' | '));
+    return `hoja "${nombre}": ${filas.join(' // ') || '(vacía)'}`;
+  }).join('; ');
+}
 
 /**
  * @param {Buffer} buffer  archivo descargado
@@ -13,23 +68,32 @@ const sinAcentos = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/
  * @returns {{ filas: object[], hoja: string, descartadas: number }}  filas listas para correrScraper
  */
 export function leerPlanilla(buffer, opciones = {}) {
+  const inicio = buffer.subarray(0, 400).toString('latin1');
+  if (/^\s*(<!doctype html|<html)/i.test(inicio) && !/<table/i.test(buffer.toString('latin1'))) {
+    throw new Error(`Se recibió una página web en vez de la planilla (${buffer.length} bytes)`);
+  }
   const wb = XLSX.read(buffer, { type: 'buffer' });
   let mejor = null;
   for (const nombre of wb.SheetNames) {
     const filas = XLSX.utils.sheet_to_json(wb.Sheets[nombre], { header: 1, defval: '' });
-    const r = parsearLista(filas);
+    let r = parsearLista(filas);
+    if (!r.columnas || r.productos.length === 0) r = porContenido(filas) ?? r;
     if (!r.columnas || (mejor && r.productos.length <= mejor.r.productos.length)) continue;
     // Columna de rubro/familia si la planilla la trae (ej. Fal: "familia")
-    const enc = filas[r.columnas.encabezado].map(sinAcentos);
-    const iRubro = enc.findIndex(c => /^(familia|rubro|categoria|linea)/.test(c));
-    if (iRubro >= 0) {
-      const porCodigo = new Map(filas.slice(r.columnas.encabezado + 1)
-        .map(f => [String(f[r.columnas.codigo] ?? '').trim(), String(f[iRubro] ?? '').trim()]));
-      for (const p of r.productos) p.rubro = porCodigo.get(p.codigo) || p.rubro;
+    if (r.columnas.encabezado >= 0) {
+      const enc = filas[r.columnas.encabezado].map(sinAcentos);
+      const iRubro = enc.findIndex(c => /^(familia|rubro|categoria|linea|subrubro|grupo)/.test(c));
+      if (iRubro >= 0) {
+        const porCodigo = new Map(filas.slice(r.columnas.encabezado + 1)
+          .map(f => [String(f[r.columnas.codigo] ?? '').trim(), String(f[iRubro] ?? '').trim()]));
+        for (const p of r.productos) p.rubro = porCodigo.get(p.codigo) || p.rubro;
+      }
     }
     mejor = { nombre, r };
   }
-  if (!mejor || mejor.r.productos.length === 0) throw new Error('La planilla no tiene una lista de precios reconocible');
+  if (!mejor || mejor.r.productos.length === 0) {
+    throw new Error(`La planilla no tiene una lista de precios reconocible (${buffer.length} bytes; ${muestra(wb)})`.slice(0, 900));
+  }
   return {
     filas: aFilasDePrecio(mejor.r.productos, opciones),
     hoja: mejor.nombre,

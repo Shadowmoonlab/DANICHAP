@@ -26,17 +26,25 @@ async function linkDeLista() {
 }
 
 async function scrape() {
-  let link;
+  let link = null;
   try { link = await linkDeLista(); }
   catch (e) { console.warn(`[fal] ${e.message}. Uso el último link conocido.`); }
-  if (!link) link = LISTA_RESPALDO;
-  console.log(`[fal] lista: ${link.split('?')[0].split('/').pop()}`);
 
-  const res = await fetch(link, { redirect: 'follow' });
-  if (!res.ok) throw new Error(`No pude descargar la lista (HTTP ${res.status})`);
-  const { filas, hoja, descartadas } = leerPlanilla(Buffer.from(await res.arrayBuffer()));
-  console.log(`[fal] hoja "${hoja}": ${filas.length} artículos (${descartadas} filas descartadas)`);
-  return filas;
+  // El link del sitio puede llevar a una vista previa de Dropbox (HTML) en vez del archivo: probar ambos
+  let ultimoError;
+  for (const url of [...new Set([link, LISTA_RESPALDO].filter(Boolean))]) {
+    try {
+      const res = await fetch(url, { redirect: 'follow' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { filas, hoja, descartadas } = leerPlanilla(Buffer.from(await res.arrayBuffer()));
+      console.log(`[fal] ${url.split('?')[0].split('/').pop()} — hoja "${hoja}": ${filas.length} artículos (${descartadas} filas descartadas)`);
+      return filas;
+    } catch (e) {
+      ultimoError = e;
+      console.warn(`[fal] ${url.split('?')[0].split('/').pop()}: ${e.message}`);
+    }
+  }
+  throw new Error(`No pude leer la lista de Fal: ${ultimoError.message}`);
 }
 
 await correrScraper('fal', scrape);
