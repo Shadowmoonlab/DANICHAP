@@ -68,7 +68,7 @@
         <div id="confirm-bd" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
         <div class="relative bg-[#F2F0EC] rounded-2xl shadow-2xl w-full max-w-sm border border-[#D1D5DB] p-6 z-10">
           <div class="flex items-start gap-3 mb-5">
-            <span class="material-symbols-outlined text-[#ba1a1a] text-2xl leading-none flex-shrink-0 mt-0.5" style="font-variation-settings:'FILL' 1;">warning</span>
+            <span class="material-symbols-outlined text-[#ba1a1a] text-2xl leading-none flex-shrink-0 mt-0.5 icon-fill">warning</span>
             <p id="confirm-msg" class="text-sm text-[#111827] leading-relaxed"></p>
           </div>
           <div class="flex gap-3 justify-end">
@@ -343,7 +343,7 @@
     const b = document.createElement('div');
     b.id = 'static-banner';
     b.className = 'mb-4 flex items-start gap-3 bg-[#ffdad6] border border-[#ba1a1a]/20 rounded-xl px-4 py-3 text-[#ba1a1a] text-xs font-body';
-    b.innerHTML = `<span class="material-symbols-outlined text-base leading-none flex-shrink-0 mt-0.5" style="font-variation-settings:'FILL' 1;">info</span>
+    b.innerHTML = `<span class="material-symbols-outlined text-base leading-none flex-shrink-0 mt-0.5 icon-fill">info</span>
       <span>La base de datos está vacía. Se muestran los productos estáticos de muestra. <strong>Los botones Editar y Eliminar no funcionan sobre datos estáticos.</strong> Usá "Nuevo producto" para crear productos reales en Supabase.</span>`;
     const main = document.querySelector('main');
     if (main) main.insertBefore(b, main.firstChild);
@@ -439,10 +439,10 @@
         <td class="px-4 py-3 text-center">
           <div class="flex flex-col items-center gap-0.5">
             <div class="flex items-center gap-1">
-              <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background:${stockColor}" title="${stockTitle}"></span>
-              ${stockLabel ? `<span class="text-[10px] font-bold" style="color:${stockColor}">${stockLabel}</span>` : ''}
+              <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 ${sinStock ? 'stock-dot-sin' : 'stock-dot-ok'}" title="${stockTitle}"></span>
+              ${stockLabel ? `<span class="text-[10px] font-bold ${sinStock ? 'stock-sin' : 'stock-ok'}">${stockLabel}</span>` : ''}
             </div>
-            <span class="material-symbols-outlined text-sm leading-none" style="color:${p.destacado?'#2563EB':'#D1D5DB'};font-variation-settings:'FILL' ${p.destacado?1:0};">star</span>
+            <span class="material-symbols-outlined text-sm leading-none ${p.destacado ? 'destacado-on icon-fill' : 'destacado-off icon-fill-0'}">star</span>
           </div>
         </td>
         <td class="px-4 py-3 text-right">
@@ -558,7 +558,7 @@
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center hover:bg-error transition-colors';
-    del.innerHTML = '<span class="material-symbols-outlined leading-none" style="font-size:12px;">close</span>';
+    del.innerHTML = '<span class="material-symbols-outlined leading-none icon-12">close</span>';
     del.addEventListener('click', () => {
       if (type === 'url') _galleryUrls.splice(index, 1);
       else                _galleryFiles.splice(index, 1);
@@ -698,17 +698,9 @@
     const btn  = document.getElementById('btn-save-modal');
     if (!btn) { setFormError('Error interno: botón no encontrado.'); return; }
     const orig = btn.innerHTML;
-    btn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.5);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px;"></span>Guardando…';
+    btn.innerHTML = '<span class="btn-spinner"></span>Guardando…';
     btn.disabled = true;
-    setFormError(null);
-
-    // Agregar keyframes spin si no existen
-    if (!document.getElementById('spin-style')) {
-      const s = document.createElement('style');
-      s.id = 'spin-style';
-      s.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
-      document.head.appendChild(s);
-    }
+    setFormError(null);   // el giro (@keyframes spin) está en shared.css: la CSP bloquea los <style> creados por JS
 
     // ── Upload fotos nuevas con watermark ────────────────────────────────────
     let allUrls = [..._galleryUrls]; // empezar con las ya guardadas

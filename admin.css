@@ -1,0 +1,25 @@
+/* admin.css — estilos propios del panel de productos (antes en un <style> que bloqueaba la CSP) */
+.material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align:middle; }
+
+/* Skeleton pulse */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.skeleton { animation: skeleton-pulse 1.4s ease-in-out infinite; background: #D5D2CB; border-radius: 4px; }
+
+/* Stats skeleton */
+.stat-skeleton { background: #D5D2CB; border-radius: 6px; height: 2rem; width: 3rem; animation: skeleton-pulse 1.4s ease-in-out infinite; }
+
+/* Tbody skeleton rows */
+.skeleton-row td { padding: 0.75rem 1rem; }
+.skeleton-cell { height: 12px; border-radius: 4px; background: #D5D2CB; animation: skeleton-pulse 1.4s ease-in-out infinite; }
+
+/* img-preview centering utility */
+#img-preview { display: flex; align-items: center; justify-content: center; }
+
+/* Badge chips */
+.badge-chip.selected { outline: 2px solid #001e4b; outline-offset: 1px; background: #dce8ff; }
+.badge-chip[data-badge="OFERTA"].selected  { outline-color: #EA580C; background: #FFF7ED; }
+.badge-chip[data-badge="NUEVO"].selected   { outline-color: #16A34A; background: #F0FDF4; }
+.badge-chip[data-badge="POPULAR"].selected { outline-color: #001e4b; background: #dce8ff; }

@@ -20,7 +20,7 @@ const CartUI = {
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-5 border-b border-outline-variant flex-shrink-0">
           <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-primary-container" style="font-variation-settings:'FILL' 1;">shopping_cart</span>
+            <span class="material-symbols-outlined text-primary-container icon-fill">shopping_cart</span>
             <h2 class="font-headline font-black text-lg uppercase text-on-surface">Tu carrito</h2>
             <span id="cart-drawer-count" class="bg-primary-container text-white text-xs font-bold px-2 py-0.5 rounded-full font-label">0</span>
           </div>
@@ -52,7 +52,7 @@ const CartUI = {
           <!-- WhatsApp -->
           <button id="cart-wpp-btn"
              class="flex items-center justify-center gap-2 w-full bg-tertiary-container text-on-tertiary-container py-3.5 rounded-xl font-bold font-headline uppercase text-sm hover:bg-tertiary transition-colors">
-            <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">chat</span>
+            <span class="material-symbols-outlined text-base icon-fill">chat</span>
             Enviar consulta por WhatsApp
           </button>
           <button id="cart-clear-btn"

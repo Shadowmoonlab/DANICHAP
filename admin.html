@@ -21,7 +21,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="shared.css?v=4"/>
+<link rel="stylesheet" href="shared.css?v=5"/>
 <link rel="stylesheet" href="tailwind.css"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -31,39 +31,14 @@
 <script src="supabase.js" defer></script>
 <script src="auth.js?v=3" defer></script>
 <script src="data.js" defer></script>
-<style>
-  .material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align:middle; }
-
-  /* Skeleton pulse */
-  @keyframes skeleton-pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.4; }
-  }
-  .skeleton { animation: skeleton-pulse 1.4s ease-in-out infinite; background: #D5D2CB; border-radius: 4px; }
-
-  /* Stats skeleton */
-  .stat-skeleton { background: #D5D2CB; border-radius: 6px; height: 2rem; width: 3rem; animation: skeleton-pulse 1.4s ease-in-out infinite; }
-
-  /* Tbody skeleton rows */
-  .skeleton-row td { padding: 0.75rem 1rem; }
-  .skeleton-cell { height: 12px; border-radius: 4px; background: #D5D2CB; animation: skeleton-pulse 1.4s ease-in-out infinite; }
-
-  /* img-preview centering utility */
-  #img-preview { display: flex; align-items: center; justify-content: center; }
-
-  /* Badge chips */
-  .badge-chip.selected { outline: 2px solid #001e4b; outline-offset: 1px; background: #dce8ff; }
-  .badge-chip[data-badge="OFERTA"].selected  { outline-color: #EA580C; background: #FFF7ED; }
-  .badge-chip[data-badge="NUEVO"].selected   { outline-color: #16A34A; background: #F0FDF4; }
-  .badge-chip[data-badge="POPULAR"].selected { outline-color: #001e4b; background: #dce8ff; }
-</style>
+<link rel="stylesheet" href="admin.css?v=1"/>
 </head>
 <body class="bg-surface font-body text-on-surface min-h-screen">
 
 <!-- Guard (acceso denegado) -->
 <div id="admin-guard" class="hidden fixed inset-0 bg-surface flex items-center justify-center z-[400]">
   <div class="text-center px-6">
-    <span class="material-symbols-outlined text-6xl text-outline-variant" style="font-variation-settings:'FILL' 1;">lock</span>
+    <span class="material-symbols-outlined text-6xl text-outline-variant icon-fill">lock</span>
     <p class="mt-4 text-secondary font-body text-sm">Acceso restringido.</p>
     <a href="index.html" class="mt-3 inline-block text-primary-container font-bold hover:underline font-headline uppercase text-sm">← Volver al sitio</a>
   </div>
@@ -85,7 +60,7 @@
     </a>
     <div class="w-px h-6 bg-outline-variant"></div>
     <div class="flex items-center gap-2">
-      <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="22" height="22" class="rounded-sm object-contain flex-shrink-0" style="width:22px;height:22px;"/>
+      <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="22" height="22" class="rounded-sm object-contain flex-shrink-0 logo-22"/>
       <h1 class="font-headline font-black text-sm sm:text-base uppercase text-on-surface tracking-tight">Panel Admin</h1>
     </div>
     <span class="hidden sm:inline text-[10px] font-label uppercase tracking-widest text-primary-container bg-primary-container/10 px-2 py-1 rounded-full border border-primary-container/20">DANICHAP</span>
@@ -196,7 +171,7 @@
     </div>
     <!-- Empty state: oculto por defecto, JS lo muestra -->
     <div id="admin-empty" class="hidden py-16 text-center">
-      <span class="material-symbols-outlined text-5xl text-outline-variant" style="font-variation-settings:'FILL' 0;">inventory_2</span>
+      <span class="material-symbols-outlined text-5xl text-outline-variant icon-fill-0">inventory_2</span>
       <p class="text-secondary font-body text-sm mt-3">No hay productos todavía.</p>
       <button id="btn-nuevo-empty" class="mt-3 inline-flex items-center gap-1.5 text-primary-container font-bold hover:underline text-sm font-headline uppercase">
         <span class="material-symbols-outlined text-sm leading-none">add_circle</span>
@@ -399,7 +374,7 @@
 
       <!-- Error message -->
       <div id="form-error" class="hidden flex items-center gap-2 bg-error-container border border-error/20 rounded-xl px-4 py-3">
-        <span class="material-symbols-outlined text-error text-base leading-none flex-shrink-0" style="font-variation-settings:'FILL' 1;">error</span>
+        <span class="material-symbols-outlined text-error text-base leading-none flex-shrink-0 icon-fill">error</span>
         <p class="text-error text-xs font-body" id="form-error-text"></p>
       </div>
 

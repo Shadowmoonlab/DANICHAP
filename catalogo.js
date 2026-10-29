@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Asegurar que el loading esté oculto y el grid visible cuando se filtra
     if (loadingEl2) loadingEl2.style.display = 'none';
-    if (grid) grid.style.display = '';
+    if (grid) grid.classList.remove('oculto');
 
     const n = lista.length;
     if (countEl) countEl.textContent = `${n} producto${n !== 1 ? 's' : ''} encontrado${n !== 1 ? 's' : ''}`;
@@ -376,10 +376,10 @@ document.addEventListener('DOMContentLoaded', async () => {
            </div>
            ${hasMulti ? `
            <button onclick="cardPrev(event,'${imgAreaId}',${photoCount})" class="absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10">
-             <span class="material-symbols-outlined leading-none" style="font-size:16px;">chevron_left</span>
+             <span class="material-symbols-outlined leading-none icon-16">chevron_left</span>
            </button>
            <button onclick="cardNext(event,'${imgAreaId}',${photoCount})" class="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10">
-             <span class="material-symbols-outlined leading-none" style="font-size:16px;">chevron_right</span>
+             <span class="material-symbols-outlined leading-none icon-16">chevron_right</span>
            </button>
            <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1 z-10">
              ${allPhotos.map((_,i) => `<span class="card-dot w-1.5 h-1.5 rounded-full ${i===0?'bg-white':'bg-white/40'}"></span>`).join('')}
@@ -407,14 +407,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             ${stockBadge}
             <a href="${wpp}" target="_blank" rel="noopener"
                class="w-full bg-tertiary-container text-on-tertiary-container px-3 py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-tertiary transition-colors font-label uppercase tracking-wide">
-              <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>
+              <span class="material-symbols-outlined text-sm icon-fill">chat</span>
               Consultar precio
             </a>
             <button
               data-producto-id="${p.id}"
               onclick="agregarAlCarrito(event, this)"
               class="w-full flex items-center justify-center gap-1.5 bg-primary-container/10 text-primary-container border border-primary-container/30 px-3 py-2 rounded-lg font-bold text-xs hover:bg-primary-container hover:text-white transition-all font-label uppercase tracking-wide">
-              <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">add_shopping_cart</span>
+              <span class="material-symbols-outlined text-sm icon-fill">add_shopping_cart</span>
               Agregar al carrito
             </button>
           </div>
@@ -515,7 +515,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Ocultar loading, mostrar grid (usar style.display — no classList, evita conflicto con Tailwind hidden+grid)
   if (loadingEl) loadingEl.style.display = 'none';
-  if (gridEl) gridEl.style.display = '';
+  if (gridEl) gridEl.classList.remove('oculto');
 
   renderProductos();
 });
@@ -544,7 +544,7 @@ async function agregarAlCarrito(event, btn) {
 
   // Feedback visual
   const orig = btn.innerHTML;
-  btn.innerHTML = '<span class="material-symbols-outlined text-sm" style="font-variation-settings:\'FILL\' 1;">check</span> Agregado';
+  btn.innerHTML = '<span class="material-symbols-outlined text-sm icon-fill">check</span> Agregado';
   btn.disabled = true;
   btn.classList.remove('bg-primary-container/10', 'text-primary-container', 'border-primary-container/30');
   btn.classList.add('bg-tertiary-container/20', 'text-tertiary');

@@ -49,20 +49,47 @@ export async function conReintentos(fn, { intentos = 3, esperasMs = [30_000, 90_
 }
 
 // Guarda un lote; si la base corta por tiempo, lo parte a la mitad y reintenta (nunca pierde la corrida por eso)
-async function guardarLote(lote, visto, intento = 1) {
+async function guardarLote(rpc, lote, visto, intento = 1) {
   try {
-    return await rest('rpc/upsert_precios', { body: { p_rows: lote, p_visto: visto } });
+    return await rest(`rpc/${rpc}`, { body: { p_rows: lote, p_visto: visto } });
   } catch (err) {
     if (lote.length > 50 && /timeout|canceling statement/i.test(err.message)) {
       const mitad = Math.ceil(lote.length / 2);
-      return (await guardarLote(lote.slice(0, mitad), visto)) + (await guardarLote(lote.slice(mitad), visto));
+      return (await guardarLote(rpc, lote.slice(0, mitad), visto)) + (await guardarLote(rpc, lote.slice(mitad), visto));
     }
-    if (intento < 5) {   // corte momentáneo de la base: espera 2, 4, 8 y 16 s
+    if (intento < 5 && !esFuncionInexistente(err)) {   // corte momentáneo de la base: espera 2, 4, 8 y 16 s
       await new Promise(ok => setTimeout(ok, 1000 * 2 ** intento));
-      return guardarLote(lote, visto, intento + 1);
+      return guardarLote(rpc, lote, visto, intento + 1);
     }
     throw err;
   }
+}
+
+// PGRST202 "Could not find the function ... in the schema cache" (no confundir con "Could not query ... schema cache", que es pasajero)
+const esFuncionInexistente = err => /Could not find the function/i.test(err.message);
+
+// Guarda todas las filas y da de baja lo que el distribuidor ya no lista.
+// Con docs/robots-sincronizar.sql solo se escriben las filas que cambiaron; sin ese SQL todavía aplicado,
+// usa las funciones anteriores (reescribe todo): los robots funcionan igual en los dos casos.
+async function sincronizar(distribuidor, filas, visto) {
+  const lotes = Array.from({ length: Math.ceil(filas.length / LOTE) }, (_, i) => filas.slice(i * LOTE, (i + 1) * LOTE));
+  let rpc = 'sincronizar_precios';
+  let cambios;
+  try {
+    cambios = await guardarLote(rpc, lotes[0], visto);
+  } catch (err) {
+    if (!esFuncionInexistente(err)) throw err;
+    console.warn(`[${distribuidor}] sin docs/robots-sincronizar.sql en la base: guardo con upsert_precios`);
+    rpc = 'upsert_precios';
+    cambios = await guardarLote(rpc, lotes[0], visto);
+  }
+  cambios += (await enParalelo(lotes.slice(1), LOTES_SIMULTANEOS, lote => guardarLote(rpc, lote, visto)))
+    .reduce((a, b) => a + b, 0);
+
+  const bajas = rpc === 'sincronizar_precios'
+    ? await rest('rpc/desactivar_ausentes', { body: { p_distribuidor: distribuidor, p_codigos: filas.map(f => f.codigo) } })
+    : await rest('rpc/desactivar_no_vistos', { body: { p_distribuidor: distribuidor, p_visto: visto } });
+  return { cambios, bajas };
 }
 
 // Corre un scraper, guarda sus filas y deja registro en scraper_runs.
@@ -73,22 +100,20 @@ export async function correrScraper(distribuidor, scrape) {
     .catch(() => null))?.[0];
 
   try {
-    const filas = (await conReintentos(scrape, { etiqueta: distribuidor })).map(f => ({
-      ...f, distribuidor, precio_lista: precioValido(f.precio_lista), precio_neto: precioValido(f.precio_neto),
-    }));
+    const leidas = (await conReintentos(scrape, { etiqueta: distribuidor })).map(f => ({
+      ...f, distribuidor, codigo: String(f.codigo ?? '').trim(),
+      precio_lista: precioValido(f.precio_lista), precio_neto: precioValido(f.precio_neto),
+    })).filter(f => f.codigo);
+    const filas = [...new Map(leidas.map(f => [f.codigo, f])).values()];   // un código repetido rompe el upsert
     if (filas.length === 0) throw new Error('El distribuidor no devolvió productos');
     const raros = filas.filter(f => f.precio_lista == null && f.precio_neto == null).length;
     if (raros) console.warn(`[${distribuidor}] ${raros} artículos sin precio válido (se guardan sin precio)`);
 
-    const lotes = Array.from({ length: Math.ceil(filas.length / LOTE) }, (_, i) => filas.slice(i * LOTE, (i + 1) * LOTE));
-    const guardados = (await enParalelo(lotes, LOTES_SIMULTANEOS, lote => guardarLote(lote, visto)))
-      .reduce((a, b) => a + b, 0);
+    const { cambios, bajas } = await sincronizar(distribuidor, filas, visto);
 
-    const inactivos = await rest('rpc/desactivar_no_vistos', { body: { p_distribuidor: distribuidor, p_visto: visto } });
-
-    await terminarRun(run?.id, { ok: true, productos: guardados });
-    console.log(`[${distribuidor}] OK — ${guardados} productos, ${inactivos} desactivados`);
-    resumen(`✅ **${distribuidor}**: ${guardados} productos actualizados, ${inactivos} dados de baja`);
+    await terminarRun(run?.id, { ok: true, productos: filas.length });
+    console.log(`[${distribuidor}] OK — ${filas.length} productos (${cambios} nuevos o con cambios), ${bajas} dados de baja`);
+    resumen(`✅ **${distribuidor}**: ${filas.length} productos (${cambios} nuevos o con cambios), ${bajas} dados de baja`);
   } catch (err) {
     await terminarRun(run?.id, { ok: false, error: [err.message || String(err), err.detalle].filter(Boolean).join('\n').slice(0, 4000) });
     console.error(`[${distribuidor}] ERROR — ${err.message || err}`);

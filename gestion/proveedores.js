@@ -4,24 +4,26 @@ import {
   registrarVista,
 } from './core.js';
 import { parsearLista, aFilasDePrecio } from './listas.js';
+import { estadoPrecios } from './robots.js';
 
 // SheetJS 0.20.3 servido desde el propio sitio (la 0.18.5 de npm tiene CVE-2023-30533)
 const SHEETJS = 'vendor/xlsx-0.20.3.full.min.js';
 
 async function cargar() {
   await cargarProveedores();
-  const { data: runs } = await db.from('scraper_runs').select('distribuidor, inicio, ok, productos, error').order('inicio', { ascending: false }).limit(100);
-  const ultimo = {};
-  for (const r of runs || []) if (!ultimo[r.distribuidor]) ultimo[r.distribuidor] = r;
+  // 3 corridas por día (06/12/18 h) × proveedores: 400 alcanza para encontrar la última buena de cada uno
+  const { data: runs } = await db.from('scraper_runs').select('distribuidor, inicio, fin, ok, productos, error')
+    .order('inicio', { ascending: false }).limit(400);
+  const porProveedor = {};
+  for (const r of runs || []) (porProveedor[r.distribuidor] ??= []).push(r);
 
   $('prov-list').replaceChildren(...estado.proveedores.map(p => {
-    const r = ultimo[p.slug];
+    const e = estadoPrecios(porProveedor[p.slug] || [], fecha);
     return h('div', { class: 'card prov-card' + (p.activo ? '' : ' off') },
       h('div', { class: 'prov-card-head' },
         h('div', {}, h('h3', {}, p.nombre),
-          h('div', { class: 'muted', style: 'font-size:13px' },
-            h('span', { class: 'dot ' + (!r ? 'none' : r.ok ? 'ok' : 'err') }),
-            !r ? 'Precios: todavía no se cargaron' : r.ok ? `Precios al día: ${Number(r.productos).toLocaleString('es-AR')} artículos · ${fecha(r.inicio)}` : `Error al actualizar · ${fecha(r.inicio)}`)),
+          h('div', { class: 'muted', style: 'font-size:13px', title: e.detalle || '' },
+            h('span', { class: 'dot ' + e.tipo }), e.texto)),
         h('button', { class: 'btn btn-sm', onclick: () => editarProveedor(p) }, icon('edit'), 'Editar')),
       h('div', { class: 'prov-card-body' },
         h('div', {}, h('span', { class: 'label' }, 'Pasa'),

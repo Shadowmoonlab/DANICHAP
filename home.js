@@ -20,15 +20,15 @@ document.addEventListener('DOMContentLoaded', () => {
       <p class="text-slate-300 font-body text-sm mb-6">${heroPromo.detalle}</p>
       <ul class="space-y-2 mb-8">
         <li class="flex items-center gap-2 text-slate-300 text-xs font-body">
-          <span class="material-symbols-outlined text-tertiary-container text-sm" style="font-variation-settings:'FILL' 1;">check_circle</span>
+          <span class="material-symbols-outlined text-tertiary-container text-sm icon-fill">check_circle</span>
           Asesoramiento técnico incluido
         </li>
         <li class="flex items-center gap-2 text-slate-300 text-xs font-body">
-          <span class="material-symbols-outlined text-tertiary-container text-sm" style="font-variation-settings:'FILL' 1;">check_circle</span>
+          <span class="material-symbols-outlined text-tertiary-container text-sm icon-fill">check_circle</span>
           Garantía de fábrica
         </li>
         <li class="flex items-center gap-2 text-slate-300 text-xs font-body">
-          <span class="material-symbols-outlined text-tertiary-container text-sm" style="font-variation-settings:'FILL' 1;">check_circle</span>
+          <span class="material-symbols-outlined text-tertiary-container text-sm icon-fill">check_circle</span>
           Precio mejor que cualquier lubricentro
         </li>
       </ul>
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <a href="https://wa.me/541123409187?text=${encodeURIComponent(heroPromo.wpp_msg)}"
          target="_blank"
          class="flex items-center gap-2 bg-tertiary-container text-on-tertiary-container px-6 py-3.5 rounded-xl font-black text-sm hover:bg-tertiary transition-colors font-headline uppercase tracking-wide shadow-xl">
-        <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">chat</span>
+        <span class="material-symbols-outlined text-base icon-fill">chat</span>
         Lo quiero
       </a>
     </div>
@@ -60,14 +60,14 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="flex items-center justify-between gap-2 mt-5 pt-4 border-t border-white/10">
       <div>
         <div class="text-tertiary-container font-bold text-sm font-body flex items-center gap-1">
-          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>
+          <span class="material-symbols-outlined text-sm icon-fill">chat</span>
           Precio por WhatsApp
         </div>
       </div>
       <a href="https://wa.me/541123409187?text=${encodeURIComponent(p.wpp_msg)}"
          target="_blank"
          class="flex items-center gap-1.5 bg-tertiary-container text-on-tertiary-container px-4 py-2.5 rounded-xl font-bold text-xs font-label uppercase tracking-wide hover:bg-tertiary transition-colors flex-shrink-0">
-        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>
+        <span class="material-symbols-outlined text-sm icon-fill">chat</span>
         Consultar
       </a>
     </div>
@@ -84,27 +84,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ─── RESEÑAS ─────────────────────────────────────────────────────────────────
   const grid = document.getElementById('resenas-grid');
-  const avatarBg = ['#2563EB','#16a34a','#7c3aed','#e11d48','#d97706','#0d9488','#4f46e5','#db2777','#0891b2'];
   const starsHtml = n => Array.from({length:5}, (_,i) =>
-    `<span class="material-symbols-outlined text-[11px]" style="color:#FBBF24;font-variation-settings:'FILL' ${i<n?1:0.2};">star</span>`
+    `<span class="material-symbols-outlined text-[11px] resena-estrella ${i < n ? 'icon-fill' : 'resena-estrella-vacia'}">star</span>`
   ).join('');
   const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const googleGSvg = `<svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>`;
+  const googleGSvg = `<svg width="16" height="16" viewBox="0 0 24 24" class="shrink-0-fijo"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>`;
 
   grid.innerHTML = RESENAS.map((r, i) => `
     <div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-          <div style="width:36px;height:36px;border-radius:50%;background:${avatarBg[i%avatarBg.length]};display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:900;color:#ffffff;font-size:13px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,0.15);">${esc(r.foto)}</div>
-          <div style="min-width:0;">
-            <div class="review-name" style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.nombre)}</div>
-            <div class="review-date" style="font-size:10px;font-family:Inter,sans-serif;font-weight:500;">${esc(r.fecha)}</div>
+      <div class="resena-cabeza">
+        <div class="resena-autor">
+          <div class="resena-avatar resena-avatar-${i % 9}">${esc(r.foto)}</div>
+          <div class="resena-min0">
+            <div class="review-name resena-nombre">${esc(r.nombre)}</div>
+            <div class="review-date resena-fecha">${esc(r.fecha)}</div>
           </div>
         </div>
         ${googleGSvg}
       </div>
-      <div style="display:flex;gap:2px;">${starsHtml(r.estrellas)}</div>
-      <p class="review-text" style="font-family:Inter,sans-serif;font-size:13px;line-height:1.65;font-weight:400;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin:0;">"${esc(r.texto)}"</p>
+      <div class="resena-estrellas">${starsHtml(r.estrellas)}</div>
+      <p class="review-text resena-texto">"${esc(r.texto)}"</p>
     </div>`).join('');
 
   // ─── PRODUCTOS DESTACADOS ────────────────────────────────────────────────────
@@ -158,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <p class="text-xs text-tertiary font-body mb-4">✓ ${compat}</p>
           <a href="${wpp}" target="_blank" rel="noopener"
              class="mt-auto w-full bg-tertiary-container text-on-tertiary-container px-3 py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-tertiary transition-colors font-label uppercase">
-            <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">chat</span>Consultar precio
+            <span class="material-symbols-outlined text-sm icon-fill">chat</span>Consultar precio
           </a>
         </div>
       </div>`;

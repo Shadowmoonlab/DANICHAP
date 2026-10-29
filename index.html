@@ -90,7 +90,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0..1&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="shared.css?v=4"/>
+<link rel="stylesheet" href="shared.css?v=5"/>
 <link rel="stylesheet" href="tailwind.css"/>
 <!-- Preload LCP image -->
 <link rel="preload" as="image" href="docs/img/danichaplogo-transparent.webp" type="image/webp"/>
@@ -122,7 +122,7 @@
     <a href="index.html" class="flex items-center gap-3 group" aria-label="DANICHAP — Inicio">
       <picture>
         <source srcset="docs/img/danichaplogo-transparent.webp" type="image/webp"/>
-        <img src="docs/img/danichaplogo-transparent.png" alt="" width="38" height="38" class="amber-glow-sm rounded-sm object-contain" style="width:38px;height:38px;" aria-hidden="true" fetchpriority="high"/>
+        <img src="docs/img/danichaplogo-transparent.png" alt="" width="38" height="38" class="amber-glow-sm rounded-sm object-contain logo-38" aria-hidden="true" fetchpriority="high"/>
       </picture>
       <div class="flex flex-col leading-none">
         <span class="text-xl font-black tracking-[-0.04em] text-on-surface font-headline uppercase" aria-hidden="true">DANICHAP</span>
@@ -158,13 +158,13 @@
       <!-- Usuario logueado -->
       <div id="nav-user-btn" class="hidden items-center gap-2 relative group">
         <button class="flex items-center gap-2 border border-outline-variant px-3 py-2 rounded-xl font-bold text-sm text-on-surface hover:bg-surface-container transition-colors font-headline uppercase" aria-haspopup="true" aria-expanded="false">
-          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;" aria-hidden="true">account_circle</span>
+          <span class="material-symbols-outlined text-sm icon-fill" aria-hidden="true">account_circle</span>
           <span id="nav-user-label" class="max-w-[100px] truncate">Mi cuenta</span>
         </button>
         <div class="absolute top-full right-0 mt-1 bg-surface border border-outline-variant rounded-xl shadow-lg py-1.5 w-44 hidden group-hover:block z-50" role="menu">
           <a id="nav-admin-link" href="admin.html"
             class="hidden items-center gap-2 px-4 py-2.5 text-sm text-primary-container font-bold hover:bg-surface-container-low transition-colors font-headline uppercase" role="menuitem">
-            <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;" aria-hidden="true">admin_panel_settings</span>
+            <span class="material-symbols-outlined text-sm icon-fill" aria-hidden="true">admin_panel_settings</span>
             Admin
           </a>
           <button id="nav-logout-btn"
@@ -179,7 +179,7 @@
          target="_blank" rel="noopener noreferrer"
          class="hidden md:flex items-center gap-2 bg-tertiary-container text-on-tertiary-container px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-tertiary transition-colors font-headline uppercase"
          aria-label="Contactar por WhatsApp (abre en nueva pestaña)">
-        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;" aria-hidden="true">chat</span>
+        <span class="material-symbols-outlined text-sm icon-fill" aria-hidden="true">chat</span>
         WhatsApp
       </a>
       <!-- Hamburger mobile -->
@@ -204,7 +204,7 @@
       <a href="https://wa.me/541123409187" target="_blank" rel="noopener noreferrer"
          class="mt-2 flex items-center justify-center gap-2 bg-tertiary-container text-on-tertiary-container py-3 rounded-xl font-bold font-headline uppercase text-sm"
          aria-label="Contactar por WhatsApp">
-        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;" aria-hidden="true">chat</span>WhatsApp
+        <span class="material-symbols-outlined text-sm icon-fill" aria-hidden="true">chat</span>WhatsApp
       </a>
     </div>
   </div>
@@ -233,7 +233,7 @@
         <a href="https://wa.me/541123409187?text=Hola%20Danichap!%20Quiero%20consultar%20por%20un%20repuesto."
            target="_blank" rel="noopener noreferrer"
            class="border-2 border-primary-container text-primary-container px-8 py-4 rounded-xl font-bold text-lg hover:bg-primary-container/10 transition-colors font-headline uppercase flex items-center gap-2">
-          <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">chat</span>
+          <span class="material-symbols-outlined text-base icon-fill">chat</span>
           Escribinos
         </a>
       </div>
@@ -255,15 +255,15 @@
       <!-- Badges de valor diferencial -->
       <div class="flex flex-wrap gap-2 pt-1">
         <span class="inline-flex items-center gap-1.5 bg-primary-container/10 border border-primary-container/20 text-primary-container px-3 py-1.5 rounded-full text-xs font-bold font-label uppercase tracking-wide">
-          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">local_shipping</span>
+          <span class="material-symbols-outlined text-sm icon-fill">local_shipping</span>
           Envíos 24 hs · mismo día zona sur
         </span>
         <span class="inline-flex items-center gap-1.5 bg-primary-container/10 border border-primary-container/20 text-primary-container px-3 py-1.5 rounded-full text-xs font-bold font-label uppercase tracking-wide">
-          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">storefront</span>
+          <span class="material-symbols-outlined text-sm icon-fill">storefront</span>
           Local en Longchamps
         </span>
         <span class="inline-flex items-center gap-1.5 bg-primary-container/10 border border-primary-container/20 text-primary-container px-3 py-1.5 rounded-full text-xs font-bold font-label uppercase tracking-wide">
-          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">support_agent</span>
+          <span class="material-symbols-outlined text-sm icon-fill">support_agent</span>
           Asesoramiento personalizado
         </span>
       </div>
@@ -274,15 +274,15 @@
         <iframe
           title="Ubicación Danichap — Av. Hipólito Yrigoyen 19608, Longchamps"
           src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3271.1932540850836!2d-58.40289588476563!3d-34.82076097291908!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcd3a3e6fe2fd5%3A0x5de01cd72c5e8c7d!2sAv.+Hip%C3%B3lito+Yrigoyen+19608%2C+Longchamps%2C+Provincia+de+Buenos+Aires!5e0!3m2!1ses!2sar!4v1712700000000!5m2!1ses!2sar"
-          class="absolute inset-0 w-full h-full"
-          style="border:0;"
+          class="absolute inset-0 w-full h-full borde-0"
+         
           allowfullscreen=""
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade">
         </iframe>
         <div class="absolute bottom-4 left-4 right-4 pointer-events-none z-10">
           <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl backdrop-blur-md font-body text-sm font-bold bg-white/90 text-on-surface shadow">
-            <span class="material-symbols-outlined text-base text-primary-container" style="font-variation-settings:'FILL' 1;">location_on</span>
+            <span class="material-symbols-outlined text-base text-primary-container icon-fill">location_on</span>
             Av. Hipólito Yrigoyen 19608, Longchamps
           </div>
         </div>
@@ -295,36 +295,36 @@
 <div class="bg-primary overflow-hidden py-2.5">
   <div class="ticker-track flex gap-16 whitespace-nowrap">
     <span class="ticker-content inline-flex gap-16 items-center font-label font-bold text-xs uppercase tracking-widest text-white">
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">star</span>4.3★ · 249 reseñas Google</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">star</span>4.3★ · 249 reseñas Google</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">timer</span>Respondemos en minutos</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">timer</span>Respondemos en minutos</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">local_shipping</span>Envíos en 24 hs · Mismo día zona sur</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">local_shipping</span>Envíos en 24 hs · Mismo día zona sur</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">storefront</span>Visitanos en el local · Longchamps</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">storefront</span>Visitanos en el local · Longchamps</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">verified</span>+10 años en el rubro</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">verified</span>+10 años en el rubro</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">support_agent</span>Asesoramiento personalizado en el local</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">support_agent</span>Asesoramiento personalizado en el local</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">workspace_premium</span>Marcas originales: Brembo, NGK, Bosch, Liqui-Moly</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">workspace_premium</span>Marcas originales: Brembo, NGK, Bosch, Liqui-Moly</span>
       <span class="opacity-50">✦</span>
     </span>
     <!-- Duplicado para loop continuo -->
     <span class="ticker-content inline-flex gap-16 items-center font-label font-bold text-xs uppercase tracking-widest text-white">
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">star</span>4.3★ · 249 reseñas Google</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">star</span>4.3★ · 249 reseñas Google</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">timer</span>Respondemos en minutos</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">timer</span>Respondemos en minutos</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">local_shipping</span>Envíos en 24 hs · Mismo día zona sur</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">local_shipping</span>Envíos en 24 hs · Mismo día zona sur</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">storefront</span>Visitanos en el local · Longchamps</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">storefront</span>Visitanos en el local · Longchamps</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">verified</span>+10 años en el rubro</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">verified</span>+10 años en el rubro</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">support_agent</span>Asesoramiento personalizado en el local</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">support_agent</span>Asesoramiento personalizado en el local</span>
       <span class="opacity-50">✦</span>
-      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">workspace_premium</span>Marcas originales: Brembo, NGK, Bosch, Liqui-Moly</span>
+      <span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm icon-fill">workspace_premium</span>Marcas originales: Brembo, NGK, Bosch, Liqui-Moly</span>
       <span class="opacity-50">✦</span>
     </span>
   </div>
@@ -348,19 +348,19 @@
         </div>
         <ul class="space-y-2.5">
           <li class="flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-primary-container text-sm mt-0.5 flex-shrink-0" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-primary-container text-sm mt-0.5 flex-shrink-0 icon-fill">check_circle</span>
             <p class="font-body text-sm text-secondary">Identificamos el repuesto exacto para tu vehículo</p>
           </li>
           <li class="flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-primary-container text-sm mt-0.5 flex-shrink-0" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-primary-container text-sm mt-0.5 flex-shrink-0 icon-fill">check_circle</span>
             <p class="font-body text-sm text-secondary">Te explicamos la diferencia entre marcas y calidades</p>
           </li>
           <li class="flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-primary-container text-sm mt-0.5 flex-shrink-0" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-primary-container text-sm mt-0.5 flex-shrink-0 icon-fill">check_circle</span>
             <p class="font-body text-sm text-secondary">Verificamos compatibilidad y stock antes de cerrar</p>
           </li>
           <li class="flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-primary-container text-sm mt-0.5 flex-shrink-0" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-primary-container text-sm mt-0.5 flex-shrink-0 icon-fill">check_circle</span>
             <p class="font-body text-sm text-secondary">Sin presión: respondemos tus dudas sin costo</p>
           </li>
         </ul>
@@ -375,19 +375,19 @@
         </div>
         <ul class="space-y-2.5">
           <li class="flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-tertiary text-sm mt-0.5 flex-shrink-0" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-tertiary text-sm mt-0.5 flex-shrink-0 icon-fill">check_circle</span>
             <p class="font-body text-sm text-secondary">Garantía en todos los productos</p>
           </li>
           <li class="flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-tertiary text-sm mt-0.5 flex-shrink-0" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-tertiary text-sm mt-0.5 flex-shrink-0 icon-fill">check_circle</span>
             <p class="font-body text-sm text-secondary">Seguimiento de tu compra por WhatsApp</p>
           </li>
           <li class="flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-tertiary text-sm mt-0.5 flex-shrink-0" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-tertiary text-sm mt-0.5 flex-shrink-0 icon-fill">check_circle</span>
             <p class="font-body text-sm text-secondary">Asistencia técnica si el repuesto no llega en perfectas condiciones</p>
           </li>
           <li class="flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-tertiary text-sm mt-0.5 flex-shrink-0" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-tertiary text-sm mt-0.5 flex-shrink-0 icon-fill">check_circle</span>
             <p class="font-body text-sm text-secondary">Soporte ante cualquier eventualidad, siempre por WhatsApp</p>
           </li>
         </ul>
@@ -422,7 +422,7 @@
       <div class="md:col-span-1 lg:col-span-4 flex flex-col justify-between bg-surface border border-outline-variant rounded-2xl p-7 gap-6 shadow-sm">
         <div>
           <div class="inline-flex items-center gap-2 bg-tertiary-container/20 text-tertiary px-3 py-1.5 rounded-full text-xs font-bold font-label uppercase tracking-widest mb-5">
-            <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">verified_user</span>
+            <span class="material-symbols-outlined text-sm icon-fill">verified_user</span>
             La diferencia Danichap
           </div>
           <h3 class="text-on-surface font-headline font-black text-2xl leading-tight uppercase mb-3">
@@ -438,11 +438,11 @@
           <div class="text-center">
             <div class="text-3xl font-black font-headline text-primary-container leading-none">4.3</div>
             <div class="flex justify-center gap-px mt-1.5">
-              <span class="material-symbols-outlined text-yellow-500 text-xs" style="font-variation-settings:'FILL' 1;">star</span>
-              <span class="material-symbols-outlined text-yellow-500 text-xs" style="font-variation-settings:'FILL' 1;">star</span>
-              <span class="material-symbols-outlined text-yellow-500 text-xs" style="font-variation-settings:'FILL' 1;">star</span>
-              <span class="material-symbols-outlined text-yellow-500 text-xs" style="font-variation-settings:'FILL' 1;">star</span>
-              <span class="material-symbols-outlined text-yellow-400 text-xs" style="font-variation-settings:'FILL' 0.3;">star</span>
+              <span class="material-symbols-outlined text-yellow-500 text-xs icon-fill">star</span>
+              <span class="material-symbols-outlined text-yellow-500 text-xs icon-fill">star</span>
+              <span class="material-symbols-outlined text-yellow-500 text-xs icon-fill">star</span>
+              <span class="material-symbols-outlined text-yellow-500 text-xs icon-fill">star</span>
+              <span class="material-symbols-outlined text-yellow-400 text-xs icon-fill-low">star</span>
             </div>
             <div class="text-[10px] text-secondary font-label uppercase mt-1">Google</div>
           </div>
@@ -460,11 +460,11 @@
         <div class="bg-surface-container-low rounded-xl p-4 border border-outline-variant">
           <div class="flex items-center gap-2 mb-2">
             <div class="flex gap-px">
-              <span class="material-symbols-outlined text-yellow-500 text-sm" style="font-variation-settings:'FILL' 1;">star</span>
-              <span class="material-symbols-outlined text-yellow-500 text-sm" style="font-variation-settings:'FILL' 1;">star</span>
-              <span class="material-symbols-outlined text-yellow-500 text-sm" style="font-variation-settings:'FILL' 1;">star</span>
-              <span class="material-symbols-outlined text-yellow-500 text-sm" style="font-variation-settings:'FILL' 1;">star</span>
-              <span class="material-symbols-outlined text-yellow-500 text-sm" style="font-variation-settings:'FILL' 1;">star</span>
+              <span class="material-symbols-outlined text-yellow-500 text-sm icon-fill">star</span>
+              <span class="material-symbols-outlined text-yellow-500 text-sm icon-fill">star</span>
+              <span class="material-symbols-outlined text-yellow-500 text-sm icon-fill">star</span>
+              <span class="material-symbols-outlined text-yellow-500 text-sm icon-fill">star</span>
+              <span class="material-symbols-outlined text-yellow-500 text-sm icon-fill">star</span>
             </div>
             <span class="text-[10px] text-secondary font-label uppercase">Sergio L.</span>
           </div>
@@ -495,7 +495,7 @@
       <a href="https://wa.me/541123409187?text=Hola%20Danichap!%20Busco%20un%20repuesto%20que%20no%20encuentro%20en%20el%20cat%C3%A1logo.%20%C2%BFMe%20pueden%20ayudar%3F"
          target="_blank" rel="noopener noreferrer"
          class="flex-shrink-0 flex items-center gap-2 bg-tertiary-container text-on-tertiary-container px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-tertiary transition-colors font-headline uppercase">
-        <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">chat</span>
+        <span class="material-symbols-outlined text-base icon-fill">chat</span>
         Consultar por WhatsApp
       </a>
     </div>
@@ -566,7 +566,7 @@
       <div class="grid grid-cols-2 md:grid-cols-5 gap-6">
         <div class="flex flex-col items-start md:items-center text-left md:text-center group">
           <div class="w-14 h-14 rounded-2xl bg-primary-container/10 border border-primary-container/30 flex items-center justify-center mb-4 relative z-10 group-hover:bg-primary-container/20 transition-colors">
-            <span class="material-symbols-outlined text-2xl text-primary-container" style="font-variation-settings:'FILL' 1;">storefront</span>
+            <span class="material-symbols-outlined text-2xl text-primary-container icon-fill">storefront</span>
           </div>
           <span class="text-primary-container font-black text-xs font-label tracking-widest mb-1">2016</span>
           <h3 class="text-white font-headline font-bold text-sm uppercase leading-tight mb-1">Los comienzos</h3>
@@ -574,7 +574,7 @@
         </div>
         <div class="flex flex-col items-start md:items-center text-left md:text-center group">
           <div class="w-14 h-14 rounded-2xl bg-primary-container/10 border border-primary-container/30 flex items-center justify-center mb-4 relative z-10 group-hover:bg-primary-container/20 transition-colors">
-            <span class="material-symbols-outlined text-2xl text-primary-container" style="font-variation-settings:'FILL' 1;">inventory_2</span>
+            <span class="material-symbols-outlined text-2xl text-primary-container icon-fill">inventory_2</span>
           </div>
           <span class="text-primary-container font-black text-xs font-label tracking-widest mb-1">2018</span>
           <h3 class="text-white font-headline font-bold text-sm uppercase leading-tight mb-1">Stock premium</h3>
@@ -582,7 +582,7 @@
         </div>
         <div class="flex flex-col items-start md:items-center text-left md:text-center group">
           <div class="w-14 h-14 rounded-2xl bg-primary-container/10 border border-primary-container/30 flex items-center justify-center mb-4 relative z-10 group-hover:bg-primary-container/20 transition-colors">
-            <span class="material-symbols-outlined text-2xl text-primary-container" style="font-variation-settings:'FILL' 1;">chat</span>
+            <span class="material-symbols-outlined text-2xl text-primary-container icon-fill">chat</span>
           </div>
           <span class="text-primary-container font-black text-xs font-label tracking-widest mb-1">2020</span>
           <h3 class="text-white font-headline font-bold text-sm uppercase leading-tight mb-1">WhatsApp & envíos</h3>
@@ -590,7 +590,7 @@
         </div>
         <div class="flex flex-col items-start md:items-center text-left md:text-center group">
           <div class="w-14 h-14 rounded-2xl bg-primary-container/10 border border-primary-container/30 flex items-center justify-center mb-4 relative z-10 group-hover:bg-primary-container/20 transition-colors">
-            <span class="material-symbols-outlined text-2xl text-primary-container" style="font-variation-settings:'FILL' 1;">star</span>
+            <span class="material-symbols-outlined text-2xl text-primary-container icon-fill">star</span>
           </div>
           <span class="text-primary-container font-black text-xs font-label tracking-widest mb-1">2022</span>
           <h3 class="text-white font-headline font-bold text-sm uppercase leading-tight mb-1">+200 reseñas</h3>
@@ -598,7 +598,7 @@
         </div>
         <div class="flex flex-col items-start md:items-center text-left md:text-center group col-span-2 md:col-span-1">
           <div class="w-14 h-14 rounded-2xl bg-primary-container flex items-center justify-center mb-4 relative z-10 shadow-lg shadow-primary-container/30">
-            <span class="material-symbols-outlined text-2xl text-white" style="font-variation-settings:'FILL' 1;">military_tech</span>
+            <span class="material-symbols-outlined text-2xl text-white icon-fill">military_tech</span>
           </div>
           <span class="text-primary-container font-black text-xs font-label tracking-widest mb-1">2024</span>
           <h3 class="text-white font-headline font-bold text-sm uppercase leading-tight mb-1">+10 años</h3>
@@ -699,42 +699,42 @@
         <h2 class="text-4xl font-headline font-black uppercase mb-8 mt-2">¿Por qué elegirnos?</h2>
         <ul class="space-y-5">
           <li class="flex items-start gap-4">
-            <span class="material-symbols-outlined text-primary-container mt-0.5" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-primary-container mt-0.5 icon-fill">check_circle</span>
             <div>
               <h3 class="font-bold text-base font-headline">Asesoramiento Técnico Pre-Venta</h3>
               <p class="text-secondary text-sm font-body">No solo vendemos repuestos, te ayudamos a identificar exactamente el que necesita tu vehículo.</p>
             </div>
           </li>
           <li class="flex items-start gap-4">
-            <span class="material-symbols-outlined text-primary-container mt-0.5" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-primary-container mt-0.5 icon-fill">check_circle</span>
             <div>
               <h3 class="font-bold text-base font-headline">Seguimiento Post-Venta Real</h3>
               <p class="text-secondary text-sm font-body">Garantía oficial y soporte ante cualquier eventualidad. Seguimos ahí después de la compra.</p>
             </div>
           </li>
           <li class="flex items-start gap-4">
-            <span class="material-symbols-outlined text-primary-container mt-0.5" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-primary-container mt-0.5 icon-fill">check_circle</span>
             <div>
               <h3 class="font-bold text-base font-headline">Marcas Originales y Alternativas</h3>
               <p class="text-secondary text-sm font-body">Brembo, NGK, Bosch, Gates, Liqui-Moly y más. También opciones de calidad a mejor precio.</p>
             </div>
           </li>
           <li class="flex items-start gap-4">
-            <span class="material-symbols-outlined text-primary-container mt-0.5" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-primary-container mt-0.5 icon-fill">check_circle</span>
             <div>
               <h3 class="font-bold text-base font-headline">Envíos en 24 hs · Mismo día zona sur</h3>
               <p class="text-secondary text-sm font-body">Zona Sur del GBA: entrega en el día. Todo el país: despachamos al siguiente hábil. También podés retirar en el local.</p>
             </div>
           </li>
           <li class="flex items-start gap-4">
-            <span class="material-symbols-outlined text-primary-container mt-0.5" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-primary-container mt-0.5 icon-fill">check_circle</span>
             <div>
               <h3 class="font-bold text-base font-headline">Visitanos en el local — Longchamps</h3>
               <p class="text-secondary text-sm font-body">Vení al local y te asesoramos en persona. Lunes a viernes 8:30–18:30 hs, sábados 8:30–13:30 hs.</p>
             </div>
           </li>
           <li class="flex items-start gap-4">
-            <span class="material-symbols-outlined text-primary-container mt-0.5" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <span class="material-symbols-outlined text-primary-container mt-0.5 icon-fill">check_circle</span>
             <div>
               <h3 class="font-bold text-base font-headline">Respondemos en Minutos por WhatsApp</h3>
               <p class="text-secondary text-sm font-body">Atención por WhatsApp de lunes a sábado. Sin formularios, sin esperas innecesarias.</p>
@@ -744,7 +744,7 @@
         <a href="https://wa.me/541123409187?text=Hola%20Danichap!%20Quisiera%20asesoramiento%20para%20mi%20veh%C3%ADculo."
            target="_blank" rel="noopener noreferrer"
            class="mt-8 inline-flex items-center gap-2 bg-tertiary-container text-on-tertiary-container px-6 py-3 rounded-xl font-bold font-headline uppercase text-sm hover:bg-tertiary transition-colors">
-          <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">chat</span>
+          <span class="material-symbols-outlined text-base icon-fill">chat</span>
           Pedir asesoramiento
         </a>
       </div>
@@ -799,13 +799,13 @@
           <div class="flex flex-col sm:flex-row gap-4">
             <a href="https://maps.app.goo.gl/YLTgJStGdV5PCfXNA" target="_blank" rel="noopener noreferrer"
                class="flex items-center gap-2 px-5 py-3 rounded-xl font-headline font-bold text-sm uppercase transition-all hover:opacity-90 bg-primary-container text-white">
-              <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">location_on</span>
+              <span class="material-symbols-outlined text-base icon-fill">location_on</span>
               Cómo llegar
             </a>
             <a href="https://wa.me/541123409187?text=Hola%20Danichap!%20Quiero%20saber%20el%20horario%20y%20c%C3%B3mo%20llegar."
                target="_blank" rel="noopener noreferrer"
                class="flex items-center gap-2 px-5 py-3 rounded-xl font-headline font-bold text-sm uppercase transition-all border border-tertiary-container text-tertiary hover:opacity-80">
-              <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1;">chat</span>
+              <span class="material-symbols-outlined text-base icon-fill">chat</span>
               Consultar horario
             </a>
           </div>
@@ -829,8 +829,8 @@
         <iframe
           title="Ubicación Danichap — Av. Hipólito Yrigoyen 19608, Longchamps"
           src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3271.1932540850836!2d-58.40289588476563!3d-34.82076097291908!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcd3a3e6fe2fd5%3A0x5de01cd72c5e8c7d!2sAv.+Hip%C3%B3lito+Yrigoyen+19608%2C+Longchamps%2C+Provincia+de+Buenos+Aires!5e0!3m2!1ses!2sar!4v1712700000000!5m2!1ses!2sar"
-          class="w-full h-full min-h-[420px] lg:min-h-full"
-          style="border:0;"
+          class="w-full h-full min-h-[420px] lg:min-h-full borde-0"
+         
           allowfullscreen=""
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade">
@@ -838,7 +838,7 @@
         <!-- Pin label overlay -->
         <div class="absolute bottom-6 left-6 right-6 z-10 pointer-events-none">
           <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl backdrop-blur-md font-body text-sm font-bold bg-white/90 text-on-surface shadow">
-            <span class="material-symbols-outlined text-base text-primary-container" style="font-variation-settings:'FILL' 1;">location_on</span>
+            <span class="material-symbols-outlined text-base text-primary-container icon-fill">location_on</span>
             Av. Hipólito Yrigoyen 19608, Longchamps
           </div>
         </div>
@@ -872,11 +872,11 @@
             <span class="text-white/70 font-body text-sm">/5.0</span>
           </div>
           <div class="flex gap-0.5 mt-0.5">
-            <span class="material-symbols-outlined text-yellow-400 text-sm" style="font-variation-settings:'FILL' 1;">star</span>
-            <span class="material-symbols-outlined text-yellow-400 text-sm" style="font-variation-settings:'FILL' 1;">star</span>
-            <span class="material-symbols-outlined text-yellow-400 text-sm" style="font-variation-settings:'FILL' 1;">star</span>
-            <span class="material-symbols-outlined text-yellow-400 text-sm" style="font-variation-settings:'FILL' 1;">star</span>
-            <span class="material-symbols-outlined text-yellow-400 text-sm" style="font-variation-settings:'FILL' 0.3;">star</span>
+            <span class="material-symbols-outlined text-yellow-400 text-sm icon-fill">star</span>
+            <span class="material-symbols-outlined text-yellow-400 text-sm icon-fill">star</span>
+            <span class="material-symbols-outlined text-yellow-400 text-sm icon-fill">star</span>
+            <span class="material-symbols-outlined text-yellow-400 text-sm icon-fill">star</span>
+            <span class="material-symbols-outlined text-yellow-400 text-sm icon-fill-low">star</span>
           </div>
           <p class="text-white/60 text-[10px] font-label mt-0.5 uppercase tracking-wide">249 reseñas</p>
         </div>
@@ -904,7 +904,7 @@
       <div class="flex items-center gap-3 mb-4">
         <picture>
           <source srcset="docs/img/danichaplogo-transparent.webp" type="image/webp"/>
-          <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="30" height="30" class="rounded-sm object-contain" style="width:30px;height:30px;" loading="lazy"/>
+          <img src="docs/img/danichaplogo-transparent.png" alt="DANICHAP" width="30" height="30" class="rounded-sm object-contain logo-30" loading="lazy"/>
         </picture>
         <div class="flex flex-col leading-none">
           <span class="text-lg font-black text-on-surface font-headline tracking-[-0.04em] uppercase">DANICHAP</span>
@@ -947,10 +947,10 @@
     </div>
   </div>
   <!-- FOOTER BOTTOM BAR -->
-  <div class="border-t border-outline-variant px-6 pb-24" style="background:linear-gradient(to bottom,transparent,rgba(0,30,75,0.05));padding-top:24px;">
+  <div class="border-t border-outline-variant px-6 pb-24 pie-degradado-inicio">
     <div class="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
       <!-- Copyright -->
-      <p class="text-[10px] font-label uppercase tracking-[0.15em] order-2 sm:order-1" style="color:rgba(0,30,75,0.35);">
+      <p class="text-[10px] font-label uppercase tracking-[0.15em] order-2 sm:order-1 texto-azul-35">
         © 2025 DANICHAP · Todos los derechos reservados
       </p>
       <!-- Agency credit -->
@@ -960,33 +960,6 @@
         <span class="mana-label">Diseño &amp; desarrollo</span>
         <span class="mana-name">MANA<span class="mana-dot">·</span>DIGITAL</span>
       </a>
-      <style>
-        .mana-credit {
-          display: inline-flex; align-items: center; gap: 10px;
-          text-decoration: none; opacity: 0.55;
-          transition: opacity 0.2s;
-        }
-        .mana-credit:hover { opacity: 1; }
-        .mana-credit::before {
-          content: '';
-          display: block; width: 18px; height: 1px;
-          background: #0a1f4e;
-          flex-shrink: 0;
-        }
-        .mana-label {
-          font-family: Inter, sans-serif;
-          font-size: 9px; font-weight: 500;
-          letter-spacing: 0.14em; text-transform: uppercase;
-          color: rgba(0,30,75,0.6);
-        }
-        .mana-name {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 11px; font-weight: 900;
-          letter-spacing: 0.08em; text-transform: uppercase;
-          color: #0a1f4e;
-        }
-        .mana-dot { color: #e1000f; margin: 0 1px; }
-      </style>
     </div>
   </div>
 </footer>
@@ -995,7 +968,7 @@
 <a href="https://wa.me/541123409187?text=Hola%20Danichap!%20Quiero%20consultar%20por%20un%20repuesto."
    target="_blank" rel="noopener noreferrer"
    class="wpp-fab fixed bottom-8 right-8 z-[100] bg-tertiary-container text-on-tertiary-container p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-transform active:scale-95 promo-pulse">
-  <span class="material-symbols-outlined text-3xl" style="font-variation-settings:'FILL' 1;">chat</span>
+  <span class="material-symbols-outlined text-3xl icon-fill">chat</span>
   <span class="wpp-fab-label font-bold font-label text-sm uppercase tracking-wider">Consultar</span>
 </a>
 

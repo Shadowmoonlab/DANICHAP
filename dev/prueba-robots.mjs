@@ -1,10 +1,10 @@
 // dev/prueba-robots.mjs — Prueba de carga de los robots contra la base LOCAL, antes de subir cambios.
 // Corre los 7 robots a la vez con volumen real (DM 32.370, Goicoechea 70.459, PR 28.620, Distrisuper 25.116,
-// Del Viso 11.859, Otero 6.000, Fal 1.612), dos veces (la 2ª actualiza
-// filas existentes, como pasa todos los días), con los sitios simulados (dev/mock-distribuidores.mjs).
+// Del Viso 11.859, Otero 6.000, Fal 1.612), con los sitios simulados (dev/mock-distribuidores.mjs), tres vueltas:
+// carga, actualización con todos los precios cambiados y una igual a la anterior (no debe escribir nada).
 // Con --estricto los guardados de los robots se cortan a los 200 ms (en vez de 5 min, como en producción tras
 // docs/robots-conservar-datos.sql): imita una base mucho más lenta y obliga a partir lotes.
-// Uso: npm run dev (en otra terminal) y después  npm run test:robots  [-- --estricto]
+// Uso: npm run dev (en otra terminal) y después  npm run test:robots  [-- --estricto] [--sin-sql-nuevo]
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -27,6 +27,13 @@ async function sql(...consultas) {
   await c.connect();
   try { for (const q of consultas) await c.query(q); } finally { await c.end(); }
 }
+
+// --sin-sql-nuevo: como una base de producción donde todavía no se corrió docs/robots-sincronizar.sql
+const sinSqlNuevo = process.argv.includes('--sin-sql-nuevo');
+const SQL_NUEVO = fs.readFileSync(`${RAIZ}docs/robots-sincronizar.sql`, 'utf8');
+await sql(...(sinSqlNuevo
+  ? ['drop function if exists public.sincronizar_precios(jsonb, timestamptz)', 'drop function if exists public.desactivar_ausentes(text, text[])']
+  : [SQL_NUEVO]), `notify pgrst, 'reload schema'`);
 
 // Igual que producción: la API corta a los 8 s y los robots (service_role) tienen su propio límite.
 // Se cierran las conexiones de la API para que tomen la configuración.
@@ -57,21 +64,29 @@ function correr(robot, vuelta) {
     hijo.stdout.on('data', d => { salida += d; });
     hijo.stderr.on('data', d => { salida += d; });
     hijo.on('close', codigo => ok({ robot, codigo, segundos: (Date.now() - inicio) / 1000,
-      linea: salida.split('\n').find(l => /OK —|ERROR/.test(l)) ?? salida.trim().split('\n').pop() }));
+      salida, linea: salida.split('\n').find(l => /OK —|ERROR/.test(l)) ?? salida.trim().split('\n').pop() }));
   });
 }
 
 let fallas = 0;
-for (const vuelta of [1, 2]) {
+const VUELTAS = [
+  { ajuste: 1, nombre: 'carga' },
+  { ajuste: 2, nombre: 'todos los precios cambiaron' },
+  { ajuste: 2, nombre: 'sin cambios', sinEscrituras: true },
+];
+for (const v of VUELTAS) {
   const inicio = Date.now();
-  const resultados = await Promise.all(ROBOTS.map(r => correr(r, vuelta)));
-  console.log(`\nVuelta ${vuelta} (${vuelta === 1 ? 'carga' : 'actualización'}) — ${((Date.now() - inicio) / 1000).toFixed(1)} s en total`);
+  const resultados = await Promise.all(ROBOTS.map(r => correr(r, v.ajuste)));
+  console.log(`\nVuelta "${v.nombre}" — ${((Date.now() - inicio) / 1000).toFixed(1)} s en total`);
   for (const r of resultados) {
-    console.log(`  ${r.codigo === 0 ? '✅' : '❌'} ${r.robot.padEnd(12)} ${r.segundos.toFixed(1).padStart(5)} s  ${r.linea}`);
-    if (r.codigo !== 0) fallas++;
+    // Sin cambios en el sitio no se reescribe nada (salvo sin docs/robots-sincronizar.sql, que reescribe todo)
+    const modoViejo = /guardo con upsert_precios/.test(r.salida);
+    const ok = r.codigo === 0 && (!v.sinEscrituras || modoViejo || /\(0 nuevos o con cambios\)/.test(r.linea));
+    console.log(`  ${ok ? '✅' : '❌'} ${r.robot.padEnd(12)} ${r.segundos.toFixed(1).padStart(5)} s  ${r.linea}${modoViejo ? '  [sin SQL nuevo]' : ''}`);
+    if (!ok) fallas++;
   }
 }
 
-await sql(`alter role service_role set statement_timeout = '5min'`);
+await sql(`alter role service_role set statement_timeout = '5min'`, SQL_NUEVO);   // la base local queda completa
 console.log(fallas ? `\n❌ ${fallas} corridas fallaron` : '\n✅ Todos los robots guardaron todo');
 process.exit(fallas ? 1 : 0);

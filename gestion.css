@@ -160,6 +160,9 @@ table.tbl { width: 100%; border-collapse: collapse; }
 .robot:last-child { border-bottom: 0; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
 .dot.ok { background: var(--green); } .dot.err { background: var(--red); } .dot.none { background: var(--line); }
+.dot.warn { background: var(--amber); } .dot.run { background: var(--amber); animation: dot-pulso 1.2s ease-in-out infinite; }
+@keyframes dot-pulso { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .dot.run { animation: none; } }
 
 /* ── Comprobante (impresión) ──────────────────────────────────────────── */
 #print-area { display: none; }
