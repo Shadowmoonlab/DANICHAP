@@ -48,9 +48,30 @@ jobs:
 
       - name: Robot ${{ matrix.d.slug }}
         run: node scrapers/${{ matrix.d.archivo }}.mjs
+        # Cada secret por nombre (pasarlos todos juntos GitHub lo marca como posible robo de claves).
+        # Distribuidor nuevo con login = sumar acá sus dos líneas.
         env:
-          # Todos los secrets del repo (GitHub los oculta en los logs); cada robot usa los suyos.
-          SECRETS_JSON: ${{ toJSON(secrets) }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          DM_EMAIL: ${{ secrets.DM_EMAIL }}
+          DM_PASSWORD: ${{ secrets.DM_PASSWORD }}
+          DM_COOKIE_ID: ${{ secrets.DM_COOKIE_ID }}
+          PR_USER: ${{ secrets.PR_USER }}
+          PR_PASSWORD: ${{ secrets.PR_PASSWORD }}
+          GOICOECHEA_USER: ${{ secrets.GOICOECHEA_USER }}
+          GOICOECHEA_PASSWORD: ${{ secrets.GOICOECHEA_PASSWORD }}
+          DISTRISUPER_USER: ${{ secrets.DISTRISUPER_USER }}
+          DISTRISUPER_PASSWORD: ${{ secrets.DISTRISUPER_PASSWORD }}
+          OTERO_USER: ${{ secrets.OTERO_USER }}
+          OTERO_PASSWORD: ${{ secrets.OTERO_PASSWORD }}
+          FAL_USER: ${{ secrets.FAL_USER }}
+          FAL_PASSWORD: ${{ secrets.FAL_PASSWORD }}
+          DELVISO_USER: ${{ secrets.DELVISO_USER }}
+          DELVISO_PASSWORD: ${{ secrets.DELVISO_PASSWORD }}
+          DISTRIFERR_USER: ${{ secrets.DISTRIFERR_USER }}
+          DISTRIFERR_PASSWORD: ${{ secrets.DISTRIFERR_PASSWORD }}
+          PRIMERAALT_USER: ${{ secrets.PRIMERAALT_USER }}
+          PRIMERAALT_PASSWORD: ${{ secrets.PRIMERAALT_PASSWORD }}
 
   # En repos públicos GitHub desactiva los workflows programados tras 60 días sin actividad.
   # Volver a habilitarlo por API cada vez que corre reinicia ese contador (mismo método que usa

@@ -4,13 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 
 const LOTE = 1000;
 
-// En GitHub Actions los secrets llegan juntos en SECRETS_JSON: se pasan a process.env (sin pisar lo que ya exista)
-if (process.env.SECRETS_JSON) {
-  for (const [k, v] of Object.entries(JSON.parse(process.env.SECRETS_JSON))) {
-    if (typeof v === 'string' && process.env[k] === undefined) process.env[k] = v;
-  }
-}
-
 export function env(nombre) {
   const v = process.env[nombre];
   if (!v) throw new Error(`Falta la variable de entorno ${nombre}`);
