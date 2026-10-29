@@ -23,11 +23,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="shared.css?v=5"/>
+<link rel="stylesheet" href="shared.css?v=7"/>
 <link rel="stylesheet" href="tailwind.css"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="toast.js?v=3"></script>
-<script src="supabase.js"></script>
+<script src="supabase.js?v=2"></script>
 </head>
 <body class="bg-surface font-body text-on-surface min-h-screen flex items-center justify-center p-4">
 
@@ -60,8 +60,12 @@
         <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Contraseña</label>
         <input type="password" name="password" required autocomplete="current-password"
           class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+        <p class="text-right mt-1">
+          <button type="button" id="btn-olvide" class="text-primary-container text-xs font-bold font-body hover:underline">¿Olvidaste tu contraseña?</button>
+        </p>
       </div>
       <p id="login-error" class="text-error text-xs hidden font-body"></p>
+      <p id="login-info" class="text-tertiary text-xs hidden font-body"></p>
       <button type="submit"
         class="w-full bg-primary-container text-white py-3 rounded-xl font-bold font-headline uppercase text-sm hover:opacity-90 transition-opacity">
         Entrar
@@ -92,6 +96,26 @@
         Crear cuenta
       </button>
     </form>
+
+    <!-- Nueva contraseña (al abrir el link del mail de recuperación) -->
+    <form id="form-nueva" class="space-y-4 hidden">
+      <p class="text-sm font-body text-on-surface">Elegí tu contraseña nueva.</p>
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Contraseña nueva</label>
+        <input type="password" name="password" required minlength="6" autocomplete="new-password"
+          class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+      </div>
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-secondary mb-1.5">Repetila</label>
+        <input type="password" name="password2" required minlength="6" autocomplete="new-password"
+          class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-container transition-colors"/>
+      </div>
+      <p id="nueva-error" class="text-error text-xs hidden font-body"></p>
+      <button type="submit"
+        class="w-full bg-primary-container text-white py-3 rounded-xl font-bold font-headline uppercase text-sm hover:opacity-90 transition-opacity">
+        Guardar contraseña
+      </button>
+    </form>
   </div>
 
   <p class="text-center text-secondary text-xs font-body mt-6">
@@ -100,6 +124,49 @@
 </div>
 
 <script>
+  // Se lee antes que nada: sesionDeRecuperacion() borra el token de la barra apenas lo toma
+  const LINK_RECUPERACION = /type=recovery/.test(location.hash);
+
+  // ── Olvidé mi contraseña: manda el mail con el link ──
+  const mostrar = (id, texto) => { const el = document.getElementById(id); el.textContent = texto; el.classList.toggle('hidden', !texto); };
+  document.getElementById('btn-olvide').addEventListener('click', async e => {
+    const btn = e.currentTarget;
+    const email = (document.querySelector('#form-login [name=email]').value || '').trim();
+    mostrar('login-error', ''); mostrar('login-info', '');
+    if (!/^\S+@\S+\.\S+$/.test(email)) { mostrar('login-error', 'Escribí tu email arriba y volvé a tocar "¿Olvidaste tu contraseña?".'); return; }
+    btn.disabled = true;
+    const { error } = await Auth.recuperarClave(email);
+    btn.disabled = false;
+    // Mismo mensaje exista o no la cuenta: no se revela qué emails están registrados
+    if (error && !/rate|limit|seconds/i.test(error.message)) mostrar('login-error', 'No se pudo enviar el mail. Probá en unos minutos.');
+    else if (error) mostrar('login-error', 'Ya te mandamos un mail hace poco. Esperá un minuto y revisá también la carpeta de spam.');
+    else mostrar('login-info', `Si ${email} tiene cuenta, te llega un mail con un link para crear una contraseña nueva. Revisá también la carpeta de spam.`);
+  });
+
+  // ── Link del mail de recuperación: pedir la contraseña nueva ──
+  (async () => {
+    if (!(await Auth.sesionDeRecuperacion())) return;
+    document.getElementById('form-login').classList.add('hidden');
+    document.getElementById('form-register').classList.add('hidden');
+    document.getElementById('tab-login').parentElement.classList.add('hidden');
+    document.getElementById('form-nueva').classList.remove('hidden');
+  })();
+  document.getElementById('form-nueva').addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const pass = fd.get('password') || '', pass2 = fd.get('password2') || '';
+    if (pass.length < 6) { mostrar('nueva-error', 'La contraseña tiene que tener al menos 6 caracteres.'); return; }
+    if (pass !== pass2) { mostrar('nueva-error', 'Las dos contraseñas no coinciden.'); return; }
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+    const { error } = await Auth.cambiarClave(pass);
+    if (error) { btn.disabled = false; btn.textContent = 'Guardar contraseña'; mostrar('nueva-error', 'No se pudo guardar. Pedí otro mail de recuperación y probá de nuevo.'); return; }
+    window.showToast?.('Contraseña actualizada', 'success');
+    const user = await Auth.getUser();
+    const perfil = user ? await Perfiles.get(user.id).catch(() => null) : null;
+    window.location.href = perfil?.rol === 'admin' ? 'admin.html' : 'index.html';
+  });
+
   // Tab switching
   document.getElementById('tab-login').addEventListener('click', () => switchTab('login'));
   document.getElementById('tab-register').addEventListener('click', () => switchTab('register'));
@@ -209,7 +276,7 @@
 
   // Si ya está logueado, redirigir (usa getSession — lectura local, sin roundtrip)
   Auth.getUser().then(async user => {
-    if (!user) return;
+    if (!user || LINK_RECUPERACION) return;   // con el link del mail primero se elige la contraseña nueva
     try {
       const perfil = await Perfiles.get(user.id);
       window.location.href = perfil?.rol === 'admin' ? 'admin.html' : 'index.html';

@@ -1,7 +1,7 @@
 // gestion/clientes.js — Agenda simple de clientes con cuenta corriente (fiado): saldo, pagos y recordatorio.
 import {
   $, h, icon, vacio, db, toast, money, fecha, fechaCorta, estado, hoyISO, openModal, closeModal, confirmar,
-  linkWhatsApp, registrarVista, PAGOS,
+  linkWhatsApp, registrarVista, PAGOS, unaVez,
 } from './core.js';
 import { recordatorioSaldo } from './plantillas.js';
 
@@ -40,7 +40,7 @@ export function editarCliente(c, alGuardar) {
   const form = h('div', {}, ...campos.map(([k, l]) => h('div', { class: 'field' }, h('label', { class: 'label' }, l),
     inputs[k] = k === 'notas' ? h('textarea', { class: 'input', rows: 2 }, c?.[k] || '')
                               : h('input', { class: 'input', value: c?.[k] || '', type: k === 'email' ? 'email' : k === 'telefono' ? 'tel' : 'text' }))));
-  const guardar = async () => {
+  const guardar = unaVez(async () => {
     const datos = Object.fromEntries(campos.map(([k]) => [k, inputs[k].value.trim() || null]));
     if (!datos.nombre) { toast('Falta el nombre', 'error'); inputs.nombre.focus(); return; }
     datos.updated_at = new Date().toISOString();
@@ -50,7 +50,7 @@ export function editarCliente(c, alGuardar) {
     closeModal(); toast(c ? 'Cliente actualizado' : 'Cliente creado', 'success');
     await cargarClientes();
     alGuardar?.(data);
-  };
+  });
   openModal({ title: c ? 'Editar cliente' : 'Nuevo cliente', body: form,
     foot: [h('button', { class: 'btn', onclick: closeModal }, 'Cancelar'), h('button', { class: 'btn btn-primary', onclick: guardar }, icon('save'), 'Guardar')] });
   inputs.nombre.focus();
@@ -102,14 +102,14 @@ async function fichaCliente(c) {
 function registrarPago(c) {
   const monto = h('input', { class: 'input num', type: 'number', min: 1, inputmode: 'decimal', value: Number(c.saldo) > 0 ? Math.round(c.saldo) : '' });
   const medio = h('select', { class: 'select' }, ...['efectivo', 'transferencia', 'debito', 'credito'].map(m => h('option', { value: m }, PAGOS[m])));
-  const guardar = async () => {
+  const guardar = unaVez(async () => {
     const n = parseFloat(monto.value);
     if (!(n > 0)) { toast('Poné el monto', 'error'); return; }
     const { error } = await db.from('pagos_clientes').insert({ cliente_id: c.id, monto: n, medio: medio.value });
     if (error) { toast(error.message, 'error'); return; }
     closeModal(); toast(`Pago de ${money(n)} registrado`, 'success');
     await cargarClientes();
-  };
+  });
   openModal({
     title: `Pago de ${c.nombre}`,
     body: h('div', { class: 'grid2' },

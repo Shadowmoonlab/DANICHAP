@@ -317,3 +317,25 @@ table.tbl { width: 100%; border-collapse: collapse; }
   .stats { grid-template-columns: 1fr; }
 }
 .ia-limite { margin-top: 14px; }
+
+/* ── Libro diario ─────────────────────────────────────────────────────── */
+.libro-nav { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; }
+.libro-periodo { display: flex; align-items: center; gap: 6px; }
+.libro-titulo { font: 700 16px 'Space Grotesk', sans-serif; color: var(--navy); }
+.stats-5 { grid-template-columns: repeat(5, 1fr); }
+.stat .d { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.stat.bad .v { color: var(--red); }
+.egreso { color: var(--red); }
+.caja-item.caja-pos { border-color: #9fd8b4; background: var(--green-soft); }
+.caja-item.caja-neg { border-color: #f5c2c5; background: #fdecec; }
+.chip-mov { background: #eceae5; color: var(--muted); }
+.chip-venta { background: var(--navy-soft); color: var(--navy-2); }
+.chip-cobro { background: var(--green-soft); color: var(--green); }
+.chip-compra { background: var(--amber-soft); color: var(--amber); }
+.chip-gasto, .chip-retiro { background: #fdecec; color: var(--red); }
+.chip-ingreso { background: var(--green-soft); color: var(--green); }
+.tbl tr.fila-total td { font-weight: 800; border-top: 2px solid var(--line); background: #f7f6f3; }
+.libro-print td, .libro-print th { font-size: 12px; }
+.libro-print .right { text-align: right; }
+@media (max-width: 1000px) { .stats-5 { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) { .stats-5 { grid-template-columns: repeat(2, 1fr); } .libro-titulo { width: 100%; } }

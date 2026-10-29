@@ -7,7 +7,8 @@
     "dev:reset": "node dev/start.mjs --reset",
     "dev:robot:dm": "node --env-file=.dev/supabase.env --env-file-if-exists=.env.local scrapers/dm.mjs",
     "dev:robot:pr": "node --env-file=.dev/supabase.env --env-file-if-exists=.env.local scrapers/pr.mjs",
-    "test:robots": "node dev/prueba-robots.mjs"
+    "test:robots": "node dev/prueba-robots.mjs",
+    "test:seguridad": "node dev/prueba-seguridad.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.102.1",

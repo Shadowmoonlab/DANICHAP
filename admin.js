@@ -650,8 +650,9 @@
 
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    const cOpen = !document.getElementById('confirm-dialog')?.classList.contains('hidden');
-    if (cOpen) { document.getElementById('confirm-dialog').classList.add('hidden'); return; }
+    // El diálogo de confirmación se crea recién la primera vez que se usa: si no existe, no está abierto
+    const confirmDlg = document.getElementById('confirm-dialog');
+    if (confirmDlg && !confirmDlg.classList.contains('hidden')) { confirmDlg.classList.add('hidden'); return; }
     if (!document.getElementById('producto-modal')?.classList.contains('hidden')) closeModal();
   });
 

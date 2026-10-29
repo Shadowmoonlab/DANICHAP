@@ -1,13 +1,10 @@
 // gestion/proveedores.js — Proveedores (logística, WhatsApp), importación de listas de precios y estado de robots.
 import {
   $, h, icon, vacio, db, toast, money, fecha, estado, DIAS, cargarProveedores, openModal, closeModal, confirmar,
-  registrarVista,
+  registrarVista, cargarSheetJS,
 } from './core.js';
 import { parsearLista, aFilasDePrecio } from './listas.js';
 import { estadoPrecios } from './robots.js';
-
-// SheetJS 0.20.3 servido desde el propio sitio (la 0.18.5 de npm tiene CVE-2023-30533)
-const SHEETJS = 'vendor/xlsx-0.20.3.full.min.js';
 
 async function cargar() {
   await cargarProveedores();
@@ -67,14 +64,6 @@ function editarProveedor(p) {
 }
 
 /* ── Importar lista de precios (Excel / CSV) ─────────────────────────── */
-function cargarSheetJS() {
-  if (window.XLSX) return Promise.resolve(window.XLSX);
-  return new Promise((ok, mal) => {
-    const s = Object.assign(document.createElement('script'), { src: SHEETJS, onload: () => ok(window.XLSX), onerror: () => mal(new Error('No se pudo cargar el lector de Excel')) });
-    document.head.append(s);
-  });
-}
-
 async function importarLista() {
   const prov = h('select', { class: 'select' }, ...estado.proveedores.map(p => h('option', { value: p.slug }, p.nombre)));
   const file = h('input', { type: 'file', class: 'input', accept: '.xls,.xlsx,.csv,.ods' });

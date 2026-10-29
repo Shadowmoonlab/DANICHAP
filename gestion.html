@@ -16,11 +16,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="gestion.css?v=3"/>
+<link rel="stylesheet" href="gestion.css?v=4"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
 <script src="toast.js?v=3" defer></script>
-<script src="supabase.js" defer></script>
-<script type="module" src="gestion/main.js?v=3"></script>
+<script src="supabase.js?v=2" defer></script>
+<script type="module" src="gestion/main.js?v=4"></script>
 </head>
 <body>
 
@@ -49,6 +49,7 @@
     <button class="tab" data-view="reposicion"><span class="ms">local_shipping</span>Reposición <span class="badge hidden" id="badge-repo">0</span></button>
     <button class="tab" data-view="recepcion"><span class="ms">document_scanner</span>Recepción</button>
     <button class="tab" data-view="ventas"><span class="ms">receipt_long</span>Ventas</button>
+    <button class="tab" data-view="libro"><span class="ms">menu_book</span>Libro diario</button>
     <button class="tab" data-view="clientes"><span class="ms">group</span>Clientes</button>
     <button class="tab" data-view="proveedores"><span class="ms">storefront</span>Proveedores</button>
     <button class="tab" data-view="ajustes"><span class="ms">tune</span>Ajustes</button>
@@ -177,6 +178,47 @@
   </section>
 
   <!-- ═══ CLIENTES ═══ -->
+  <section id="view-libro" class="view hidden">
+    <div class="view-title">
+      <h2>Libro diario</h2>
+      <div class="view-acts">
+        <button class="btn btn-primary" id="libro-nuevo"><span class="ms">add</span>Cargar gasto</button>
+        <button class="btn" id="libro-excel" title="Descarga el período en Excel para el contador"><span class="ms">download</span>Excel</button>
+        <button class="btn" id="libro-imprimir"><span class="ms">print</span>Imprimir</button>
+      </div>
+    </div>
+    <div class="libro-nav">
+      <div class="subtabs" id="libro-modos" role="group" aria-label="Período">
+        <button class="subtab active" data-modo="dia">Día</button>
+        <button class="subtab" data-modo="mes">Mes</button>
+        <button class="subtab" data-modo="anio">Año</button>
+      </div>
+      <div class="libro-periodo">
+        <button class="btn btn-sm" id="libro-ant" aria-label="Período anterior"><span class="ms">chevron_left</span></button>
+        <input type="date" id="libro-dia" class="input input-auto" aria-label="Día"/>
+        <input type="month" id="libro-mes" class="input input-auto hidden" aria-label="Mes"/>
+        <input type="number" id="libro-anio" class="input input-auto hidden" min="2020" max="2100" aria-label="Año"/>
+        <button class="btn btn-sm" id="libro-sig" aria-label="Período siguiente"><span class="ms">chevron_right</span></button>
+        <button class="btn btn-sm" id="libro-hoy">Hoy</button>
+      </div>
+      <strong class="libro-titulo" id="libro-titulo"></strong>
+    </div>
+    <div class="stats stats-5">
+      <div class="card stat"><div class="v num" id="lb-ventas">$ 0</div><div class="l">Ventas</div><div class="d" id="lb-ventas-n"></div></div>
+      <div class="card stat good"><div class="v num" id="lb-ganancia">$ 0</div><div class="l" title="Ventas menos lo que costó la mercadería (solo artículos con costo conocido)">Ganancia bruta *</div><div class="d" id="lb-margen"></div></div>
+      <div class="card stat"><div class="v num" id="lb-compras">$ 0</div><div class="l">Compras a proveedores</div><div class="d">cargadas en Recepción</div></div>
+      <div class="card stat"><div class="v num" id="lb-gastos">$ 0</div><div class="l">Gastos</div><div class="d" id="lb-gastos-d"></div></div>
+      <div class="card stat good" id="lb-resultado-card"><div class="v num" id="lb-resultado">$ 0</div><div class="l" title="Ganancia bruta menos gastos (los retiros del dueño no son gasto)">Resultado</div><div class="d">ganancia − gastos</div></div>
+    </div>
+    <div class="caja" id="libro-caja" aria-label="Caja del período"></div>
+    <div class="card tbl-wrap">
+      <table class="tbl" id="libro-tabla">
+        <thead id="libro-head"></thead>
+        <tbody id="libro-body"></tbody>
+      </table>
+    </div>
+  </section>
+
   <section id="view-clientes" class="view hidden">
     <div class="view-title">
       <h2>Clientes</h2>
@@ -203,7 +245,7 @@
         <button class="btn btn-primary" id="prov-importar"><span class="ms">upload_file</span>Importar lista en Excel</button>
       </div>
     </div>
-    <p class="view-hint">Los precios de DM y PR se actualizan solos todos los días a las 6:00. Cargá qué días pasa cada proveedor y su WhatsApp para mandarle los pedidos directo.</p>
+    <p class="view-hint">Los precios de DM, PR, Goicoechea, Distrisuper, Otero, Fal y Del Viso se actualizan solos todos los días a las 6:00 (si un sitio falla, se reintenta a las 12 y a las 18). Los demás se cargan con "Importar lista en Excel". Cargá qué días pasa cada proveedor y su WhatsApp para mandarle los pedidos directo.</p>
     <div id="prov-list" class="prov-cards"></div>
   </section>
 

@@ -39,6 +39,10 @@ const DevAuth = {
   async signUp() {
     return { data: { user: null }, error: { message: 'En el ambiente local usá admin@danichap.test o cliente@danichap.test' } };
   },
+  // Recuperación de contraseña simulada: login.html#type=recovery muestra el formulario de clave nueva
+  async recuperarClave() { return { error: null }; },
+  async sesionDeRecuperacion() { return /type=recovery/.test(location.hash); },
+  async cambiarClave() { return { error: null }; },
   async signOut() {
     localStorage.removeItem(DEV_KEY);
     _devListeners.forEach(cb => cb('SIGNED_OUT', null));
@@ -73,6 +77,21 @@ const Auth = DEV ? DevAuth : {
   },
   async signOut() { return _supabase.auth.signOut(); },
   onAuthChange(cb) { return _supabase.auth.onAuthStateChange(cb); },
+
+  // ── Olvidé mi contraseña ──
+  // Supabase manda un mail con un link a login.html#access_token=…&refresh_token=…&type=recovery
+  async recuperarClave(email) {
+    return _supabase.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/login.html` });
+  },
+  // detectSessionInUrl está apagado: el link de recuperación se toma acá, solo en login.html
+  async sesionDeRecuperacion() {
+    const p = new URLSearchParams(location.hash.slice(1));
+    if (p.get('type') !== 'recovery' || !p.get('access_token') || !p.get('refresh_token')) return false;
+    history.replaceState(null, '', location.pathname);   // que el token no quede en la barra ni en el historial
+    const { error } = await _supabase.auth.setSession({ access_token: p.get('access_token'), refresh_token: p.get('refresh_token') });
+    return !error;
+  },
+  async cambiarClave(password) { return _supabase.auth.updateUser({ password }); },
 };
 
 /* ── Perfiles ─────────────────────────────────────────────────────────────── */

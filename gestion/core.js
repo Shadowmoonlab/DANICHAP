@@ -122,6 +122,27 @@ export async function copiar(texto, aviso = 'Copiado') {
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }
 }
 
+/** Envuelve un guardado: mientras corre, los clics repetidos se ignoran (un doble clic no duplica pagos ni registros). */
+export function unaVez(fn) {
+  let corriendo = false;
+  return async (...args) => {
+    if (corriendo) return undefined;
+    corriendo = true;
+    try { return await fn(...args); } finally { corriendo = false; }
+  };
+}
+
+/* ── Excel (leer listas, exportar el libro diario) ───────────────────── */
+// SheetJS 0.20.3 servido desde el propio sitio (la 0.18.5 de npm tiene CVE-2023-30533); se carga recién al usarlo
+const SHEETJS = 'vendor/xlsx-0.20.3.full.min.js';
+export function cargarSheetJS() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((ok, mal) => {
+    const s = Object.assign(document.createElement('script'), { src: SHEETJS, onload: () => ok(window.XLSX), onerror: () => mal(new Error('No se pudo cargar el lector de Excel')) });
+    document.head.append(s);
+  });
+}
+
 /* ── Búsqueda en precios de distribuidores y stock propio ────────────── */
 export async function buscarPrecios(q, limite = 40) {
   const ws = palabras(normalizar(q));

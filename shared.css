@@ -372,3 +372,10 @@ html {
   color: #0a1f4e;
 }
 .mana-dot { color: #e1000f; margin: 0 1px; }
+
+/* ── Enlaces solo para el administrador (Gestión / Admin en la barra): auth.js pone body.es-admin ── */
+body:not(.es-admin) .solo-admin { display: none !important; }
+
+/* Las animaciones .reveal-right arrancan corridas 40px: sin esto, en el celular la página se arrastra hacia el costado.
+   clip (no hidden) no crea un contenedor de scroll, así el nav sticky/fijo sigue funcionando. */
+html, body { overflow-x: clip; }

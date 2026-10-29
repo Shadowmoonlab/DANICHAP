@@ -43,6 +43,8 @@ export const MIGRACIONES = [
   'docs/ajustes-2026-10.sql',
   'docs/robots-conservar-datos.sql',
   'docs/robots-sincronizar.sql',
+  'docs/add-libro-diario.sql',
+  'docs/seguridad-perfiles.sql',
 ];
 export const SEED = 'dev/seed.sql';
 

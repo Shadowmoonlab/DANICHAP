@@ -1,5 +1,5 @@
 // gestion/ajustes.js — Ganancia, redondeo, datos del comprobante y lectura con IA (límite y consumo).
-import { $, h, db, toast, money, estado, registrarVista } from './core.js';
+import { $, h, db, toast, money, estado, registrarVista, confirmar } from './core.js';
 
 // USD por millón de tokens (entrada / salida). Misma tabla que MODELOS en supabase/functions/_shared/leer-factura.js
 const PRECIOS_IA = {
@@ -56,6 +56,10 @@ async function cargarConsumoIA() {
 }
 
 async function guardar() {
+  // Una ganancia vacía o en 0 haría que el Mostrador venda todo al costo: nunca en silencio
+  const pctTexto = $('cfg-ganancia').value.trim();
+  if (pctTexto === '') { toast('Poné la ganancia general (%)', 'error'); $('cfg-ganancia').focus(); return; }
+  if (Number(pctTexto) <= 0 && !(await confirmar('Ganancia en 0 %', 'Con 0 % el Mostrador vende todo al precio de costo. ¿Guardar igual?', { ok: 'Guardar igual', peligro: true }))) return;
   const porDist = {};
   document.querySelectorAll('#cfg-dist input[data-dist]').forEach(i => { if (i.value !== '') porDist[i.dataset.dist] = Number(i.value); });
   const datos = {

@@ -37,7 +37,7 @@ async function cargar() {
     h('td', { class: 'right num ganancia' }, money(v.ganancia)))));
 }
 
-async function verVenta(v) {
+export async function verVenta(v) {
   const { data: items } = await db.from('venta_items').select('codigo, descripcion, cantidad, precio_unit, costo_unit').eq('venta_id', v.id);
   openModal({
     title: `Venta Nº ${v.id}`, wide: true,

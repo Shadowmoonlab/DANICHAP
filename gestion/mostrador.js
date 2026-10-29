@@ -2,7 +2,7 @@
 import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
-  actualizarBadgeRepo,
+  actualizarBadgeRepo, unaVez,
 } from './core.js';
 import { presupuesto as textoPresupuesto } from './plantillas.js';
 import { imprimirComprobante } from './comprobante.js';
@@ -183,7 +183,7 @@ async function presupuestoWhatsApp() {
   const { nombre, cliente } = clienteElegido();
   const texto = textoPresupuesto({ cliente: cliente?.nombre || nombre, items: venta, negocio: estado.config });
   const area = h('textarea', { class: 'input', rows: 14 }, texto);
-  const guardar = async () => {
+  const guardar = unaVez(async () => {
     const total = venta.reduce((s, v) => s + v.cantidad * v.precio_unit, 0);
     const valido = new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 10);
     const datos = { cliente_id: cliente?.id ?? null, cliente_nombre: cliente?.nombre ?? (nombre || null), items: itemsParaGuardar(), total, valido_hasta: valido };
@@ -192,7 +192,7 @@ async function presupuestoWhatsApp() {
     if (error) { toast(error.message, 'error'); return null; }
     presupuestoId = data.id; renderVenta(); actualizarBadgePresupuestos();
     return data.id;
-  };
+  });
   openModal({
     title: 'Presupuesto por WhatsApp', wide: true,
     body: h('div', {},

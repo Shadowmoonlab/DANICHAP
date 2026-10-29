@@ -6,11 +6,12 @@ import { iniciarMostrador } from './mostrador.js';
 import { iniciarReposicion } from './reposicion.js';
 import { iniciarRecepcion } from './recepcion.js';
 import { iniciarVentas } from './ventas.js';
+import { iniciarLibro } from './libro.js';
 import { iniciarClientes, cargarClientes } from './clientes.js';
 import { iniciarProveedores } from './proveedores.js';
 import { iniciarAjustes } from './ajustes.js';
 
-const VISTAS = ['mostrador', 'reposicion', 'recepcion', 'ventas', 'clientes', 'proveedores', 'ajustes'];
+const VISTAS = ['mostrador', 'reposicion', 'recepcion', 'ventas', 'libro', 'clientes', 'proveedores', 'ajustes'];
 
 async function verificarAcceso() {
   const user = await Auth.getUser();
@@ -43,7 +44,7 @@ async function iniciar() {
   document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => mostrarVista(t.dataset.view)));
 
   await Promise.all([cargarConfig(), cargarProveedores()]);
-  iniciarMostrador(); iniciarReposicion(); iniciarRecepcion(); iniciarVentas();
+  iniciarMostrador(); iniciarReposicion(); iniciarRecepcion(); iniciarVentas(); iniciarLibro();
   iniciarClientes(); iniciarProveedores(); iniciarAjustes();
   atajos();
   cargarClientes();

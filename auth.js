@@ -279,6 +279,8 @@ const AuthUI = {
     const userBtn        = document.getElementById('nav-user-btn');
     const userLabel      = document.getElementById('nav-user-label');
     const adminLink      = document.getElementById('nav-admin-link');
+    // Botones "Gestión" / "Admin" de la barra (.solo-admin): visibles solo para el administrador
+    document.body.classList.toggle('es-admin', Boolean(_currentUser) && this.isAdmin);
     if (!loginBtn) return;
 
     if (_currentUser) {

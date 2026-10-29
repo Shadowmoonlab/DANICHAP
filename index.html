@@ -90,7 +90,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0..1&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="shared.css?v=5"/>
+<link rel="stylesheet" href="shared.css?v=7"/>
 <link rel="stylesheet" href="tailwind.css"/>
 <!-- Preload LCP image -->
 <link rel="preload" as="image" href="docs/img/danichaplogo-transparent.webp" type="image/webp"/>
@@ -104,8 +104,8 @@
 <!-- Supabase + módulos -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
 <script src="toast.js?v=3" defer></script>
-<script src="supabase.js" defer></script>
-<script src="auth.js?v=3" defer></script>
+<script src="supabase.js?v=2" defer></script>
+<script src="auth.js?v=4" defer></script>
 <script src="cart.js" defer></script>
 <script src="cart-ui.js" defer></script>
 <script src="data.js" defer></script>
@@ -155,6 +155,12 @@
         <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
         Ingresar
       </button>
+      <!-- Gestión (solo Daniel): buscador de precios de proveedores, ventas, comprobantes -->
+      <a href="gestion.html" title="Buscar precios de proveedores, ventas y comprobantes"
+        class="hidden md:flex items-center gap-2 bg-primary-container text-white px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-colors font-headline uppercase solo-admin">
+        <span class="material-symbols-outlined text-sm icon-fill" aria-hidden="true">point_of_sale</span>
+        Gestión
+      </a>
       <!-- Usuario logueado -->
       <div id="nav-user-btn" class="hidden items-center gap-2 relative group">
         <button class="flex items-center gap-2 border border-outline-variant px-3 py-2 rounded-xl font-bold text-sm text-on-surface hover:bg-surface-container transition-colors font-headline uppercase" aria-haspopup="true" aria-expanded="false">
@@ -196,6 +202,15 @@
         <span class="w-1.5 h-1.5 rounded-full bg-primary-container flex-shrink-0"></span>Inicio</a>
       <a href="catalogo.html" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Catálogo</a>
       <a href="contacto.html" class="py-3 text-secondary hover:text-on-surface font-headline uppercase text-sm tracking-wide border-b border-outline-variant">Contacto</a>
+      <!-- Solo Daniel -->
+      <a href="gestion.html"
+         class="mt-2 flex items-center justify-center gap-2 bg-primary-container text-white py-3 rounded-xl font-bold font-headline uppercase text-sm solo-admin">
+        <span class="material-symbols-outlined text-sm icon-fill" aria-hidden="true">point_of_sale</span>Gestión · buscar precios
+      </a>
+      <a href="admin.html"
+         class="mt-2 flex items-center justify-center gap-2 border border-primary-container text-primary-container py-3 rounded-xl font-bold font-headline uppercase text-sm hover:bg-primary-container/10 transition-colors solo-admin">
+        <span class="material-symbols-outlined text-sm icon-fill" aria-hidden="true">admin_panel_settings</span>Admin · productos web
+      </a>
       <button id="nav-login-btn-mobile"
         class="mt-2 flex items-center justify-center gap-2 border border-primary-container text-primary-container py-3 rounded-xl font-bold font-headline uppercase text-sm hover:bg-primary-container/10 transition-colors"
         aria-label="Ingresar a tu cuenta">
