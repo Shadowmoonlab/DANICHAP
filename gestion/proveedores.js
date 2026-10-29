@@ -21,7 +21,9 @@ async function cargar() {
         h('div', {}, h('h3', {}, p.nombre),
           h('div', { class: 'muted', style: 'font-size:13px', title: e.detalle || '' },
             h('span', { class: 'dot ' + e.tipo }), e.texto)),
-        h('button', { class: 'btn btn-sm', onclick: () => editarProveedor(p) }, icon('edit'), 'Editar')),
+        h('div', { class: 'prov-acts' },
+          p.web ? h('a', { class: 'btn btn-sm', href: p.web, target: '_blank', rel: 'noopener', title: 'Abrir la web del proveedor' }, icon('open_in_new'), 'Web') : null,
+          h('button', { class: 'btn btn-sm', onclick: () => editarProveedor(p) }, icon('edit'), 'Editar'))),
       h('div', { class: 'prov-card-body' },
         h('div', {}, h('span', { class: 'label' }, 'Pasa'),
           p.dias_visita?.length ? h('div', { class: 'dias' }, ...DIAS.map((d, i) => h('span', { class: 'dia' + (p.dias_visita.includes(i) ? ' on' : '') }, d)))
@@ -38,12 +40,19 @@ function editarProveedor(p) {
   const notas = h('textarea', { class: 'input', rows: 2 }, p.notas || '');
   const activo = h('input', { type: 'checkbox', checked: p.activo });
   const dias = DIAS.map((d, i) => h('input', { type: 'checkbox', checked: p.dias_visita?.includes(i), 'aria-label': d }));
+  const web = h('input', { class: 'input', type: 'url', value: p.web || '', placeholder: 'https://… (donde entrás a ver precios)' });
   const guardar = async () => {
     const datos = {
       nombre: nombre.value.trim() || p.nombre, whatsapp: whatsapp.value.trim() || null,
       pedido_minimo: minimo.value === '' ? null : Number(minimo.value), notas: notas.value.trim() || null,
       activo: activo.checked, dias_visita: dias.map((c, i) => (c.checked ? i : null)).filter(i => i !== null),
     };
+    // La columna web llega con docs/proveedores-web.sql: sin ella, guardar el resto igual
+    if ('web' in p) {
+      const url = web.value.trim();
+      if (url && !/^https?:\/\//i.test(url)) { toast('La página web tiene que empezar con http:// o https://', 'error'); return; }
+      datos.web = url || null;
+    }
     const { error } = await db.from('proveedores').update(datos).eq('slug', p.slug);
     if (error) { toast(error.message, 'error'); return; }
     closeModal(); toast('Proveedor guardado', 'success'); cargar();
@@ -57,6 +66,7 @@ function editarProveedor(p) {
       h('div', { class: 'grid2' },
         h('div', { class: 'field' }, h('label', { class: 'label' }, 'WhatsApp para pedidos'), whatsapp),
         h('div', { class: 'field' }, h('label', { class: 'label' }, 'Pedido mínimo ($)'), minimo)),
+      'web' in p ? h('div', { class: 'field' }, h('label', { class: 'label' }, 'Página web (para buscar desde Buscar y vender)'), web) : null,
       h('div', { class: 'field' }, h('label', { class: 'label' }, 'Notas (condiciones, horarios, vendedor)'), notas),
       h('label', { class: 'check' }, activo, 'Activo')),
     foot: [h('button', { class: 'btn', onclick: closeModal }, 'Cancelar'), h('button', { class: 'btn btn-primary', onclick: guardar }, icon('save'), 'Guardar')],

@@ -47,6 +47,7 @@ export const MIGRACIONES = [
   'docs/seguridad-perfiles.sql',
   'docs/seguridad-anon.sql',
   'docs/gestion-v3.sql',
+  'docs/proveedores-web.sql',
 ];
 export const SEED = 'dev/seed.sql';
 

@@ -155,8 +155,12 @@ export async function leerFactura(client, entrada, { modelo } = {}) {
   return { datos: normalizarDatos(datos), modelo: respuesta.model, uso: respuesta.usage };
 }
 
-// Alias que Google mantiene apuntando al Flash vigente (los nombres con versión se dan de baja seguido)
-export const MODELO_GEMINI = 'gemini-flash-latest';
+// Alias que Google mantiene apuntando al modelo vigente (los nombres con versión se dan de baja seguido).
+// Flash-Lite transcribe directo, sin "pensar": con fotos de facturas responde en segundos. Si falla o tarda,
+// se reintenta una vez con Flash (más completo pero más lento). Todo dentro de los 150 s que da Supabase.
+export const MODELO_GEMINI = 'gemini-flash-lite-latest';
+export const MODELO_GEMINI_RESPALDO = 'gemini-flash-latest';
+const ESPERA_GEMINI_MS = [55_000, 75_000];
 
 /**
  * Alternativa gratuita: lee el comprobante con Gemini (Google AI Studio, plan sin costo) por REST, sin SDK.
@@ -165,24 +169,58 @@ export const MODELO_GEMINI = 'gemini-flash-latest';
  * @param {string} apiKey  clave de Google AI Studio
  * @param {{modelo?: string, fetchFn?: typeof fetch}} [opciones]
  */
-export async function leerFacturaGemini(apiKey, entrada, { modelo, fetchFn = fetch } = {}) {
+export async function leerFacturaGemini(apiKey, entrada, { modelo, fetchFn = fetch, esperasMs = ESPERA_GEMINI_MS } = {}) {
   validarArchivo(entrada);
+  const elegido = /^gemini-[a-z0-9.-]+$/.test(modelo || '') ? modelo : MODELO_GEMINI;
+  const modelos = elegido === MODELO_GEMINI_RESPALDO ? [elegido] : [elegido, MODELO_GEMINI_RESPALDO];
+  let ultimo;
+  for (let i = 0; i < modelos.length; i++) {
+    try {
+      return await pedirGemini(apiKey, entrada, modelos[i], fetchFn, esperasMs[Math.min(i, esperasMs.length - 1)]);
+    } catch (e) {
+      ultimo = e;
+      // Reintentar solo lo pasajero (servicio caído / saturado / demorado); cupo, rechazo o archivo inválido no
+      if (!(e instanceof ErrorLectura) || !['api', 'demora'].includes(e.codigo)) throw e;
+    }
+  }
+  throw ultimo;
+}
+
+async function pedirGemini(apiKey, entrada, model, fetchFn, esperaMs) {
   const pista = entrada.proveedor ? `\nEl comprobante debería ser del proveedor "${String(entrada.proveedor).slice(0, 80)}".` : '';
-  const model = /^gemini-[a-z0-9.-]+$/.test(modelo || '') ? modelo : MODELO_GEMINI;
-  const res = await fetchFn(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: INSTRUCCIONES }] },
-      contents: [{ role: 'user', parts: [
-        { inline_data: { mime_type: entrada.media_type, data: entrada.archivo.replace(/\s+/g, '') } },
-        { text: `Transcribí este comprobante.${pista}\nRespondé SOLO con un JSON que cumpla este esquema:\n${JSON.stringify(ESQUEMA)}` },
-      ] }],
-      generationConfig: { responseMimeType: 'application/json', temperature: 0, maxOutputTokens: 16000 },
-    }),
-  });
+  const corte = new AbortController();
+  const reloj = setTimeout(() => corte.abort(), esperaMs);
+  let res;
+  try {
+    res = await fetchFn(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: 'POST',
+      signal: corte.signal,
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: INSTRUCCIONES }] },
+        contents: [{ role: 'user', parts: [
+          { inline_data: { mime_type: entrada.media_type, data: entrada.archivo.replace(/\s+/g, '') } },
+          { text: `Transcribí este comprobante.${pista}\nRespondé SOLO con un JSON que cumpla este esquema:\n${JSON.stringify(ESQUEMA)}` },
+        ] }],
+        generationConfig: { responseMimeType: 'application/json', temperature: 0, maxOutputTokens: 16000 },
+      }),
+    });
+  } catch (e) {
+    if (e?.name === 'AbortError') throw new ErrorLectura(`La lectura tardó demasiado (${model})`, 'demora');
+    throw new ErrorLectura(`No se pudo conectar con el servicio de lectura (${model})`, 'api');
+  } finally {
+    clearTimeout(reloj);
+  }
   if (res.status === 429) throw new ErrorLectura('Se agotó el cupo gratuito de lecturas por ahora. Probá en un rato o cargá a mano.', 'limite');
-  if (!res.ok) throw new ErrorLectura(`Error del servicio de lectura (${res.status})`, 'api');
+  if (!res.ok) {
+    // El motivo que da Google (clave inválida, modelo inexistente, imagen rechazada…) queda en los logs de la función
+    const cuerpo = typeof res.text === 'function' ? await res.text().catch(() => '') : '';
+    let motivo = '';
+    try { motivo = JSON.parse(cuerpo)?.error?.message || ''; } catch { /* no era JSON */ }
+    console.error(`[leer-factura] Gemini ${model} respondió ${res.status}: ${cuerpo.slice(0, 500)}`);
+    // 5xx = problema del servicio (se reintenta); 4xx = el pedido en sí (clave, modelo, archivo): no tiene sentido reintentar
+    throw new ErrorLectura(`Error del servicio de lectura (${res.status}${motivo ? `: ${motivo.slice(0, 120)}` : ''})`, res.status >= 500 ? 'api' : 'api_pedido');
+  }
 
   const r = await res.json();
   const cand = r.candidates?.[0];

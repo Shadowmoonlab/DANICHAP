@@ -348,3 +348,9 @@ table.tbl { width: 100%; border-collapse: collapse; }
 .arqueo-res { display: flex; align-items: center; gap: 8px; font: 800 17px 'Space Grotesk', sans-serif; margin: -4px 0 12px; }
 .arqueo-res:empty { display: none; }
 .arqueo-ok { color: var(--green); } .arqueo-sobra { color: var(--amber); } .arqueo-falta { color: var(--red); }
+
+/* ── Buscar en las webs de los proveedores (Mostrador) ── */
+.pos-webs { display: grid; gap: 8px; margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 10px; background: #fff; font-size: 13px; }
+.pos-webs .muted { display: flex; align-items: center; gap: 6px; }
+.pos-webs-lista { display: flex; flex-wrap: wrap; gap: 6px; }
+.prov-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }

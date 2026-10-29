@@ -76,7 +76,7 @@ function pintarMovimientos() {
     h('th', { class: 'right' }, 'Importe'), h('th', { class: 'right' }, 'Entra'), h('th', { class: 'right' }, 'Sale'), h('th', { class: 'right' }, 'Ganancia')));
   const movs = estadoLibro.movimientos;
   if (!movs.length) {
-    $('libro-body').replaceChildren(h('tr', {}, h('td', { colspan: 8 }, vacio('menu_book', 'No hay movimientos este día. Las ventas del Mostrador, las compras de Recepción y los gastos que cargues aparecen acá.'))));
+    $('libro-body').replaceChildren(h('tr', {}, h('td', { colspan: 8 }, vacio('menu_book', 'No hay movimientos este día. Las ventas, las compras de Recepción y los gastos que cargues aparecen acá.'))));
     return;
   }
   $('libro-body').replaceChildren(...movs.map(m => {

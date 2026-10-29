@@ -41,7 +41,28 @@ const ejecutarBusqueda = debounce(async () => {
   renderResultados(q);
 }, 220);
 
+/* ── Buscar en las webs: proveedores que no salieron en esta búsqueda (los que el robot no lee, o sin coincidencias) ── */
+function renderWebs(q) {
+  const box = $('pos-webs');
+  const conResultados = new Set(resultados.filter(r => r.tipo === 'dist').map(r => r.distribuidor));
+  const webs = q == null ? [] : estado.proveedores.filter(p => p.activo && p.web && !conResultados.has(p.slug));
+  box.classList.toggle('hidden', !webs.length);
+  if (!webs.length) { box.replaceChildren(); return; }
+  box.replaceChildren(
+    h('span', { class: 'muted' }, icon('travel_explore'), ` Buscá "${q}" en sus webs: se copia lo que escribiste y se abre la página, pegalo en su buscador.`),
+    h('div', { class: 'pos-webs-lista' }, ...webs.map(p => h('button', { class: 'btn btn-sm', title: `Abrir ${p.web}`, onclick: () => abrirWeb(p, q) },
+      icon('open_in_new'), p.nombre))));
+}
+
+function abrirWeb(p, q) {
+  // Copiar y abrir en el mismo clic: el navegador bloquea las pestañas que se abren después de esperar algo
+  navigator.clipboard?.writeText(q).catch(() => {});
+  window.open(p.busqueda_url ? p.busqueda_url.replace('{q}', encodeURIComponent(q)) : p.web, '_blank', 'noopener');
+  toast(p.busqueda_url ? `Buscando en ${p.nombre}` : `Copiado "${q}": pegalo (Ctrl+V) en el buscador de ${p.nombre}`, 'success');
+}
+
 function renderResultados(q) {
+  renderWebs(q);
   const box = $('pos-results');
   if (q == null) {
     box.replaceChildren(vacio('manage_search', 'Escribí lo que te piden.', h('br'), 'Busca en tu stock y en todos los distribuidores a la vez.'));

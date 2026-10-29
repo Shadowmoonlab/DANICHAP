@@ -92,7 +92,7 @@ test('el día se cuenta en hora argentina', () => {
 });
 
 // ── Gemini (plan gratuito de Google AI Studio) ────────────────────────────
-import { leerFacturaGemini, MODELO_GEMINI } from '../supabase/functions/_shared/leer-factura.js';
+import { leerFacturaGemini, MODELO_GEMINI, MODELO_GEMINI_RESPALDO } from '../supabase/functions/_shared/leer-factura.js';
 
 const respGemini = (datos, extra = {}) => ({ ok: true, status: 200, json: async () => ({
   modelVersion: 'gemini-2.5-flash', usageMetadata: { promptTokenCount: 1500, candidatesTokenCount: 700 },
@@ -152,4 +152,27 @@ test('límite diario fijo en 4: aunque la base diga 50, la quinta lectura se rec
   const base = { limite: async () => 50, contarHoy: async () => 4, registrar: async () => {} };
   await assert.rejects(leerFacturaConLimite(null, { archivo: B64, media_type: 'image/png' }, { base, lector: async () => ({}) }),
     e => e.codigo === 'limite_diario' && /límite 4/.test(e.message));
+});
+
+test('Gemini: si el modelo rápido falla (503), reintenta una vez con el de respaldo y lee', async () => {
+  const llamadas = [];
+  const f = async (url, init) => { llamadas.push(url); return llamadas.length === 1 ? { ok: false, status: 503, text: async () => '{"error":{"message":"overloaded"}}' } : respGemini(DATOS); };
+  const r = await leerFacturaGemini('K', { archivo: B64, media_type: 'image/jpeg' }, { fetchFn: f });
+  assert.equal(llamadas.length, 2);
+  assert.match(llamadas[0], new RegExp(`/models/${MODELO_GEMINI}:`));
+  assert.match(llamadas[1], new RegExp(`/models/${MODELO_GEMINI_RESPALDO}:`));
+  assert.equal(r.datos.renglones.length, 1);
+});
+
+test('Gemini: si tarda más del máximo se corta (demora); el cupo agotado no se reintenta', async () => {
+  const lento = (_url, init) => new Promise((_ok, mal) => init.signal.addEventListener('abort', () => mal(Object.assign(new Error('abort'), { name: 'AbortError' }))));
+  await assert.rejects(leerFacturaGemini('K', { archivo: B64, media_type: 'image/jpeg' }, { fetchFn: lento, esperasMs: [20, 20] }), e => e.codigo === 'demora');
+  let n = 0;
+  await assert.rejects(leerFacturaGemini('K', { archivo: B64, media_type: 'image/jpeg' }, { fetchFn: async () => { n++; return { ok: false, status: 429 }; } }), e => e.codigo === 'limite');
+  assert.equal(n, 1);
+});
+
+test('Gemini: el motivo del error de Google llega al mensaje', async () => {
+  const f = async () => ({ ok: false, status: 400, text: async () => '{"error":{"message":"API key not valid"}}' });
+  await assert.rejects(leerFacturaGemini('K', { archivo: B64, media_type: 'image/jpeg' }, { fetchFn: f }), e => e.codigo === 'api_pedido' && /API key not valid/.test(e.message));
 });

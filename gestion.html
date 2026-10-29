@@ -16,11 +16,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="gestion.css?v=6"/>
+<link rel="stylesheet" href="gestion.css?v=7"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
 <script src="toast.js?v=3" defer></script>
 <script src="supabase.js?v=2" defer></script>
-<script type="module" src="gestion/main.js?v=6"></script>
+<script type="module" src="gestion/main.js?v=7"></script>
 </head>
 <body>
 
@@ -45,7 +45,7 @@
     <button id="g-logout" class="link" title="Salir" aria-label="Salir"><span class="ms">logout</span></button>
   </div>
   <nav class="tabs" role="tablist" aria-label="Secciones">
-    <button class="tab active" data-view="mostrador"><span class="ms">point_of_sale</span>Mostrador</button>
+    <button class="tab active" data-view="mostrador" title="Buscar precios en todos los proveedores, vender y cobrar"><span class="ms">point_of_sale</span>Buscar y vender</button>
     <button class="tab" data-view="reposicion"><span class="ms">local_shipping</span>Reposición <span class="badge hidden" id="badge-repo">0</span></button>
     <button class="tab" data-view="recepcion"><span class="ms">document_scanner</span>Recepción</button>
     <button class="tab" data-view="ventas"><span class="ms">receipt_long</span>Ventas</button>
@@ -64,7 +64,7 @@
       <div>
         <div class="search-box">
           <span class="ms">search</span>
-          <input id="pos-search" type="search" autocomplete="off" placeholder="Buscar repuesto: nombre, código o vehículo…" aria-label="Buscar repuesto"/>
+          <input id="pos-search" type="search" autocomplete="off" placeholder="Buscá en tu stock y en todos los proveedores: nombre, código o vehículo…" aria-label="Buscar repuesto en todos los proveedores"/>
         </div>
         <div class="search-help">
           <span>Tocá el repuesto para sumarlo a la venta y después <b>Cobrar</b>. Con teclado:</span>
@@ -76,6 +76,7 @@
           <span><span class="kbd">Esc</span> limpiar</span>
         </div>
         <div class="card results" id="pos-results" role="listbox" aria-label="Resultados"></div>
+        <div class="pos-webs hidden" id="pos-webs" aria-label="Buscar en las webs de los proveedores"></div>
       </div>
 
       <aside class="card ticket">
@@ -112,7 +113,7 @@
           </div>
           <div class="total-row"><span class="label">Total</span><span class="t num" id="pos-total">$ 0</span></div>
           <div class="gain" id="pos-gain"></div>
-          <label class="check"><input type="checkbox" id="pos-print"/> Imprimir comprobante</label>
+          <label class="check" title="Comprobante de venta para el cliente (no es factura fiscal de ARCA)"><input type="checkbox" id="pos-print"/> Imprimir comprobante</label>
           <div class="ticket-btns">
             <button class="btn btn-lg" id="pos-presu" disabled title="Mandar presupuesto por WhatsApp (F4)"><span class="ms">chat</span>Presupuesto</button>
             <button class="btn btn-green btn-xl" id="pos-cobrar" disabled><span class="ms">payments</span>Cobrar <span class="kbd">F9</span></button>
@@ -170,7 +171,7 @@
       <div class="card stat"><div class="v num" id="st-cant">0</div><div class="l">Ventas</div></div>
       <div class="card stat"><div class="v num" id="st-ticket">$ 0</div><div class="l">Promedio por venta</div></div>
     </div>
-    <p class="view-hint">Cada venta del Mostrador queda acá. Tocá una para ver qué se llevó, reimprimir el comprobante o anularla. Los recuadros de colores muestran cuánto entró por cada forma de pago. Al terminar el día tocá <b>Cerrar caja</b> para contar el efectivo.</p>
+    <p class="view-hint">Cada venta de <b>Buscar y vender</b> queda acá. Tocá una para ver qué se llevó, reimprimir el comprobante o anularla. Los recuadros de colores muestran cuánto entró por cada forma de pago. Al terminar el día tocá <b>Cerrar caja</b> para contar el efectivo.</p>
     <div class="caja hidden" id="ventas-caja" aria-label="Caja por forma de pago"></div>
     <div class="card tbl-wrap">
       <table class="tbl">
@@ -256,7 +257,7 @@
   <!-- ═══ AJUSTES ═══ -->
   <section id="view-ajustes" class="view hidden">
     <div class="view-title"><h2>Ajustes</h2></div>
-    <p class="view-hint">Lo que cambies acá vale para todo el sistema: con la ganancia se calcula el precio de venta de cada repuesto en el Mostrador. Tocá <b>Guardar</b> al terminar.</p>
+    <p class="view-hint">Lo que cambies acá vale para todo el sistema: con la ganancia se calcula el precio de venta de cada repuesto en <b>Buscar y vender</b>. Tocá <b>Guardar</b> al terminar.</p>
     <div class="settings">
       <div class="card card-pad">
         <h3>Ganancia</h3>
