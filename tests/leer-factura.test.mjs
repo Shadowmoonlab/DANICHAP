@@ -147,3 +147,9 @@ test('Gemini: tolera el JSON envuelto en ```json y descarta las partes de razona
   const r = await leerFacturaGemini('K', { archivo: B64, media_type: 'image/jpeg' }, { fetchFn: fetchFalso(resp) });
   assert.equal(r.datos.renglones.length, 1);
 });
+
+test('límite diario fijo en 4: aunque la base diga 50, la quinta lectura se rechaza', async () => {
+  const base = { limite: async () => 50, contarHoy: async () => 4, registrar: async () => {} };
+  await assert.rejects(leerFacturaConLimite(null, { archivo: B64, media_type: 'image/png' }, { base, lector: async () => ({}) }),
+    e => e.codigo === 'limite_diario' && /límite 4/.test(e.message));
+});

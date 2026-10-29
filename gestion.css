@@ -339,3 +339,12 @@ table.tbl { width: 100%; border-collapse: collapse; }
 .libro-print .right { text-align: right; }
 @media (max-width: 1000px) { .stats-5 { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 640px) { .stats-5 { grid-template-columns: repeat(2, 1fr); } .libro-titulo { width: 100%; } }
+
+/* ── Cierre de caja ───────────────────────────────────────────────────── */
+.arqueo { display: grid; gap: 6px; margin: 4px 0 14px; padding: 12px 14px; background: #f7f6f3; border: 1px solid var(--line); border-radius: 10px; }
+.arqueo > div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.arqueo .arqueo-total { border-top: 1px solid var(--line); padding-top: 6px; font-weight: 800; font-size: 15px; }
+.input-xl { font-size: 22px; font-weight: 800; padding: 12px 14px; }
+.arqueo-res { display: flex; align-items: center; gap: 8px; font: 800 17px 'Space Grotesk', sans-serif; margin: -4px 0 12px; }
+.arqueo-res:empty { display: none; }
+.arqueo-ok { color: var(--green); } .arqueo-sobra { color: var(--amber); } .arqueo-falta { color: var(--red); }

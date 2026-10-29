@@ -24,3 +24,9 @@ begin
 end $$;
 
 notify pgrst, 'reload schema';
+
+-- ── Lectura de facturas: tope fijo de 4 por día (cupo gratuito) ─────────────
+-- La función leer-factura lee este valor; con el check nadie lo puede subir, ni desde el panel ni por la API.
+update public.config_negocio set lecturas_ia_por_dia = 4 where lecturas_ia_por_dia is distinct from 4;
+alter table public.config_negocio drop constraint if exists lecturas_ia_fijo;
+alter table public.config_negocio add constraint lecturas_ia_fijo check (lecturas_ia_por_dia = 4);

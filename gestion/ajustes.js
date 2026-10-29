@@ -1,5 +1,5 @@
 // gestion/ajustes.js — Ganancia, redondeo, datos del comprobante y lectura con IA (límite y consumo).
-import { $, h, db, toast, money, estado, registrarVista, confirmar } from './core.js';
+import { $, h, db, toast, money, estado, registrarVista, confirmar, cargarSheetJS, hoyISO, unaVez } from './core.js';
 
 // USD por millón de tokens (entrada / salida). Misma tabla que MODELOS en supabase/functions/_shared/leer-factura.js
 const PRECIOS_IA = {
@@ -12,6 +12,8 @@ const costoLectura = r => {
   const p = PRECIOS_IA[r.modelo] || PRECIOS_IA['claude-opus-5-5'];
   return (r.input_tokens * p.entrada + r.output_tokens * p.salida) / 1e6;
 };
+// Fijo: no se configura desde el panel (la base y la función de lectura también lo imponen)
+const LIMITE_FACTURAS_DIA = 4;
 const inicioDiaArgentina = () => `${new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)}T03:00:00.000Z`;
 
 function render() {
@@ -23,7 +25,6 @@ function render() {
   $('cfg-tel').value = config.telefono || '';
   $('cfg-alias').value = config.alias_transferencia || '';
   $('cfg-leyenda').value = config.leyenda_comprobante || '';
-  $('cfg-limite-ia').value = config.lecturas_ia_por_dia ?? 4;
   $('cfg-dist').replaceChildren(
     h('p', { class: 'hint' }, 'Opcional: ganancia distinta por proveedor (vacío = usa la general).'),
     h('div', { class: 'grid2' }, ...estado.proveedores.map(p => h('div', { class: 'field' },
@@ -46,7 +47,7 @@ async function cargarConsumoIA() {
   // Comparar como fechas: Postgres puede devolver "…-03:00" y el inicio del día está en "…Z"
   const desde = Date.parse(inicioDiaArgentina());
   const hoy = data.filter(r => Date.parse(r.created_at) >= desde).length;
-  const limite = estado.config.lecturas_ia_por_dia ?? 4;
+  const limite = LIMITE_FACTURAS_DIA;
   const usd = data.reduce((s, r) => s + costoLectura(r), 0);
   $('cfg-ia').replaceChildren(
     h('div', { class: 'ia-stat' }, h('b', { class: 'num' }, `${hoy} de ${limite}`), h('span', {}, 'facturas leídas hoy')),
@@ -71,7 +72,6 @@ async function guardar() {
     telefono: $('cfg-tel').value.trim() || null,
     alias_transferencia: $('cfg-alias').value.trim() || null,
     leyenda_comprobante: $('cfg-leyenda').value.trim() || 'Documento no válido como factura',
-    lecturas_ia_por_dia: Math.min(100, Math.max(0, parseInt($('cfg-limite-ia').value, 10) || 0)),
     updated_at: new Date().toISOString(),
   };
   const { error } = await db.from('config_negocio').update(datos).eq('id', 1);
@@ -81,9 +81,54 @@ async function guardar() {
   cargarConsumoIA();
 }
 
+/* ── Copia de seguridad ──────────────────────────────────────────────── */
+// El plan gratis de Supabase no guarda respaldos: esta es la copia del negocio. Los precios de proveedores
+// no van (son ~160.000 filas y los robots los vuelven a traer solos cada mañana).
+const TABLAS_COPIA = [
+  ['ventas', 'Ventas'], ['venta_items', 'Ventas - artículos'], ['clientes', 'Clientes'], ['pagos_clientes', 'Pagos de clientes'],
+  ['recepciones', 'Compras'], ['recepcion_items', 'Compras - artículos'], ['movimientos', 'Gastos e ingresos'],
+  ['cierres_caja', 'Cierres de caja'], ['presupuestos', 'Presupuestos'], ['reposicion_items', 'Reposición'],
+  ['productos', 'Productos web'], ['productos_costos', 'Costos', 'producto_id'], ['proveedores', 'Proveedores', 'slug'], ['config_negocio', 'Ajustes'],
+];
+
+async function leerTabla(tabla, clave = 'id') {
+  const filas = [];
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error } = await db.from(tabla).select('*').order(clave).range(desde, desde + 999);
+    if (error) return { filas, error };   // tabla que todavía no existe en la base: se avisa y se sigue
+    filas.push(...data);
+    if (data.length < 1000) return { filas };
+  }
+}
+
+const descargarCopia = unaVez(async () => {
+  const estadoEl = $('cfg-backup-estado');
+  try {
+    const XLSX = await cargarSheetJS();
+    const wb = XLSX.utils.book_new();
+    let total = 0;
+    const faltan = [];
+    for (const [tabla, hoja, clave] of TABLAS_COPIA) {
+      estadoEl.textContent = `Copiando ${hoja.toLowerCase()}…`;
+      const { filas, error } = await leerTabla(tabla, clave);
+      if (error) { faltan.push(hoja); continue; }
+      // Objetos y listas (ej. artículos de un presupuesto) como texto, para que entren en una celda
+      const planas = filas.map(f => Object.fromEntries(Object.entries(f).map(([k, v]) => [k, v && typeof v === 'object' ? JSON.stringify(v) : v])));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(planas.length ? planas : [{ '(sin datos)': '' }]), hoja.slice(0, 31));
+      total += filas.length;
+    }
+    XLSX.writeFile(wb, `danichap-copia-${hoyISO()}.xlsx`);
+    estadoEl.textContent = `Listo: ${total.toLocaleString('es-AR')} registros copiados.` + (faltan.length ? ` (Sin datos todavía: ${faltan.join(', ')})` : '');
+    toast('Copia de seguridad descargada', 'success');
+  } catch (e) {
+    estadoEl.textContent = '';
+    toast('No se pudo armar la copia: ' + e.message, 'error');
+  }
+});
+
 export function iniciarAjustes() {
+  $('cfg-backup').addEventListener('click', descargarCopia);
   $('cfg-guardar').addEventListener('click', guardar);
-  $('cfg-guardar-ia').addEventListener('click', guardar);
   $('cfg-ganancia').addEventListener('input', ejemploGanancia);
   registrarVista('ajustes', render);
 }

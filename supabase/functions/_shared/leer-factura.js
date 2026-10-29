@@ -26,7 +26,9 @@ export function inicioDelDiaArgentina(ahora = Date.now()) {
  *           registrar: (fila: {modelo: string, input_tokens: number, output_tokens: number}) => Promise<void> }} base
  */
 export async function leerFacturaConLimite(client, entrada, { modelo, base, lector = leerFactura }) {
-  const [limite, usadas] = await Promise.all([base.limite(), base.contarHoy(inicioDelDiaArgentina())]);
+  const [configurado, usadas] = await Promise.all([base.limite(), base.contarHoy(inicioDelDiaArgentina())]);
+  // Tope fijo de 4 por día: aunque alguien cambie el valor en la base, nunca se lee más que eso (cupo gratuito)
+  const limite = Math.min(Number(configurado) || LIMITE_DIARIO_DEFECTO, LIMITE_DIARIO_DEFECTO);
   if (usadas >= limite) {
     throw new ErrorLectura(`Ya se leyeron ${usadas} facturas hoy (límite ${limite}). Cargá esta a mano o esperá a mañana.`, 'limite_diario');
   }
