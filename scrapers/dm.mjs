@@ -22,6 +22,7 @@ async function login() {
   if (process.env.DM_COOKIE_ID) headers.Cookie = `id=${process.env.DM_COOKIE_ID}`;
 
   const res = await fetch(`${BASE}/login?${qs}`, { headers });
+  if (res.status >= 500) throw new Error(`DM no responde (HTTP ${res.status})`);   // caída momentánea: correrScraper reintenta
   const cuerpo = (await res.text()).trim();
   if (!res.ok || cuerpo === '' || cuerpo === '0') {
     throw new Error(`Login rechazado (HTTP ${res.status}). Revisar DM_EMAIL / DM_PASSWORD o activar el equipo (DM_COOKIE_ID).`);

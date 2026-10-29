@@ -3,9 +3,14 @@ import fs from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 
 const LOTE = 1000;
+const PRECIO_MAX = 1e9;   // la columna es numeric(12,2): un precio absurdo del sitio no debe tirar abajo toda la corrida
+
+function precioValido(v) {
+  return Number.isFinite(v) && v >= 0 && v < PRECIO_MAX ? v : null;
+}
 
 export function env(nombre) {
-  const v = process.env[nombre];
+  const v = process.env[nombre]?.trim();   // un espacio o salto de línea pegado con el secret rompe el login
   if (!v) throw new Error(`Falta la variable de entorno ${nombre}`);
   return v;
 }
@@ -35,8 +40,12 @@ export async function correrScraper(distribuidor, scrape) {
     .insert({ distribuidor, inicio: visto }).select('id').single();
 
   try {
-    const filas = (await conReintentos(scrape, { etiqueta: distribuidor })).map(f => ({ ...f, distribuidor }));
+    const filas = (await conReintentos(scrape, { etiqueta: distribuidor })).map(f => ({
+      ...f, distribuidor, precio_lista: precioValido(f.precio_lista), precio_neto: precioValido(f.precio_neto),
+    }));
     if (filas.length === 0) throw new Error('El distribuidor no devolvió productos');
+    const raros = filas.filter(f => f.precio_lista == null && f.precio_neto == null).length;
+    if (raros) console.warn(`[${distribuidor}] ${raros} artículos sin precio válido (se guardan sin precio)`);
 
     let guardados = 0;
     for (let i = 0; i < filas.length; i += LOTE) {

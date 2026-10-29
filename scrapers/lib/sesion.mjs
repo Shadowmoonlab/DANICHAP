@@ -7,6 +7,18 @@ const esperar = ms => new Promise(ok => setTimeout(ok, ms));
 export function crearSesion(base, { headers: fijos = {} } = {}) {
   const cookies = new Map();
 
+  function guardarCookies(res) {
+    for (const c of res.headers.getSetCookie()) {
+      const [par, ...attrs] = c.split(';');
+      const j = par.indexOf('=');
+      if (j <= 0) continue;
+      const nombre = par.slice(0, j).trim(), valor = par.slice(j + 1).trim();
+      const vencida = valor === 'deleted' || attrs.some(a => /^\s*max-age\s*=\s*0\s*$/i.test(a));
+      if (vencida) cookies.delete(nombre); else cookies.set(nombre, valor);
+    }
+  }
+  const conCookies = h => (cookies.size ? { ...h, Cookie: [...cookies].map(([k, v]) => `${k}=${v}`).join('; ') } : h);
+
   async function pedir(ruta, { method = 'GET', form, json, headers = {}, intentos = 3, redirect = 'follow' } = {}) {
     const url = new URL(ruta, base).toString();
     const h = { 'User-Agent': UA, Accept: '*/*', ...fijos, ...headers };
@@ -15,12 +27,14 @@ export function crearSesion(base, { headers: fijos = {} } = {}) {
     if (json) { body = JSON.stringify(json); h['Content-Type'] = 'application/json'; }
     for (let i = 1; ; i++) {
       try {
-        if (cookies.size) h.Cookie = [...cookies].map(([k, v]) => `${k}=${v}`).join('; ');
-        const res = await fetch(url, { method, headers: h, body, redirect });
-        for (const c of res.headers.getSetCookie()) {
-          const [par] = c.split(';');
-          const j = par.indexOf('=');
-          if (j > 0) cookies.set(par.slice(0, j).trim(), par.slice(j + 1).trim());
+        let res = await fetch(url, { method, headers: conCookies(h), body, redirect: 'manual' });
+        guardarCookies(res);
+        // Sigue las redirecciones a mano: fetch descarta el Set-Cookie de los 302 (PHP suele renovar la sesión ahí)
+        for (let saltos = 0; redirect === 'follow' && res.status >= 300 && res.status < 400 && res.headers.get('location') && saltos < 10; saltos++) {
+          const destino = new URL(res.headers.get('location'), res.url || url).toString();
+          const { 'Content-Type': _, ...sinCuerpo } = h;
+          res = await fetch(destino, { headers: conCookies(sinCuerpo), redirect: 'manual' });
+          guardarCookies(res);
         }
         if (res.status >= 500 || res.status === 429) throw new Error(`${url} HTTP ${res.status}`);
         return res;

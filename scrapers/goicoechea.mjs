@@ -29,7 +29,10 @@ async function scrape() {
   await s.pedir('/');
   const login = await s.json('/account/log/login', { method: 'POST', headers: AJAX,
     form: { username: env('GOICOECHEA_USER'), password: env('GOICOECHEA_PASSWORD'), remember: 'true' } });
-  if (login?.success !== true) throw new Error('Login rechazado: revisar GOICOECHEA_USER / GOICOECHEA_PASSWORD');
+  if (login?.success !== true) {
+    const motivo = String(login?.message ?? login?.error ?? login?.msg ?? '').slice(0, 120);
+    throw new Error(`Login rechazado${motivo ? ` ("${motivo}")` : ''}: revisar GOICOECHEA_USER / GOICOECHEA_PASSWORD`);
+  }
 
   const pagina = n => s.json(`/account/products/searcherTextProducts/?order=&pageNumber=${n}`,
     { method: 'POST', headers: AJAX, form: { all_words: '1', fromUser: 'FALSE' } });

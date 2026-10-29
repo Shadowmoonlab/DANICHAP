@@ -11,7 +11,7 @@ async function scrape() {
   const s = crearSesion(BASE);
   await s.pedir('/ingresar.php');
   await s.pedir('/ingresar.php', { method: 'POST',
-    form: { accion: 'login', usuario: env('OTERO_USER'), password: env('OTERO_PASSWORD') } });
+    form: { accion: 'login', usuario: env('OTERO_USER'), password: env('OTERO_PASSWORD'), Enviar: 'Ingresar' } });
   const lista = await s.texto('/lista.php');
   if (!/cerrar sesi|mis pedidos/i.test(lista)) throw new Error('Login rechazado: revisar OTERO_USER / OTERO_PASSWORD');
 
