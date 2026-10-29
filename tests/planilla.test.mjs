@@ -41,3 +41,14 @@ test('CSV con encabezado y separador | (Goicoechea "códigos corridos")', () => 
   assert.deepEqual(filas[0], { codigo: 'A-1', descripcion: 'BOMBA DE AGUA', marca: 'SKF', rubro: 'MOTOR', origen: null,
     precio_lista: 1000.5, precio_neto: 800.4, imagen_url: null });
 });
+
+test('tabla HTML con tablas anidadas por grupo (formato Otero: Marca | Modelo | Subrubro | Código | Nombre | Precio)', () => {
+  const grupo = (m, filas) => `<tr><td>${m}</td><td>145/146</td><td>ACCESORIOS</td><td colspan="5"><table>${filas}</table></td></tr>`;
+  const prod = (c, n, p) => `<tr><td></td><td></td><td></td><td>${c}</td><td>${n}</td><td>$ ${p}</td><td></td><td><img src="x.jpg"></td></tr>`;
+  const html = `<html><head><meta charset="utf-8"></head><body><table><tr><td>Autopartes Otero</td></tr>
+    <tr><th>Marca</th><th>Modelo</th><th>Subrubro</th><th>C&oacute;digo</th><th>Nombre</th><th>Precio</th><th></th><th>Foto</th></tr>
+    ${grupo('ALFA ROMEO', prod('OT1', 'PARAGOLPE DEL', '12.345,50') + prod('OT2', 'FARO IZQ', '9.000'))}
+    ${grupo('FIAT', prod('OT3', 'ESPEJO DER', '1.234,00'))}</table></body></html>`;
+  const { filas } = leerPlanilla(Buffer.from(html.padEnd(5000, ' ')));
+  assert.deepEqual(filas.map(f => [f.codigo, f.precio_lista]), [['OT1', 12345.5], ['OT2', 9000], ['OT3', 1234]]);
+});

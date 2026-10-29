@@ -47,6 +47,7 @@ export function leerCsv(texto) {
 
 const sinAcentos = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 const texto = v => String(v ?? '').trim();
+const texto8 = v => texto(v).slice(0, 40);
 
 /**
  * Sin encabezado: código = columna de textos cortos casi todos distintos; descripción = la de textos más
@@ -91,6 +92,20 @@ function porContenido(filas) {
   return { columnas: { ...col, encabezado: -1 }, productos, descartadas };
 }
 
+const ENTIDADES = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', aacute: 'á', eacute: 'é', iacute: 'í', oacute: 'ó', uacute: 'ú',
+  ntilde: 'ñ', Aacute: 'Á', Eacute: 'É', Iacute: 'Í', Oacute: 'Ó', Uacute: 'Ú', Ntilde: 'Ñ', uuml: 'ü', deg: '°' };
+const deHtml = s => s.replace(/<[^>]*>/g, ' ')
+  .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n)).replace(/&(\w+);/g, (m, e) => ENTIDADES[e] ?? m)
+  .replace(/\s+/g, ' ').trim();
+
+/** Tabla HTML "exportada como Excel": todas las filas <tr> en orden, aunque haya tablas anidadas o HTML roto. */
+export function filasDeHtml(html) {
+  return html.split(/<tr[\s>]/i).slice(1).map(tr => {
+    const fin = tr.search(/<\/tr>/i);
+    return [...(fin >= 0 ? tr.slice(0, fin) : tr).matchAll(/<t[dh][^>]*>([\s\S]*?)(?=<t[dh][\s>]|<\/t[dh]>|$)/gi)].map(m => deHtml(m[1]));
+  }).filter(f => f.some(Boolean));
+}
+
 // Para el log cuando no se reconoce: solo los textos de las primeras filas (encabezados), nunca números
 function muestra(wb) {
   return wb.SheetNames.map(nombre => {
@@ -112,9 +127,13 @@ export function leerPlanilla(buffer, opciones = {}) {
     throw new Error(`Se recibió una página web en vez de la planilla (${buffer.length} bytes)`);
   }
   const wb = XLSX.read(buffer, { type: 'buffer' });
+  const hojas = wb.SheetNames.map(nombre => [nombre, XLSX.utils.sheet_to_json(wb.Sheets[nombre], { header: 1, defval: '' })]);
+  const texto = buffer.toString('latin1');
+  if (/<table/i.test(texto.slice(0, 20000))) {
+    hojas.push(['tabla HTML', filasDeHtml(/charset=["']?utf-8/i.test(texto.slice(0, 3000)) ? buffer.toString('utf8') : texto)]);
+  }
   let mejor = null;
-  for (const nombre of wb.SheetNames) {
-    const filas = XLSX.utils.sheet_to_json(wb.Sheets[nombre], { header: 1, defval: '' });
+  for (const [nombre, filas] of hojas) {
     let r = parsearLista(filas);
     if (!r.columnas || r.productos.length === 0) r = porContenido(filas) ?? r;
     if (!r.columnas || (mejor && r.productos.length <= mejor.r.productos.length)) continue;
@@ -131,7 +150,10 @@ export function leerPlanilla(buffer, opciones = {}) {
     mejor = { nombre, r };
   }
   if (!mejor || mejor.r.productos.length === 0) {
-    throw new Error(`La planilla no tiene una lista de precios reconocible (${buffer.length} bytes; ${muestra(wb)})`.slice(0, 900));
+    const err = new Error(`La planilla no tiene una lista de precios reconocible (${buffer.length} bytes; ${muestra(wb)})`.slice(0, 600));
+    // Detalle para diagnosticar (solo se guarda en scraper_runs, no en el log público): filas 1-15 de cada hoja
+    err.detalle = hojas.map(([n, filas]) => `[${n}] ` + filas.slice(0, 15).map(f => f.map(v => texto8(v)).join(' | ')).join(' // ')).join('\n').slice(0, 3500);
+    throw err;
   }
   return {
     filas: aFilasDePrecio(mejor.r.productos, opciones),

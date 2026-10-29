@@ -3,8 +3,8 @@
 import fs from 'node:fs';
 import { enParalelo } from './sesion.mjs';
 
-const LOTE = 1000;
-const LOTES_SIMULTANEOS = 6;   // 70.000 filas = 70 lotes: de a 6 tarda segundos en vez de minutos
+const LOTE = 500;
+const LOTES_SIMULTANEOS = 2;   // con 7 robots a la vez, más guardados en paralelo traban la base (plan gratis)
 const PRECIO_MAX = 1e9;   // la columna es numeric(12,2): un precio absurdo del sitio no debe tirar abajo toda la corrida
 
 function precioValido(v) {
@@ -48,6 +48,23 @@ export async function conReintentos(fn, { intentos = 3, esperasMs = [30_000, 90_
   }
 }
 
+// Guarda un lote; si la base corta por tiempo, lo parte a la mitad y reintenta (nunca pierde la corrida por eso)
+async function guardarLote(lote, visto, intento = 1) {
+  try {
+    return await rest('rpc/upsert_precios', { body: { p_rows: lote, p_visto: visto } });
+  } catch (err) {
+    if (lote.length > 50 && /timeout|canceling statement/i.test(err.message)) {
+      const mitad = Math.ceil(lote.length / 2);
+      return (await guardarLote(lote.slice(0, mitad), visto)) + (await guardarLote(lote.slice(mitad), visto));
+    }
+    if (intento < 5) {   // corte momentáneo de la base: espera 2, 4, 8 y 16 s
+      await new Promise(ok => setTimeout(ok, 1000 * 2 ** intento));
+      return guardarLote(lote, visto, intento + 1);
+    }
+    throw err;
+  }
+}
+
 // Corre un scraper, guarda sus filas y deja registro en scraper_runs.
 // `scrape` devuelve [{ codigo, descripcion, marca, rubro, origen, precio_lista, precio_neto, imagen_url }]
 export async function correrScraper(distribuidor, scrape) {
@@ -64,9 +81,8 @@ export async function correrScraper(distribuidor, scrape) {
     if (raros) console.warn(`[${distribuidor}] ${raros} artículos sin precio válido (se guardan sin precio)`);
 
     const lotes = Array.from({ length: Math.ceil(filas.length / LOTE) }, (_, i) => filas.slice(i * LOTE, (i + 1) * LOTE));
-    const guardados = (await enParalelo(lotes, LOTES_SIMULTANEOS, async lote => {
-      return rest('rpc/upsert_precios', { body: { p_rows: lote, p_visto: visto } });
-    })).reduce((a, b) => a + b, 0);
+    const guardados = (await enParalelo(lotes, LOTES_SIMULTANEOS, lote => guardarLote(lote, visto)))
+      .reduce((a, b) => a + b, 0);
 
     const inactivos = await rest('rpc/desactivar_no_vistos', { body: { p_distribuidor: distribuidor, p_visto: visto } });
 
@@ -74,7 +90,7 @@ export async function correrScraper(distribuidor, scrape) {
     console.log(`[${distribuidor}] OK — ${guardados} productos, ${inactivos} desactivados`);
     resumen(`✅ **${distribuidor}**: ${guardados} productos actualizados, ${inactivos} dados de baja`);
   } catch (err) {
-    await terminarRun(run?.id, { ok: false, error: String(err.message || err).slice(0, 1000) });
+    await terminarRun(run?.id, { ok: false, error: [err.message || String(err), err.detalle].filter(Boolean).join('\n').slice(0, 4000) });
     console.error(`[${distribuidor}] ERROR — ${err.message || err}`);
     resumen(`❌ **${distribuidor}**: ${String(err.message || err).slice(0, 300)}`);
     process.exitCode = 1;

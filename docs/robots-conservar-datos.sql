@@ -42,3 +42,17 @@ $$;
 
 revoke execute on function public.upsert_precios(jsonb, timestamptz) from public, anon, authenticated;
 grant execute on function public.upsert_precios(jsonb, timestamptz) to service_role;
+
+-- ── Guardado de los robots sin cortes por tiempo (29/10/2026) ────────────────
+-- La API corta a los 8 s (statement_timeout del rol authenticator). service_role (solo los robots, desde
+-- GitHub Actions) no tenía límite propio y heredaba esos 8 s: un lote de 500-1000 precios con 3 índices de
+-- búsqueda puede pasarlos cuando corren 7 robots a la vez.
+alter role service_role set statement_timeout = '5min';
+
+-- visto_at cambia en cada corrida: con un índice encima, cada fila se reescribe en todos los índices (incluidos los
+-- de búsqueda, caros). Sin él, Postgres actualiza "en el lugar" (HOT) las filas cuyo precio no cambió.
+-- desactivar_no_vistos filtra por distribuidor: usa el índice único (distribuidor, codigo).
+drop index if exists public.idx_precios_dist_visto;
+alter table public.precios_distribuidor set (fillfactor = 85);
+
+notify pgrst, 'reload config';
