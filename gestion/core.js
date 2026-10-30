@@ -1,6 +1,6 @@
 // gestion/core.js — Base compartida del panel: DOM, formato, modal, configuración, proveedores, búsqueda
 // Usa los globales de supabase.js (_supabase) y toast.js (showToast), que cargan antes como scripts clásicos.
-import { normalizar, palabras } from './texto.js?v=12';
+import { normalizar, palabras } from './texto.js?v=14';
 
 export const db = window._supabase ?? _supabase;
 export const toast = (msg, tipo) => window.showToast(msg, tipo);
@@ -124,7 +124,7 @@ export function precioVenta(costo, distribuidor) {
 }
 
 /* ── WhatsApp ────────────────────────────────────────────────────────── */
-export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=12';
+export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=14';
 export async function copiar(texto, aviso = 'Copiado') {
   try { await navigator.clipboard.writeText(texto); toast(aviso, 'success'); return true; }
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }

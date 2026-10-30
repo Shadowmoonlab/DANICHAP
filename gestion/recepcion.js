@@ -4,8 +4,8 @@
 import {
   $, h, icon, vacio, db, toast, money, fechaCorta, estado, nombreProveedor, precioVenta, debounce,
   buscarStock, confirmar, registrarVista, actualizarBadgeRepo, hoyISO, unaVez,
-} from './core.js?v=12';
-import { normalizar, numeroAR } from './texto.js?v=12';
+} from './core.js?v=14';
+import { normalizar, numeroAR } from './texto.js?v=14';
 
 const CATEGORIAS = [
   ['mecanica', 'Mecánica'], ['iluminacion', 'Iluminación'], ['faros', 'Faros'], ['opticas', 'Ópticas'],
@@ -204,8 +204,26 @@ function selectorProducto(f, alCambiar) {
   return wrap;
 }
 
+// Dónde está el cursor dentro de la tabla (renglón + campo), para devolverlo ahí después de redibujar
+function posicionDelCursor() {
+  const el = document.activeElement;
+  if (!el || !$('recepcion-trabajo')?.contains(el) || !el.getAttribute('aria-label')) return null;
+  const tr = el.closest('tbody tr');
+  return { fila: tr ? [...tr.parentElement.children].indexOf(tr) : -1, campo: el.getAttribute('aria-label'),
+           ini: el.selectionStart, fin: el.selectionEnd };
+}
+function devolverCursor(pos) {
+  if (!pos) return;
+  const tr = pos.fila >= 0 ? $('recepcion-trabajo').querySelectorAll('.tbl-recep tbody tr')[pos.fila] : $('recepcion-trabajo');
+  const el = tr?.querySelector(`[aria-label="${CSS.escape(pos.campo)}"]`);
+  if (!el) return;
+  el.focus();
+  try { if (pos.ini != null) el.setSelectionRange(pos.ini, pos.fin); } catch { /* select/checkbox no tienen selección */ }
+}
+
 function renderEditor() {
   const b = borrador;
+  const cursor = posicionDelCursor();
   const prov = selectProveedor(b.proveedor);
   prov.addEventListener('change', async () => { b.proveedor = prov.value; b.filas.forEach(f => { f.repo = null; }); await cruzarConPedidos(); renderEditor(); });
   const nro = h('input', { class: 'input', value: b.nro, placeholder: '0001-00012345' });
@@ -222,7 +240,9 @@ function renderEditor() {
   const fechaIn = h('input', { class: 'input', type: 'date', value: b.fecha, onchange: e => { b.fecha = e.target.value; } });
 
   const filas = b.filas.map((f, i) => {
-    const repintar = () => renderEditor();
+    // Se redibuja en la vuelta siguiente: así el cursor ya pasó al campo que Daniel tocó (con el mouse o Tab)
+    // y se lo devuelve ahí. Redibujar en el mismo "change" reemplazaba ese campo y lo tipeado se perdía.
+    const repintar = () => setTimeout(() => { if (borrador === b) renderEditor(); }, 0);
     const accion = h('select', { class: 'select input-sm', 'aria-label': 'Qué hago con este renglón', onchange: e => { f.accion = e.target.value; repintar(); } },
       h('option', { value: 'stock', selected: f.accion === 'stock' ? true : null }, 'Sumar a mi stock'),
       h('option', { value: 'crear', selected: f.accion === 'crear' ? true : null }, 'Crear producto nuevo'),
@@ -286,6 +306,7 @@ function renderEditor() {
         h('button', { class: 'btn btn-lg', onclick: cargarLista }, 'Cancelar'),
         h('button', { class: 'btn btn-green btn-lg', disabled: !activas.length || resumen.revisar || resumen.subiendo ? true : null, onclick: e => confirmarRecepcion(e.currentTarget, suma, resumen) },
           icon('inventory'), 'Confirmar y cargar')))));
+  devolverCursor(cursor);
 }
 
 // unaVez + botón deshabilitado: un doble clic o una conexión lenta no cargan dos veces la misma compra

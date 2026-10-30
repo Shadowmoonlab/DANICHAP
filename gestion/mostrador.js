@@ -3,24 +3,25 @@ import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
   actualizarBadgeRepo, unaVez, hoyISO,
-} from './core.js?v=12';
-import { numeroAR } from './texto.js?v=12';
-import { presupuesto as textoPresupuesto } from './plantillas.js?v=12';
-import { imprimirComprobante } from './comprobante.js?v=12';
-import { editarCliente } from './clientes.js?v=12';
+} from './core.js?v=14';
+import { numeroAR } from './texto.js?v=14';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=14';
+import { imprimirComprobante } from './comprobante.js?v=14';
+import { editarCliente } from './clientes.js?v=14';
 
 let resultados = [];
 let selIdx = -1;
 let venta = [];            // renglones de la venta actual
 let presupuestoId = null;  // si la venta se cargó desde un presupuesto
 let buscado = '';          // texto de la búsqueda que está en pantalla (Enter solo agrega de esa)
+let enterEnEspera = false; // Enter apretado antes de que llegaran los resultados: se agrega apenas lleguen
 
 const buscador = () => $('pos-search');
 
 /* ── Búsqueda ────────────────────────────────────────────────────────── */
 const ejecutarBusqueda = debounce(async () => {
   const q = buscador().value.trim();
-  if (q.length < 2) { renderResultados(null); return; }
+  if (q.length < 2) { enterEnEspera = false; renderResultados(null); return; }
   const [stock, dist] = await Promise.all([buscarStock(q), buscarPrecios(q)]);
   if (buscador().value.trim() !== q) return; // llegó tarde: el usuario siguió escribiendo
   buscado = q;
@@ -42,6 +43,7 @@ const ejecutarBusqueda = debounce(async () => {
   ];
   selIdx = resultados.length ? 0 : -1;
   renderResultados(q);
+  if (enterEnEspera) { enterEnEspera = false; agregarSeleccionado(); }
 }, 220);
 
 /* ── Buscar en las webs: proveedores que no salieron en esta búsqueda (los que el robot no lee, o sin coincidencias) ── */
@@ -109,7 +111,7 @@ function moverSeleccion(delta) {
 
 function agregarSeleccionado() {
   // Mientras se tipea (o la búsqueda nueva no llegó), Enter no agrega un resultado de la búsqueda anterior
-  if (buscador().value.trim() !== buscado) return;
+  if (buscador().value.trim() !== buscado) { enterEnEspera = buscador().value.trim().length >= 2; return; }
   const r = resultados[selIdx];
   if (!r) return;
   const ya = venta.find(v => v.key === r.key);
@@ -290,6 +292,7 @@ async function cargarPresupuesto(p) {
 
 /** Esc: borra la búsqueda y deja el cursor listo para la próxima (la venta en curso no se toca). */
 export function limpiarBusqueda() {
+  enterEnEspera = false;
   buscador().value = '';
   resultados = []; selIdx = -1;
   renderResultados(null);

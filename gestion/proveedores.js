@@ -2,9 +2,9 @@
 import {
   $, h, icon, vacio, db, toast, money, fecha, estado, DIAS, cargarProveedores, openModal, closeModal, confirmar,
   registrarVista, cargarSheetJS, unaVez,
-} from './core.js?v=12';
-import { parsearLista, aFilasDePrecio } from './listas.js?v=12';
-import { estadoPrecios } from './robots.js?v=12';
+} from './core.js?v=14';
+import { parsearLista, aFilasDePrecio } from './listas.js?v=14';
+import { estadoPrecios } from './robots.js?v=14';
 
 async function cargar() {
   await cargarProveedores();
