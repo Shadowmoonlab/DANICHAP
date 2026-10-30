@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Ingresar — DANICHAP</title>
 <!-- Security -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://stambpkmtwtnhfjmxztl.supabase.co https://*.supabase.co; connect-src 'self' https://stambpkmtwtnhfjmxztl.supabase.co https://*.supabase.co wss://stambpkmtwtnhfjmxztl.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://stambpkmtwtnhfjmxztl.supabase.co https://*.supabase.co; connect-src 'self' https://stambpkmtwtnhfjmxztl.supabase.co https://*.supabase.co wss://stambpkmtwtnhfjmxztl.supabase.co; base-uri 'self'; form-action 'self';"/>
 <meta http-equiv="X-Content-Type-Options" content="nosniff"/>
 <meta http-equiv="X-Frame-Options" content="DENY"/>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin"/>
@@ -145,7 +145,15 @@
 
   // ── Link del mail de recuperación: pedir la contraseña nueva ──
   (async () => {
-    if (!(await Auth.sesionDeRecuperacion())) return;
+    // Link vencido, ya usado o inválido: Supabase vuelve con #error=…&error_code=otp_expired (o el token no sirve)
+    const linkConError = /error_code=|error=/.test(location.hash);
+    if (!(await Auth.sesionDeRecuperacion())) {
+      if (linkConError || LINK_RECUPERACION) {
+        history.replaceState(null, '', location.pathname);
+        mostrar('login-error', 'El link para cambiar la contraseña venció o ya se usó. Escribí tu email y tocá "¿Olvidaste tu contraseña?" para pedir otro.');
+      }
+      return;
+    }
     document.getElementById('form-login').classList.add('hidden');
     document.getElementById('form-register').classList.add('hidden');
     document.getElementById('tab-login').parentElement.classList.add('hidden');

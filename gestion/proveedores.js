@@ -2,9 +2,9 @@
 import {
   $, h, icon, vacio, db, toast, money, fecha, estado, DIAS, cargarProveedores, openModal, closeModal, confirmar,
   registrarVista, cargarSheetJS,
-} from './core.js';
-import { parsearLista, aFilasDePrecio } from './listas.js';
-import { estadoPrecios } from './robots.js';
+} from './core.js?v=11';
+import { parsearLista, aFilasDePrecio } from './listas.js?v=11';
+import { estadoPrecios } from './robots.js?v=11';
 
 async function cargar() {
   await cargarProveedores();
@@ -22,7 +22,7 @@ async function cargar() {
           h('div', { class: 'muted', style: 'font-size:13px', title: e.detalle || '' },
             h('span', { class: 'dot ' + e.tipo }), e.texto)),
         h('div', { class: 'prov-acts' },
-          p.web ? h('a', { class: 'btn btn-sm', href: p.web, target: '_blank', rel: 'noopener', title: 'Abrir la web del proveedor' }, icon('open_in_new'), 'Web') : null,
+          /^https?:\/\//i.test(p.web ?? '') ? h('a', { class: 'btn btn-sm', href: p.web, target: '_blank', rel: 'noopener', title: 'Abrir la web del proveedor' }, icon('open_in_new'), 'Web') : null,
           h('button', { class: 'btn btn-sm', onclick: () => editarProveedor(p) }, icon('edit'), 'Editar'))),
       h('div', { class: 'prov-card-body' },
         h('div', {}, h('span', { class: 'label' }, 'Pasa'),

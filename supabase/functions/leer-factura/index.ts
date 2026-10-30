@@ -9,18 +9,18 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { ErrorLectura, LIMITE_DIARIO_DEFECTO, leerFacturaConLimite, leerFacturaGemini } from '../_shared/leer-factura.js';
 
 const ORIGENES = ['https://danichap.com', 'https://www.danichap.com'];
-let CORS: Record<string, string> = {};
-const json = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 Deno.serve(async (req) => {
   const origen = req.headers.get('Origin') ?? '';
-  CORS = {
+  // Por pedido (no global): con dos pedidos a la vez de orígenes distintos no se mezclan los encabezados
+  const CORS: Record<string, string> = {
     'Access-Control-Allow-Origin': ORIGENES.includes(origen) ? origen : ORIGENES[0],
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Vary': 'Origin',
   };
+  const json = (status: number, body: unknown) =>
+    new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json(405, { error: 'Método no permitido' });
 
@@ -41,19 +41,27 @@ Deno.serve(async (req) => {
       const { data } = await sb.from('config_negocio').select('lecturas_ia_por_dia').eq('id', 1).maybeSingle();
       return data?.lecturas_ia_por_dia ?? LIMITE_DIARIO_DEFECTO;
     },
-    contarHoy: async (desde: string) => {
-      const { count, error } = await sb.from('lecturas_ia').select('id', { count: 'exact', head: true }).gte('created_at', desde);
+    contarHoy: async (desde: string, hastaId?: number) => {
+      let q = sb.from('lecturas_ia').select('id', { count: 'exact', head: true }).gte('created_at', desde);
+      if (hastaId) q = q.lte('id', hastaId);
+      const { count, error } = await q;
       if (error) throw new Error(`No se pudo controlar el límite diario: ${error.message}`);
       return count ?? 0;
     },
-    registrar: async (fila: Record<string, unknown>) => { await sb.from('lecturas_ia').insert(fila); },
+    reservar: async () => {
+      const { data, error } = await sb.from('lecturas_ia').insert({ modelo: 'leyendo' }).select('id').single();
+      if (error) throw new Error(`No se pudo reservar la lectura: ${error.message}`);
+      return data.id;
+    },
+    liberar: async (id: number) => { await sb.from('lecturas_ia').delete().eq('id', id); },
+    completar: async (id: number, fila: Record<string, unknown>) => { await sb.from('lecturas_ia').update(fila).eq('id', id); },
   };
 
   try {
     const entrada = await req.json();
     const resultado = geminiKey
       ? await leerFacturaConLimite(null, entrada, { base, lector: (_c: unknown, e: any) => leerFacturaGemini(geminiKey, e, { modelo: Deno.env.get('GEMINI_MODELO') }) })
-      : await leerFacturaConLimite(new Anthropic({ apiKey }), entrada, { modelo: Deno.env.get('LECTURA_MODELO'), base });
+      : await leerFacturaConLimite(new Anthropic({ apiKey, timeout: 110_000, maxRetries: 1 }), entrada, { modelo: Deno.env.get('LECTURA_MODELO'), base });
     return json(200, resultado);
   } catch (e) {
     if (e instanceof ErrorLectura) return json(e.codigo === 'entrada' ? 400 : e.codigo === 'limite_diario' || e.codigo === 'limite' ? 429 : e.codigo === 'api' ? 502 : 422, { error: e.message, codigo: e.codigo });

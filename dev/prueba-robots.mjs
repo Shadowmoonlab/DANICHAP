@@ -56,7 +56,7 @@ function correr(robot, vuelta) {
     const hijo = spawn(process.execPath, ['--env-file', ENV, '--import', new URL('./mock-distribuidores.mjs', import.meta.url).href,
       `scrapers/${robot}.mjs`], {
       cwd: RAIZ,
-      env: { ...process.env, PRUEBA_VUELTA: String(vuelta), GOICOECHEA_USER: 'u', GOICOECHEA_PASSWORD: 'p',
+      env: { ...process.env, PRUEBA_VUELTA: String(vuelta.ajuste), PRUEBA_CORTE: vuelta.corte ? '1' : '', GOICOECHEA_USER: 'u', GOICOECHEA_PASSWORD: 'p',
              PR_USER: 'u', PR_PASSWORD: 'p', DISTRISUPER_USER: 'u', DISTRISUPER_PASSWORD: 'p', FAL_USER: 'u', FAL_PASSWORD: 'p',
              DM_EMAIL: 'u', DM_PASSWORD: 'p', OTERO_USER: 'u', OTERO_PASSWORD: 'p', DELVISO_USER: 'u', DELVISO_PASSWORD: 'p' },
     });
@@ -73,15 +73,19 @@ const VUELTAS = [
   { ajuste: 1, nombre: 'carga' },
   { ajuste: 2, nombre: 'todos los precios cambiaron' },
   { ajuste: 2, nombre: 'sin cambios', sinEscrituras: true },
+  // Goicoechea y Fal devuelven solo el 30 %: se guarda lo leído pero no se da de baja el resto del catálogo
+  { ajuste: 2, nombre: 'lectura cortada', corte: true },
 ];
 for (const v of VUELTAS) {
   const inicio = Date.now();
-  const resultados = await Promise.all(ROBOTS.map(r => correr(r, v.ajuste)));
+  const resultados = await Promise.all(ROBOTS.map(r => correr(r, v)));
   console.log(`\nVuelta "${v.nombre}" — ${((Date.now() - inicio) / 1000).toFixed(1)} s en total`);
   for (const r of resultados) {
     // Sin cambios en el sitio no se reescribe nada (salvo sin docs/robots-sincronizar.sql, que reescribe todo)
     const modoViejo = /guardo con upsert_precios/.test(r.salida);
-    const ok = r.codigo === 0 && (!v.sinEscrituras || modoViejo || /\(0 nuevos o con cambios\)/.test(r.linea));
+    const cortado = v.corte && ['goicoechea', 'fal'].includes(r.robot);
+    const ok = r.codigo === 0 && (!v.sinEscrituras || modoViejo || /\(0 nuevos o con cambios\)/.test(r.linea))
+      && (!cortado || /no doy de baja ninguno/.test(r.salida));
     console.log(`  ${ok ? '✅' : '❌'} ${r.robot.padEnd(12)} ${r.segundos.toFixed(1).padStart(5)} s  ${r.linea}${modoViejo ? '  [sin SQL nuevo]' : ''}`);
     if (!ok) fallas++;
   }

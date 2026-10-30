@@ -8,7 +8,9 @@
     "dev:robot:dm": "node --env-file=.dev/supabase.env --env-file-if-exists=.env.local scrapers/dm.mjs",
     "dev:robot:pr": "node --env-file=.dev/supabase.env --env-file-if-exists=.env.local scrapers/pr.mjs",
     "test:robots": "node dev/prueba-robots.mjs",
-    "test:seguridad": "node dev/prueba-seguridad.mjs"
+    "test:seguridad": "node dev/prueba-seguridad.mjs",
+    "armar:funcion": "node dev/armar-funcion.mjs",
+    "versionar": "node dev/versionar.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.102.1",

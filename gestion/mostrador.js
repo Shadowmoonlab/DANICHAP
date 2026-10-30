@@ -3,10 +3,10 @@ import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
   actualizarBadgeRepo, unaVez,
-} from './core.js';
-import { presupuesto as textoPresupuesto } from './plantillas.js';
-import { imprimirComprobante } from './comprobante.js';
-import { editarCliente } from './clientes.js';
+} from './core.js?v=11';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=11';
+import { imprimirComprobante } from './comprobante.js?v=11';
+import { editarCliente } from './clientes.js?v=11';
 
 let resultados = [];
 let selIdx = -1;
@@ -45,7 +45,7 @@ const ejecutarBusqueda = debounce(async () => {
 function renderWebs(q) {
   const box = $('pos-webs');
   const conResultados = new Set(resultados.filter(r => r.tipo === 'dist').map(r => r.distribuidor));
-  const webs = q == null ? [] : estado.proveedores.filter(p => p.activo && p.web && !conResultados.has(p.slug));
+  const webs = q == null ? [] : estado.proveedores.filter(p => p.activo && esLink(p.web) && !conResultados.has(p.slug));
   box.classList.toggle('hidden', !webs.length);
   if (!webs.length) { box.replaceChildren(); return; }
   box.replaceChildren(
@@ -54,11 +54,15 @@ function renderWebs(q) {
       icon('open_in_new'), p.nombre))));
 }
 
+// Solo links http(s): un valor raro guardado en la base nunca se abre como javascript: u otro esquema
+const esLink = u => /^https?:\/\//i.test(u ?? '');
+
 function abrirWeb(p, q) {
   // Copiar y abrir en el mismo clic: el navegador bloquea las pestañas que se abren después de esperar algo
   navigator.clipboard?.writeText(q).catch(() => {});
-  window.open(p.busqueda_url ? p.busqueda_url.replace('{q}', encodeURIComponent(q)) : p.web, '_blank', 'noopener');
-  toast(p.busqueda_url ? `Buscando en ${p.nombre}` : `Copiado "${q}": pegalo (Ctrl+V) en el buscador de ${p.nombre}`, 'success');
+  const buscar = esLink(p.busqueda_url);
+  window.open(buscar ? p.busqueda_url.replace('{q}', encodeURIComponent(q)) : p.web, '_blank', 'noopener');
+  toast(buscar ? `Buscando en ${p.nombre}` : `Copiado "${q}": pegalo (Ctrl+V) en el buscador de ${p.nombre}`, 'success');
 }
 
 function renderResultados(q) {
@@ -170,7 +174,8 @@ function limpiarVenta() {
   renderVenta();
 }
 
-async function cobrar() {
+// unaVez: mientras se registra, tocar +/− rehabilita el botón; igual no se puede cobrar dos veces
+const cobrar = unaVez(async () => {
   if (!venta.length) return;
   const { nombre, cliente } = clienteElegido();
   const medio = $('pos-pago').value;
@@ -196,7 +201,7 @@ async function cobrar() {
   buscador().value = '';
   renderResultados(null);
   buscador().focus();
-}
+});
 
 /* ── Presupuestos ────────────────────────────────────────────────────── */
 async function presupuestoWhatsApp() {
@@ -272,6 +277,14 @@ async function cargarPresupuesto(p) {
   toast(`Presupuesto Nº ${p.id} cargado. Revisá precios y cobrá con F9.`, 'success');
 }
 
+/** Esc: borra la búsqueda y deja el cursor listo para la próxima (la venta en curso no se toca). */
+export function limpiarBusqueda() {
+  buscador().value = '';
+  resultados = []; selIdx = -1;
+  renderResultados(null);
+  buscador().focus();
+}
+
 /* ── Inicio ──────────────────────────────────────────────────────────── */
 export function iniciarMostrador() {
   buscador().addEventListener('input', ejecutarBusqueda);
@@ -279,7 +292,6 @@ export function iniciarMostrador() {
     if (e.key === 'ArrowDown') { e.preventDefault(); moverSeleccion(1); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); moverSeleccion(-1); }
     else if (e.key === 'Enter') { e.preventDefault(); agregarSeleccionado(); }
-    else if (e.key === 'Escape') { buscador().value = ''; resultados = []; renderResultados(null); }
   });
   $('pos-cobrar').addEventListener('click', cobrar);
   $('pos-presu').addEventListener('click', presupuestoWhatsApp);

@@ -95,11 +95,13 @@ async function leerFacturaLocal(req, res) {
       { ...init, headers: { Authorization: `Bearer ${TOKENS.admin}`, 'Content-Type': 'application/json', ...init.headers } });
     const base = {
       limite: async () => (await (await rest('/config_negocio?select=lecturas_ia_por_dia&id=eq.1')).json())[0]?.lecturas_ia_por_dia ?? LIMITE_DIARIO_DEFECTO,
-      contarHoy: async desde => {
-        const r = await rest(`/lecturas_ia?select=id&created_at=gte.${encodeURIComponent(desde)}`, { headers: { Prefer: 'count=exact', Range: '0-0' } });
+      contarHoy: async (desde, hastaId) => {
+        const r = await rest(`/lecturas_ia?select=id&created_at=gte.${encodeURIComponent(desde)}${hastaId ? `&id=lte.${hastaId}` : ''}`, { headers: { Prefer: 'count=exact', Range: '0-0' } });
         return Number(r.headers.get('content-range')?.split('/')[1] ?? 0);
       },
-      registrar: async fila => { await rest('/lecturas_ia', { method: 'POST', body: JSON.stringify(fila) }); },
+      reservar: async () => (await (await rest('/lecturas_ia?select=id', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ modelo: 'leyendo' }) })).json())[0].id,
+      liberar: async id => { await rest(`/lecturas_ia?id=eq.${id}`, { method: 'DELETE' }); },
+      completar: async (id, fila) => { await rest(`/lecturas_ia?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(fila) }); },
     };
     try {
       const entrada = JSON.parse(Buffer.concat(chunks).toString('utf8'));

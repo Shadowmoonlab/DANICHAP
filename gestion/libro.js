@@ -2,12 +2,12 @@
 // Los totales los calcula la base (libro_resumen / libro_movimientos, docs/add-libro-diario.sql).
 import {
   $, h, icon, vacio, db, toast, money, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, cargarSheetJS, unaVez,
-} from './core.js';
+} from './core.js?v=11';
 import {
   rangoPeriodo, moverPeriodo, periodoDeHoy, conResultados, totales, etiquetaFila, margen, etiquetaMovimiento,
   hojasExcel, TIPOS_MOV, CATEGORIAS,
-} from './libro-calc.js';
-import { verVenta } from './ventas.js';
+} from './libro-calc.js?v=11';
+import { verVenta } from './ventas.js?v=11';
 
 const MEDIOS_MOV = { efectivo: 'Efectivo', transferencia: 'Transferencia', debito: 'Débito', credito: 'Crédito', otro: 'Otro' };
 const hora = iso => new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
@@ -216,8 +216,16 @@ export function iniciarLibro() {
   $('libro-ant').addEventListener('click', () => { estadoLibro.ref = moverPeriodo(estadoLibro.modo, estadoLibro.ref, -1); cargar(); });
   $('libro-sig').addEventListener('click', () => { estadoLibro.ref = moverPeriodo(estadoLibro.modo, estadoLibro.ref, 1); cargar(); });
   $('libro-hoy').addEventListener('click', () => { estadoLibro.ref = periodoDeHoy(estadoLibro.modo, hoyISO()); cargar(); });
-  for (const id of ['libro-dia', 'libro-mes', 'libro-anio']) {
-    $(id).addEventListener('change', e => { if (e.target.value) { estadoLibro.ref = e.target.value; cargar(); } });
+  // Sin fechas futuras, y un año a medio escribir ("20") no dispara una consulta con fecha inválida
+  const hoy = hoyISO();
+  $('libro-dia').max = hoy; $('libro-mes').max = hoy.slice(0, 7); $('libro-anio').max = hoy.slice(0, 4);
+  const FORMATO = { 'libro-dia': /^d{4}-d{2}-d{2}$/, 'libro-mes': /^d{4}-d{2}$/, 'libro-anio': /^d{4}$/ };
+  for (const id of Object.keys(FORMATO)) {
+    $(id).addEventListener('change', e => {
+      const v = e.target.value;
+      if (!FORMATO[id].test(v) || v.slice(0, 4) < '2020' || v > e.target.max) return;
+      estadoLibro.ref = v; cargar();
+    });
   }
   $('libro-nuevo').addEventListener('click', nuevoMovimiento);
   $('libro-excel').addEventListener('click', descargarExcel);

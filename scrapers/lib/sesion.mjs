@@ -36,11 +36,18 @@ export function crearSesion(base, { headers: fijos = {} } = {}) {
           res = await fetch(destino, { headers: conCookies(sinCuerpo), redirect: 'manual' });
           guardarCookies(res);
         }
-        if (res.status >= 500 || res.status === 429) throw new Error(`${url} HTTP ${res.status}`);
+        if (res.status === 429) {
+          // El sitio pide bajar el ritmo: se espera lo que indica (Retry-After, hasta 60 s) y, si insiste, se corta
+          const pausa = Math.min(Number(res.headers.get('retry-after')) || 15, 60);
+          const err = new Error(`${url} HTTP 429`);
+          err.pausaMs = pausa * 1000;
+          throw err;
+        }
+        if (res.status >= 500) throw new Error(`${url} HTTP ${res.status}`);
         return res;
       } catch (err) {
         if (i >= intentos) throw err;
-        await esperar(2000 * i);
+        await esperar(err.pausaMs ?? 2000 * i);
       }
     }
   }

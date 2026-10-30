@@ -1,5 +1,5 @@
 // gestion/ajustes.js — Ganancia, redondeo, datos del comprobante y lectura con IA (límite y consumo).
-import { $, h, db, toast, money, estado, registrarVista, confirmar, cargarSheetJS, hoyISO, unaVez } from './core.js';
+import { $, h, db, toast, money, estado, registrarVista, confirmar, cargarSheetJS, hoyISO, unaVez } from './core.js?v=11';
 
 // USD por millón de tokens (entrada / salida). Misma tabla que MODELOS en supabase/functions/_shared/leer-factura.js
 const PRECIOS_IA = {
@@ -91,11 +91,15 @@ const TABLAS_COPIA = [
   ['productos', 'Productos web'], ['productos_costos', 'Costos', 'producto_id'], ['proveedores', 'Proveedores', 'slug'], ['config_negocio', 'Ajustes'],
 ];
 
+// Tabla que todavía no existe (falta correr su SQL): se avisa y se sigue. Cualquier otro error (red, permisos)
+// corta la copia: una copia incompleta que dice "Listo" es peor que ninguna.
+const esTablaInexistente = e => e?.code === 'PGRST205' || e?.code === '42P01' || /does not exist|Could not find the table/i.test(e?.message ?? '');
+
 async function leerTabla(tabla, clave = 'id') {
   const filas = [];
   for (let desde = 0; ; desde += 1000) {
     const { data, error } = await db.from(tabla).select('*').order(clave).range(desde, desde + 999);
-    if (error) return { filas, error };   // tabla que todavía no existe en la base: se avisa y se sigue
+    if (error) return { filas, error, falta: esTablaInexistente(error) };
     filas.push(...data);
     if (data.length < 1000) return { filas };
   }
@@ -110,8 +114,9 @@ const descargarCopia = unaVez(async () => {
     const faltan = [];
     for (const [tabla, hoja, clave] of TABLAS_COPIA) {
       estadoEl.textContent = `Copiando ${hoja.toLowerCase()}…`;
-      const { filas, error } = await leerTabla(tabla, clave);
-      if (error) { faltan.push(hoja); continue; }
+      const { filas, error, falta } = await leerTabla(tabla, clave);
+      if (error && falta) { faltan.push(hoja); continue; }
+      if (error) throw new Error(`no pude leer ${hoja.toLowerCase()} (${error.message}). La copia NO se descargó: probá de nuevo en un rato`);
       // Objetos y listas (ej. artículos de un presupuesto) como texto, para que entren en una celda
       const planas = filas.map(f => Object.fromEntries(Object.entries(f).map(([k, v]) => [k, v && typeof v === 'object' ? JSON.stringify(v) : v])));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(planas.length ? planas : [{ '(sin datos)': '' }]), hoja.slice(0, 31));

@@ -68,6 +68,7 @@ jobs:
           OTERO_PASSWORD: ${{ secrets.OTERO_PASSWORD }}
           FAL_USER: ${{ secrets.FAL_USER }}
           FAL_PASSWORD: ${{ secrets.FAL_PASSWORD }}
+          FAL_LISTA_URL: ${{ secrets.FAL_LISTA_URL }}
           DELVISO_USER: ${{ secrets.DELVISO_USER }}
           DELVISO_PASSWORD: ${{ secrets.DELVISO_PASSWORD }}
           DISTRIFERR_USER: ${{ secrets.DISTRIFERR_USER }}

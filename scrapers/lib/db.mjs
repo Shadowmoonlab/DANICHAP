@@ -5,6 +5,7 @@ import { enParalelo } from './sesion.mjs';
 
 const LOTE = 500;
 const LOTES_SIMULTANEOS = 2;   // con 7 robots a la vez, más guardados en paralelo traban la base (plan gratis)
+const MINIMO_LEIDO = 0.7;   // si se lee menos del 70 % de lo que había, no se da de baja nada (lectura cortada)
 const PRECIO_MAX = 1e9;   // la columna es numeric(12,2): un precio absurdo del sitio no debe tirar abajo toda la corrida
 
 function precioValido(v) {
@@ -35,12 +36,16 @@ async function rest(ruta, { method = 'POST', body, prefer } = {}) {
   return texto ? JSON.parse(texto) : null;
 }
 
+// Errores que no se arreglan reintentando: clave mal, cuenta bloqueada o el sitio pidiendo que bajemos el ritmo.
+// Reintentar justo eso es lo que hace que un distribuidor bloquee la cuenta.
+export const esErrorDefinitivo = err => /^Login rechazado|HTTP (401|403|429)/.test(err?.message ?? '');
+
 // Reintenta ante caídas momentáneas del sitio del distribuidor (espera 30 s y 90 s)
 export async function conReintentos(fn, { intentos = 3, esperasMs = [30_000, 90_000], etiqueta = '' } = {}) {
   for (let i = 1; ; i++) {
     try { return await fn(); }
     catch (err) {
-      if (i >= intentos || /^Login rechazado/.test(err.message)) throw err;   // una clave mal no se arregla reintentando
+      if (i >= intentos || esErrorDefinitivo(err)) throw err;
       const espera = esperasMs[Math.min(i - 1, esperasMs.length - 1)];
       console.warn(`[${etiqueta}] intento ${i} falló (${err.message}). Reintento en ${espera / 1000} s…`);
       await new Promise(ok => setTimeout(ok, espera));
@@ -86,10 +91,29 @@ async function sincronizar(distribuidor, filas, visto) {
   cambios += (await enParalelo(lotes.slice(1), LOTES_SIMULTANEOS, lote => guardarLote(rpc, lote, visto)))
     .reduce((a, b) => a + b, 0);
 
+  // Freno: si el sitio devolvió solo una parte (página que falló, API cortada), no se da de baja el resto del catálogo
+  const activos = await contarActivos(distribuidor);
+  if (activos == null || filas.length < activos * MINIMO_LEIDO) {
+    const motivo = activos == null ? 'no pude contar los activos' : `leí ${filas.length} de ${activos} activos`;
+    console.warn(`[${distribuidor}] ${motivo}: esta vez no doy de baja ninguno`);
+    return { cambios, bajas: 0, sinBajas: motivo };
+  }
   const bajas = rpc === 'sincronizar_precios'
     ? await rest('rpc/desactivar_ausentes', { body: { p_distribuidor: distribuidor, p_codigos: filas.map(f => f.codigo) } })
     : await rest('rpc/desactivar_no_vistos', { body: { p_distribuidor: distribuidor, p_visto: visto } });
   return { cambios, bajas };
+}
+
+// Cuántos artículos activos tiene hoy el distribuidor (null si no se pudo saber: entonces no se da de baja nada)
+async function contarActivos(distribuidor) {
+  try {
+    const res = await fetch(`${URL_API}/precios_distribuidor?select=codigo&activo=is.true&distribuidor=eq.${encodeURIComponent(distribuidor)}`, {
+      headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, Prefer: 'count=exact', Range: '0-0' },
+    });
+    if (!res.ok && res.status !== 206) return null;
+    const total = Number(res.headers.get('content-range')?.split('/')[1]);
+    return Number.isFinite(total) ? total : null;
+  } catch { return null; }
 }
 
 // Corre un scraper, guarda sus filas y deja registro en scraper_runs.
@@ -109,11 +133,11 @@ export async function correrScraper(distribuidor, scrape) {
     const raros = filas.filter(f => f.precio_lista == null && f.precio_neto == null).length;
     if (raros) console.warn(`[${distribuidor}] ${raros} artículos sin precio válido (se guardan sin precio)`);
 
-    const { cambios, bajas } = await sincronizar(distribuidor, filas, visto);
+    const { cambios, bajas, sinBajas } = await sincronizar(distribuidor, filas, visto);
 
     await terminarRun(run?.id, { ok: true, productos: filas.length });
     console.log(`[${distribuidor}] OK — ${filas.length} productos (${cambios} nuevos o con cambios), ${bajas} dados de baja`);
-    resumen(`✅ **${distribuidor}**: ${filas.length} productos (${cambios} nuevos o con cambios), ${bajas} dados de baja`);
+    resumen(`✅ **${distribuidor}**: ${filas.length} productos (${cambios} nuevos o con cambios), ${sinBajas ? `sin bajas (${sinBajas})` : `${bajas} dados de baja`}`);
   } catch (err) {
     await terminarRun(run?.id, { ok: false, error: [err.message || String(err), err.detalle].filter(Boolean).join('\n').slice(0, 4000) });
     console.error(`[${distribuidor}] ERROR — ${err.message || err}`);

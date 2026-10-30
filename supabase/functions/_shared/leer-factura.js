@@ -22,20 +22,30 @@ export function inicioDelDiaArgentina(ahora = Date.now()) {
 /**
  * Lee un comprobante respetando el límite diario y dejando registro del consumo.
  * Cada entorno (Edge Function / servidor local) pasa cómo contar y registrar en su base.
- * @param {{ limite: () => Promise<number>, contarHoy: (desdeISO: string) => Promise<number>,
- *           registrar: (fila: {modelo: string, input_tokens: number, output_tokens: number}) => Promise<void> }} base
+ * El cupo se reserva ANTES de leer (fila en lecturas_ia): dos pedidos a la vez no pasan los dos el límite,
+ * gana el de id más bajo. Si la lectura falla, la reserva se libera y no consume el cupo.
+ * @param {{ limite: () => Promise<number>, contarHoy: (desdeISO: string, hastaId?: number) => Promise<number>,
+ *           reservar: () => Promise<number>, liberar: (id: number) => Promise<void>,
+ *           completar: (id: number, fila: {modelo: string, input_tokens: number, output_tokens: number}) => Promise<void> }} base
  */
 export async function leerFacturaConLimite(client, entrada, { modelo, base, lector = leerFactura }) {
-  const [configurado, usadas] = await Promise.all([base.limite(), base.contarHoy(inicioDelDiaArgentina())]);
+  validarArchivo(entrada); // antes de reservar nada
+  const desde = inicioDelDiaArgentina();
+  const [configurado, previas] = await Promise.all([base.limite(), base.contarHoy(desde)]);
   // Tope fijo de 4 por día: aunque alguien cambie el valor en la base, nunca se lee más que eso (cupo gratuito)
   const limite = Math.min(Number(configurado) || LIMITE_DIARIO_DEFECTO, LIMITE_DIARIO_DEFECTO);
-  if (usadas >= limite) {
-    throw new ErrorLectura(`Ya se leyeron ${usadas} facturas hoy (límite ${limite}). Cargá esta a mano o esperá a mañana.`, 'limite_diario');
-  }
-  validarArchivo(entrada); // antes de registrar nada
-  const resultado = await lector(client, entrada, { modelo });
-  await base.registrar({ modelo: resultado.modelo, input_tokens: resultado.uso?.input_tokens ?? 0, output_tokens: resultado.uso?.output_tokens ?? 0 });
-  return { ...resultado, lecturas_hoy: usadas + 1, limite_diario: limite };
+  const agotado = n => new ErrorLectura(`Ya se leyeron ${n} facturas hoy (límite ${limite}). Cargá esta a mano o esperá a mañana.`, 'limite_diario');
+  if (previas >= limite) throw agotado(previas);
+
+  const id = await base.reservar();
+  const puesto = await base.contarHoy(desde, id);   // lecturas de hoy hasta la mía inclusive
+  if (puesto > limite) { await base.liberar(id).catch(() => {}); throw agotado(limite); }
+  let resultado;
+  try { resultado = await lector(client, entrada, { modelo }); }
+  catch (e) { await base.liberar(id).catch(() => {}); throw e; }
+  // La reserva ya cuenta para el límite: si no se pueden guardar los tokens, solo se pierde el dato del consumo
+  await base.completar(id, { modelo: resultado.modelo, input_tokens: resultado.uso?.input_tokens ?? 0, output_tokens: resultado.uso?.output_tokens ?? 0 }).catch(() => {});
+  return { ...resultado, lecturas_hoy: puesto, limite_diario: limite };
 }
 export const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 export const MAX_BYTES = 20 * 1024 * 1024; // el pedido completo a la API admite hasta 32 MB

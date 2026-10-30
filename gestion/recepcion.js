@@ -3,9 +3,9 @@
 // comprobante, cruzar con lo pedido (precio y cantidad) y no tocar nada sin una confirmación explícita.
 import {
   $, h, icon, vacio, db, toast, money, fechaCorta, estado, nombreProveedor, precioVenta, debounce,
-  buscarStock, confirmar, registrarVista, actualizarBadgeRepo, hoyISO,
-} from './core.js';
-import { normalizar } from './texto.js';
+  buscarStock, confirmar, registrarVista, actualizarBadgeRepo, hoyISO, unaVez,
+} from './core.js?v=11';
+import { normalizar } from './texto.js?v=11';
 
 const CATEGORIAS = [
   ['mecanica', 'Mecánica'], ['iluminacion', 'Iluminación'], ['faros', 'Faros'], ['opticas', 'Ópticas'],
@@ -48,10 +48,16 @@ function pasoArchivo() {
   const preProv = sessionStorage.getItem('danichap-recepcion-prov') || '';
   sessionStorage.removeItem('danichap-recepcion-prov');
   const prov = selectProveedor(preProv);
-  const file = h('input', { type: 'file', accept: 'image/*,application/pdf', capture: 'environment', class: 'input' });
+  const file = h('input', { type: 'file', accept: 'image/*,application/pdf', class: 'archivo-oculto' });
+  const nombreArchivo = h('span', { class: 'archivo-nombre muted' }, 'Ningún archivo elegido');
+  const elegir = h('label', { class: 'archivo-btn' }, file, icon('photo_camera'), h('span', {}, 'Sacar foto o elegir archivo'));
   const estadoLectura = h('div', { class: 'muted', style: 'min-height:22px;margin-top:8px' });
   const btnLeer = h('button', { class: 'btn btn-primary btn-lg', disabled: true }, icon('document_scanner'), 'Leer la factura');
-  file.addEventListener('change', () => { btnLeer.disabled = !file.files.length; });
+  file.addEventListener('change', () => {
+    btnLeer.disabled = !file.files.length;
+    nombreArchivo.textContent = file.files[0]?.name || 'Ningún archivo elegido';
+    nombreArchivo.classList.toggle('muted', !file.files.length);
+  });
 
   btnLeer.addEventListener('click', async () => {
     btnLeer.disabled = true;
@@ -92,7 +98,7 @@ function pasoArchivo() {
     h('h3', {}, '1. ¿Qué llegó?'),
     h('div', { class: 'grid2' },
       h('div', { class: 'field' }, h('label', { class: 'label' }, 'Proveedor'), prov),
-      h('div', { class: 'field' }, h('label', { class: 'label' }, 'Foto o PDF de la factura / remito'), file)),
+      h('div', { class: 'field' }, h('label', { class: 'label' }, 'Foto o PDF de la factura / remito'), h('div', { class: 'archivo' }, elegir, nombreArchivo))),
     h('p', { class: 'hint' }, 'Sacale una foto derecha y con buena luz. Después revisás todo antes de que se sume al stock.'),
     h('div', { class: 'acciones' },
       btnLeer,
@@ -100,6 +106,39 @@ function pasoArchivo() {
         icon('edit_note'), 'Cargar a mano'),
       h('button', { class: 'btn btn-lg', onclick: cargarLista }, 'Cancelar')),
     estadoLectura));
+}
+
+/* ── Foto del producto nuevo: se achica a 1200 px y se sube al mismo lugar que las fotos del Admin ── */
+const LADO_FOTO = 1200;
+async function achicarFoto(archivo) {
+  const bmp = await createImageBitmap(archivo);
+  const escala = Math.min(1, LADO_FOTO / Math.max(bmp.width, bmp.height));
+  const canvas = Object.assign(document.createElement('canvas'), { width: Math.round(bmp.width * escala), height: Math.round(bmp.height * escala) });
+  canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise(ok => canvas.toBlob(ok, 'image/jpeg', 0.88));
+  return new File([blob], 'producto.jpg', { type: 'image/jpeg' });
+}
+
+function fotoProducto(f, repintar) {
+  const input = h('input', { type: 'file', accept: 'image/*', class: 'archivo-oculto' });
+  input.addEventListener('change', async () => {
+    if (!input.files[0]) return;
+    f.subiendoFoto = true; repintar();
+    try {
+      const { url, error } = await Productos.uploadImagen(await achicarFoto(input.files[0]));
+      if (error) throw error;
+      f.imagen_url = url;
+    } catch (e) {
+      toast('No se pudo subir la foto: ' + (e.message || e), 'error');
+    } finally {
+      f.subiendoFoto = false;
+      if (borrador?.filas.includes(f)) repintar();   // si mientras subía se canceló o se quitó el renglón, no hay nada que repintar
+    }
+  });
+  if (f.subiendoFoto) return h('span', { class: 'foto-prod muted' }, h('span', { class: 'spinner-sm' }), ' Subiendo foto…');
+  return h('label', { class: 'foto-prod' + (f.imagen_url ? ' con-foto' : ''), title: f.imagen_url ? 'Cambiar la foto' : 'Sin foto se publica en la web sin imagen' },
+    input, f.imagen_url ? h('img', { src: f.imagen_url, alt: 'Foto del producto' }) : icon('add_a_photo'),
+    h('span', {}, f.imagen_url ? 'Cambiar foto' : 'Agregar foto'));
 }
 
 const filaVacia = () => ({ incluir: true, codigo: '', descripcion: '', cantidad: 1, costo: null, legible: true, nota: null,
@@ -194,7 +233,8 @@ function renderEditor() {
             ...CATEGORIAS.map(([v, l]) => h('option', { value: v, selected: v === f.categoria ? true : null }, l))),
           h('input', { class: 'input input-sm num', inputmode: 'decimal', 'aria-label': 'Precio de venta',
             placeholder: 'Precio venta', value: f.precio_venta ?? precioVenta(f.costo, b.proveedor) ?? '',
-            onchange: e => { f.precio_venta = parseFloat(e.target.value.replace(',', '.')) || null; } }))
+            onchange: e => { f.precio_venta = parseFloat(e.target.value.replace(',', '.')) || null; } }),
+          fotoProducto(f, repintar))
       : h('span', { class: 'muted', style: 'font-size:12px' }, 'No cambia el stock');
     return h('tr', { class: (f.legible ? '' : 'fila-revisar') + (f.incluir ? '' : ' fila-off') },
       h('td', {}, h('input', { type: 'checkbox', checked: f.incluir, 'aria-label': 'Incluir', onchange: e => { f.incluir = e.target.checked; repintar(); } })),
@@ -217,6 +257,7 @@ function renderEditor() {
     nuevos: activas.filter(f => f.accion === 'crear').length,
     pedidos: activas.filter(f => f.repo).length,
     revisar: activas.filter(f => !f.legible || f.costo == null || !f.cantidad || !f.descripcion.trim() || (f.accion === 'stock' && !f.producto_id)).length,
+    subiendo: activas.some(f => f.subiendoFoto),
   };
 
   $('recepcion-trabajo').replaceChildren(h('div', { class: 'card card-pad' },
@@ -237,14 +278,16 @@ function renderEditor() {
       h('div', {},
         h('div', { class: 'recep-total num' }, money(suma)),
         h('div', { class: 'muted' }, `${activas.length} renglones · ${resumen.stock} suman stock · ${resumen.nuevos} productos nuevos · ${resumen.pedidos} coinciden con pedidos`),
-        resumen.revisar ? h('div', { class: 'falta' }, `⚠ ${resumen.revisar} renglón(es) incompletos: completá cantidad, costo o el producto antes de confirmar.`) : null),
+        resumen.revisar ? h('div', { class: 'falta' }, `⚠ ${resumen.revisar} renglón(es) incompletos: completá cantidad, costo o el producto antes de confirmar.`) : null,
+        resumen.subiendo ? h('div', { class: 'falta' }, 'Esperá a que termine de subir la foto.') : null),
       h('div', { class: 'acciones' },
         h('button', { class: 'btn btn-lg', onclick: cargarLista }, 'Cancelar'),
-        h('button', { class: 'btn btn-green btn-lg', disabled: !activas.length || resumen.revisar ? true : null, onclick: () => confirmarRecepcion(suma, resumen) },
+        h('button', { class: 'btn btn-green btn-lg', disabled: !activas.length || resumen.revisar || resumen.subiendo ? true : null, onclick: e => confirmarRecepcion(e.currentTarget, suma, resumen) },
           icon('inventory'), 'Confirmar y cargar')))));
 }
 
-async function confirmarRecepcion(suma, resumen) {
+// unaVez + botón deshabilitado: un doble clic o una conexión lenta no cargan dos veces la misma compra
+const confirmarRecepcion = unaVez(async (btn, suma, resumen) => {
   const b = borrador;
   const activas = b.filas.filter(f => f.incluir);
   const ok = await confirmar('Confirmar recepción',
@@ -252,6 +295,7 @@ async function confirmarRecepcion(suma, resumen) {
     `${resumen.stock} artículos suman stock, se crean ${resumen.nuevos} productos nuevos` +
     `${resumen.pedidos ? ` y ${resumen.pedidos} pedidos quedan como recibidos` : ''}. ¿Confirmás?`, { ok: 'Sí, cargar' });
   if (!ok) return;
+  btn.disabled = true;
   const { data: id, error } = await db.rpc('confirmar_recepcion', { p: {
     proveedor: b.proveedor || null, nro_comprobante: b.nro || null, fecha: b.fecha || null, total: b.total ?? suma, origen: b.origen, ia_uso: b.iaUso ?? null,
     items: activas.map(f => ({
@@ -261,12 +305,20 @@ async function confirmarRecepcion(suma, resumen) {
       reposicion_item_id: f.repo?.id ?? null,
     })),
   } });
-  if (error) { toast(error.message, 'error'); return; }
+  if (error) { btn.disabled = false; toast(error.message, 'error'); return; }
+  // confirmar_recepcion crea los productos en el orden de los renglones: se les pone la foto elegida
+  const creadas = activas.filter(f => f.accion === 'crear');
+  if (creadas.some(f => f.imagen_url)) {
+    const { data: items } = await db.from('recepcion_items').select('producto_id').eq('recepcion_id', id).eq('accion', 'crear').order('id');
+    const res = await Promise.all((items || []).map((it, i) => creadas[i]?.imagen_url && it.producto_id
+      ? db.from('productos').update({ imagen_url: creadas[i].imagen_url }).eq('id', it.producto_id) : null));
+    if (!items || res.some(r => r?.error)) toast('La compra quedó cargada, pero alguna foto no se guardó: ponela desde Admin → Productos', 'error');
+  }
   toast(`Recepción Nº ${id} cargada`, 'success');
   borrador = null;
   actualizarBadgeRepo();
   cargarLista();
-}
+});
 
 /* ── Historial ───────────────────────────────────────────────────────── */
 async function cargarLista() {

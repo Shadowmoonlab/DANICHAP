@@ -75,15 +75,49 @@ test('Haiku va sin fallback (no lo soporta) y un modelo desconocido cae en el de
   assert.equal(c.llamadas[1].model, MODELO);
 });
 
+function baseFalsa(previas, limite = 4) {
+  const filas = Array.from({ length: previas }, (_, i) => ({ id: i + 1, modelo: 'x' }));
+  let sig = previas + 1;
+  return {
+    filas,
+    limite: async () => limite,
+    contarHoy: async (_desde, hastaId) => filas.filter(r => !hastaId || r.id <= hastaId).length,
+    reservar: async () => { const id = sig++; filas.push({ id, modelo: 'leyendo' }); return id; },
+    liberar: async id => { filas.splice(filas.findIndex(r => r.id === id), 1); },
+    completar: async (id, fila) => { Object.assign(filas.find(r => r.id === id), fila); },
+  };
+}
+const nuevas = b => b.filas.filter(r => r.modelo !== 'x').map(({ id, ...r }) => r);
+
 test('límite diario: bloquea sin llamar a la API y registra el consumo cuando lee', async () => {
-  const registros = [];
-  const base = (usadas, limite = 4) => ({ limite: async () => limite, contarHoy: async () => usadas, registrar: async f => { registros.push(f); } });
   const c = clienteFalso(ok(DATOS));
-  await assert.rejects(leerFacturaConLimite(c, { archivo: B64, media_type: 'image/png' }, { base: base(4) }), e => e.codigo === 'limite_diario');
+  const llena = baseFalsa(4);
+  await assert.rejects(leerFacturaConLimite(c, { archivo: B64, media_type: 'image/png' }, { base: llena }), e => e.codigo === 'limite_diario');
   assert.equal(c.llamadas.length, 0);
-  const r = await leerFacturaConLimite(c, { archivo: B64, media_type: 'image/png' }, { base: base(2) });
+  assert.equal(llena.filas.length, 4);
+  const b = baseFalsa(2);
+  const r = await leerFacturaConLimite(c, { archivo: B64, media_type: 'image/png' }, { base: b });
   assert.equal(r.lecturas_hoy, 3);
-  assert.deepEqual(registros, [{ modelo: MODELO, input_tokens: 10, output_tokens: 20 }]);
+  assert.deepEqual(nuevas(b), [{ modelo: MODELO, input_tokens: 10, output_tokens: 20 }]);
+});
+
+test('límite diario: dos lecturas a la vez con 3 usadas → solo una pasa', async () => {
+  const b = baseFalsa(3);
+  let leidas = 0;
+  const lector = async () => { leidas++; await new Promise(ok => setTimeout(ok, 5)); return { modelo: 'm', datos: {}, uso: {} }; };
+  const pedido = () => leerFacturaConLimite(null, { archivo: B64, media_type: 'image/png' }, { base: b, lector });
+  const res = await Promise.allSettled([pedido(), pedido()]);
+  assert.equal(res.filter(r => r.status === 'fulfilled').length, 1);
+  assert.equal(res.find(r => r.status === 'rejected').reason.codigo, 'limite_diario');
+  assert.equal(leidas, 1);
+  assert.equal(b.filas.length, 4);
+});
+
+test('límite diario: si la lectura falla, libera el cupo', async () => {
+  const b = baseFalsa(1);
+  const lector = async () => { throw new ErrorLectura('demoró', 'demora'); };
+  await assert.rejects(leerFacturaConLimite(null, { archivo: B64, media_type: 'image/png' }, { base: b, lector }), e => e.codigo === 'demora');
+  assert.equal(b.filas.length, 1);
 });
 
 test('el día se cuenta en hora argentina', () => {
@@ -126,12 +160,11 @@ test('Gemini: modelo inválido cae en el de defecto; cupo agotado, bloqueo y cor
 });
 
 test('Gemini: respeta el límite diario y registra el consumo igual que Claude', async () => {
-  const registros = [];
-  const base = { limite: async () => 4, contarHoy: async () => 1, registrar: async f => { registros.push(f); } };
+  const base = baseFalsa(1);
   const lector = (_c, e) => leerFacturaGemini('K', e, { fetchFn: fetchFalso(respGemini(DATOS)) });
   const r = await leerFacturaConLimite(null, { archivo: B64, media_type: 'image/png' }, { base, lector });
   assert.equal(r.lecturas_hoy, 2);
-  assert.deepEqual(registros, [{ modelo: 'gemini-2.5-flash', input_tokens: 1500, output_tokens: 700 }]);
+  assert.deepEqual(nuevas(base), [{ modelo: 'gemini-2.5-flash', input_tokens: 1500, output_tokens: 700 }]);
 });
 
 test('Gemini: si devuelve el objeto dentro de una lista lo desenvuelve', async () => {
@@ -149,7 +182,7 @@ test('Gemini: tolera el JSON envuelto en ```json y descarta las partes de razona
 });
 
 test('límite diario fijo en 4: aunque la base diga 50, la quinta lectura se rechaza', async () => {
-  const base = { limite: async () => 50, contarHoy: async () => 4, registrar: async () => {} };
+  const base = baseFalsa(4, 50);
   await assert.rejects(leerFacturaConLimite(null, { archivo: B64, media_type: 'image/png' }, { base, lector: async () => ({}) }),
     e => e.codigo === 'limite_diario' && /límite 4/.test(e.message));
 });
@@ -175,4 +208,10 @@ test('Gemini: si tarda más del máximo se corta (demora); el cupo agotado no se
 test('Gemini: el motivo del error de Google llega al mensaje', async () => {
   const f = async () => ({ ok: false, status: 400, text: async () => '{"error":{"message":"API key not valid"}}' });
   await assert.rejects(leerFacturaGemini('K', { archivo: B64, media_type: 'image/jpeg' }, { fetchFn: f }), e => e.codigo === 'api_pedido' && /API key not valid/.test(e.message));
+});
+
+test('docs/leer-factura-un-archivo.ts está al día con la función (npm run armar:funcion)', async () => {
+  const fs = await import('node:fs');
+  const { armarFuncion } = await import('../dev/armar-funcion.mjs');
+  assert.equal(fs.readFileSync(new URL('../docs/leer-factura-un-archivo.ts', import.meta.url), 'utf8'), armarFuncion());
 });

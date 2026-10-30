@@ -354,3 +354,17 @@ table.tbl { width: 100%; border-collapse: collapse; }
 .pos-webs .muted { display: flex; align-items: center; gap: 6px; }
 .pos-webs-lista { display: flex; flex-wrap: wrap; gap: 6px; }
 .prov-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* ── Recepción: elegir archivo y foto del producto nuevo ── */
+.archivo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.archivo-oculto { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.archivo-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px dashed var(--navy-3); border-radius: 10px;
+  background: var(--navy-soft); color: var(--navy-2); font-weight: 700; cursor: pointer; position: relative; }
+.archivo-btn:hover { background: #cfdcf7; }
+.archivo-btn:focus-within { outline: 3px solid var(--navy-3); outline-offset: 2px; }
+.archivo-nombre { font-size: 13px; word-break: break-all; }
+.foto-prod { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 4px 8px; border: 1px dashed var(--line); border-radius: 8px;
+  font-size: 12px; font-weight: 700; color: var(--navy-2); cursor: pointer; position: relative; background: #fff; }
+.foto-prod img { width: 34px; height: 34px; object-fit: cover; border-radius: 6px; }
+.foto-prod.con-foto { border-style: solid; border-color: var(--green); }
+.foto-prod:focus-within { outline: 3px solid var(--navy-3); outline-offset: 2px; }

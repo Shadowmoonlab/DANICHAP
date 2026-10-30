@@ -1,6 +1,6 @@
 // leer-factura — versión en UN SOLO ARCHIVO para pegar en el editor del panel de Supabase
-// (Edge Functions → leer-factura → Code). Generado desde supabase/functions/leer-factura/index.ts
-// + supabase/functions/_shared/leer-factura.js. Con GEMINI_API_KEY usa Gemini (gratis); si no, Claude.
+// (Edge Functions → leer-factura → Code). GENERADO con `npm run armar:funcion` desde
+// supabase/functions/leer-factura/index.ts + supabase/functions/_shared/leer-factura.js: no editar a mano.
 import Anthropic from 'npm:@anthropic-ai/sdk@1.3.0';   // misma versión que se probó en local
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -25,20 +25,30 @@ export function inicioDelDiaArgentina(ahora = Date.now()) {
 /**
  * Lee un comprobante respetando el límite diario y dejando registro del consumo.
  * Cada entorno (Edge Function / servidor local) pasa cómo contar y registrar en su base.
- * @param {{ limite: () => Promise<number>, contarHoy: (desdeISO: string) => Promise<number>,
- *           registrar: (fila: {modelo: string, input_tokens: number, output_tokens: number}) => Promise<void> }} base
+ * El cupo se reserva ANTES de leer (fila en lecturas_ia): dos pedidos a la vez no pasan los dos el límite,
+ * gana el de id más bajo. Si la lectura falla, la reserva se libera y no consume el cupo.
+ * @param {{ limite: () => Promise<number>, contarHoy: (desdeISO: string, hastaId?: number) => Promise<number>,
+ *           reservar: () => Promise<number>, liberar: (id: number) => Promise<void>,
+ *           completar: (id: number, fila: {modelo: string, input_tokens: number, output_tokens: number}) => Promise<void> }} base
  */
 export async function leerFacturaConLimite(client, entrada, { modelo, base, lector = leerFactura }) {
-  const [configurado, usadas] = await Promise.all([base.limite(), base.contarHoy(inicioDelDiaArgentina())]);
+  validarArchivo(entrada); // antes de reservar nada
+  const desde = inicioDelDiaArgentina();
+  const [configurado, previas] = await Promise.all([base.limite(), base.contarHoy(desde)]);
   // Tope fijo de 4 por día: aunque alguien cambie el valor en la base, nunca se lee más que eso (cupo gratuito)
   const limite = Math.min(Number(configurado) || LIMITE_DIARIO_DEFECTO, LIMITE_DIARIO_DEFECTO);
-  if (usadas >= limite) {
-    throw new ErrorLectura(`Ya se leyeron ${usadas} facturas hoy (límite ${limite}). Cargá esta a mano o esperá a mañana.`, 'limite_diario');
-  }
-  validarArchivo(entrada); // antes de registrar nada
-  const resultado = await lector(client, entrada, { modelo });
-  await base.registrar({ modelo: resultado.modelo, input_tokens: resultado.uso?.input_tokens ?? 0, output_tokens: resultado.uso?.output_tokens ?? 0 });
-  return { ...resultado, lecturas_hoy: usadas + 1, limite_diario: limite };
+  const agotado = n => new ErrorLectura(`Ya se leyeron ${n} facturas hoy (límite ${limite}). Cargá esta a mano o esperá a mañana.`, 'limite_diario');
+  if (previas >= limite) throw agotado(previas);
+
+  const id = await base.reservar();
+  const puesto = await base.contarHoy(desde, id);   // lecturas de hoy hasta la mía inclusive
+  if (puesto > limite) { await base.liberar(id).catch(() => {}); throw agotado(limite); }
+  let resultado;
+  try { resultado = await lector(client, entrada, { modelo }); }
+  catch (e) { await base.liberar(id).catch(() => {}); throw e; }
+  // La reserva ya cuenta para el límite: si no se pueden guardar los tokens, solo se pierde el dato del consumo
+  await base.completar(id, { modelo: resultado.modelo, input_tokens: resultado.uso?.input_tokens ?? 0, output_tokens: resultado.uso?.output_tokens ?? 0 }).catch(() => {});
+  return { ...resultado, lecturas_hoy: puesto, limite_diario: limite };
 }
 export const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 export const MAX_BYTES = 20 * 1024 * 1024; // el pedido completo a la API admite hasta 32 MB
@@ -275,18 +285,18 @@ export function normalizarDatos(d) {
 
 // ── Función ──
 const ORIGENES = ['https://danichap.com', 'https://www.danichap.com'];
-let CORS: Record<string, string> = {};
-const json = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 Deno.serve(async (req) => {
   const origen = req.headers.get('Origin') ?? '';
-  CORS = {
+  // Por pedido (no global): con dos pedidos a la vez de orígenes distintos no se mezclan los encabezados
+  const CORS: Record<string, string> = {
     'Access-Control-Allow-Origin': ORIGENES.includes(origen) ? origen : ORIGENES[0],
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Vary': 'Origin',
   };
+  const json = (status: number, body: unknown) =>
+    new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json(405, { error: 'Método no permitido' });
 
@@ -307,19 +317,27 @@ Deno.serve(async (req) => {
       const { data } = await sb.from('config_negocio').select('lecturas_ia_por_dia').eq('id', 1).maybeSingle();
       return data?.lecturas_ia_por_dia ?? LIMITE_DIARIO_DEFECTO;
     },
-    contarHoy: async (desde: string) => {
-      const { count, error } = await sb.from('lecturas_ia').select('id', { count: 'exact', head: true }).gte('created_at', desde);
+    contarHoy: async (desde: string, hastaId?: number) => {
+      let q = sb.from('lecturas_ia').select('id', { count: 'exact', head: true }).gte('created_at', desde);
+      if (hastaId) q = q.lte('id', hastaId);
+      const { count, error } = await q;
       if (error) throw new Error(`No se pudo controlar el límite diario: ${error.message}`);
       return count ?? 0;
     },
-    registrar: async (fila: Record<string, unknown>) => { await sb.from('lecturas_ia').insert(fila); },
+    reservar: async () => {
+      const { data, error } = await sb.from('lecturas_ia').insert({ modelo: 'leyendo' }).select('id').single();
+      if (error) throw new Error(`No se pudo reservar la lectura: ${error.message}`);
+      return data.id;
+    },
+    liberar: async (id: number) => { await sb.from('lecturas_ia').delete().eq('id', id); },
+    completar: async (id: number, fila: Record<string, unknown>) => { await sb.from('lecturas_ia').update(fila).eq('id', id); },
   };
 
   try {
     const entrada = await req.json();
     const resultado = geminiKey
       ? await leerFacturaConLimite(null, entrada, { base, lector: (_c: unknown, e: any) => leerFacturaGemini(geminiKey, e, { modelo: Deno.env.get('GEMINI_MODELO') }) })
-      : await leerFacturaConLimite(new Anthropic({ apiKey }), entrada, { modelo: Deno.env.get('LECTURA_MODELO'), base });
+      : await leerFacturaConLimite(new Anthropic({ apiKey, timeout: 110_000, maxRetries: 1 }), entrada, { modelo: Deno.env.get('LECTURA_MODELO'), base });
     return json(200, resultado);
   } catch (e) {
     if (e instanceof ErrorLectura) return json(e.codigo === 'entrada' ? 400 : e.codigo === 'limite_diario' || e.codigo === 'limite' ? 429 : e.codigo === 'api' ? 502 : 422, { error: e.message, codigo: e.codigo });

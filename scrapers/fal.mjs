@@ -7,8 +7,9 @@ import { crearSesion } from './lib/sesion.mjs';
 import { leerPlanilla } from './lib/planilla.mjs';
 
 const BASE = 'https://autopartesfal.com';
-// Último link conocido (oct/2026), por si el sitio cambia de lugar el botón
-const LISTA_RESPALDO = 'https://www.dropbox.com/scl/fi/jhlo9gre3fkcfn7mda68e/F066-LISTA-DE-PRECIOS.xls?rlkey=n69j7xj6pq4t5v6ra8vn6vi2s&dl=1';
+// Link de respaldo por si el sitio cambia de lugar el botón: va en el secret FAL_LISTA_URL (opcional),
+// nunca en el código: el repo es público y ese link da la lista de precios de clientes sin login.
+const LISTA_RESPALDO = process.env.FAL_LISTA_URL?.trim() || null;
 
 async function linkDeLista() {
   const s = crearSesion(BASE);
@@ -26,9 +27,14 @@ async function linkDeLista() {
 }
 
 async function scrape() {
-  let link = null;
+  let link = null, errorLogin;
   try { link = await linkDeLista(); }
-  catch (e) { console.warn(`[fal] ${e.message}. Uso el último link conocido.`); }
+  catch (e) {
+    if (!LISTA_RESPALDO) throw e;   // sin link de respaldo no hay de dónde leer: que se vea el error real (ej. clave mal)
+    errorLogin = e;
+    console.warn(`[fal] ${e.message}. Uso el link de respaldo.`);
+  }
+  if (!link && !LISTA_RESPALDO) throw new Error('No encontré el link de "Lista de precios" en la web de Fal (se puede cargar uno de respaldo en el secret FAL_LISTA_URL)');
 
   // El link del sitio puede llevar a una vista previa de Dropbox (HTML) en vez del archivo: probar ambos
   let ultimoError;
@@ -44,7 +50,7 @@ async function scrape() {
       console.warn(`[fal] ${url.split('?')[0].split('/').pop()}: ${e.message}`);
     }
   }
-  throw new Error(`No pude leer la lista de Fal: ${ultimoError.message}`);
+  throw new Error(`No pude leer la lista de Fal: ${(ultimoError ?? errorLogin).message}`);
 }
 
 await correrScraper('fal', scrape);

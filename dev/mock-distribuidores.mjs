@@ -9,10 +9,12 @@ const html = (t, h = {}) => new Response(t, { status: 200, headers: { 'Content-T
 const N = { goicoechea: 70_459, prPaginas: 795, distrisuper: 25_116, fal: 1_612, dm: 32_370, delviso: 11_859, oteroGrupos: 300 };
 // Cada corrida cambia algunos precios, como pasa en la realidad
 const ajuste = Number(process.env.PRUEBA_VUELTA || 0);
+// PRUEBA_CORTE=1: el sitio devuelve solo el 30 % (página caída a mitad de camino): el robot no debe dar de baja el resto
+const parte = n => (process.env.PRUEBA_CORTE ? Math.floor(n * 0.3) : n);
 
 const falXlsx = (() => {
   const filas = [['Codigo', 'Descripcion', 'Precio', 'Familia']];
-  for (let i = 0; i < N.fal; i++) filas.push([`F${i}`, `FARO ${i}`, 5000 + i + ajuste, 'Faros']);
+  for (let i = 0; i < parte(N.fal); i++) filas.push([`F${i}`, `FARO ${i}`, 5000 + i + ajuste, 'Faros']);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(filas), 'LISTA');
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
@@ -28,7 +30,7 @@ globalThis.fetch = async (input, init = {}) => {
     if (url.includes('/account/log/login')) return json({ success: cookie.includes('PHPSESSID=s1') });
     if (url.includes('/exportExcel/8/csv')) {
       const l = ['Codigo|Descripcion|Marca|Linea|Precio Lista|Precio Neto'];
-      for (let i = 0; i < N.goicoechea; i++) l.push(`G${i}|ARTICULO ${i}|MARCA${i % 7}|LINEA${i % 5}|${1000 + i + ajuste},50|${800 + i + ajuste},40`);
+      for (let i = 0; i < parte(N.goicoechea); i++) l.push(`G${i}|ARTICULO ${i}|MARCA${i % 7}|LINEA${i % 5}|${1000 + i + ajuste},50|${800 + i + ajuste},40`);
       return new Response(l.join('\r\n'), { status: 200 });
     }
   }
@@ -61,7 +63,7 @@ globalThis.fetch = async (input, init = {}) => {
     if ((init.method || 'GET') === 'GET') return html('<input type="hidden" name="woocommerce-login-nonce" value="n1">');
     return html('ok', { 'Set-Cookie': 'wordpress_logged_in_x=1; path=/' });
   }
-  if (url === 'https://autopartesfal.com/') return html('<a href="/logout">Cerrar sesión</a>');
+  if (url === 'https://autopartesfal.com/') return html('<a href="/logout">Cerrar sesión</a> <a href="https://www.dropbox.com/scl/fi/x/LISTA.xls?rlkey=prueba&dl=0">Lista de precios</a>');
   if (url.startsWith('https://www.dropbox.com/')) return new Response(falXlsx, { status: 200 });
 
   // DM: login por querystring → cookie "id"; catálogo entero en un JSON doblemente codificado (26 columnas)
