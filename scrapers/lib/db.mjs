@@ -2,14 +2,16 @@
 // Habla directo con la API REST de Supabase (sin @supabase/supabase-js): los robots no necesitan npm install.
 import fs from 'node:fs';
 import { enParalelo } from './sesion.mjs';
+import { aNumero } from '../../gestion/listas.js';
 
 const LOTE = 500;
 const LOTES_SIMULTANEOS = 2;   // con 7 robots a la vez, más guardados en paralelo traban la base (plan gratis)
 const MINIMO_LEIDO = 0.7;   // si se lee menos del 70 % de lo que había, no se da de baja nada (lectura cortada)
 const PRECIO_MAX = 1e9;   // la columna es numeric(12,2): un precio absurdo del sitio no debe tirar abajo toda la corrida
 
+// Un precio en 0 es "sin precio" (artículo sin cotizar), no un precio válido: no debe pisar el anterior
 function precioValido(v) {
-  return Number.isFinite(v) && v >= 0 && v < PRECIO_MAX ? v : null;
+  return Number.isFinite(v) && v > 0 && v < PRECIO_MAX ? v : null;
 }
 
 export function env(nombre) {
@@ -156,7 +158,5 @@ async function terminarRun(id, datos) {
   await rest(`scraper_runs?id=eq.${id}`, { method: 'PATCH', body: { ...datos, fin: new Date().toISOString() } }).catch(() => {});
 }
 
-export function numero(v) {
-  const n = parseFloat(String(v ?? '').replace(',', '.'));
-  return Number.isFinite(n) ? n : null;
-}
+// Mismo lector que las planillas: "1.234,56", "1,234.56", "$ 10.021" y números ya numéricos
+export const numero = aNumero;

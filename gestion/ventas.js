@@ -1,15 +1,21 @@
 // gestion/ventas.js — Historial de ventas con ganancia real y cierre de caja por forma de pago.
-import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=11';
-import { imprimirComprobante } from './comprobante.js?v=11';
-import { calcularCierre, leerDiferencia } from './caja-calc.js?v=11';
+import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=12';
+import { imprimirComprobante } from './comprobante.js?v=12';
+import { calcularCierre, leerDiferencia } from './caja-calc.js?v=12';
 
+let pedidoVentas = 0;   // si se cambia el filtro rápido, la respuesta vieja no pisa a la nueva
 async function cargar() {
+  // Una fecha borrada (se puede en el celular) vuelve a hoy en vez de romper la lista
+  if (!$('ventas-desde').value) $('ventas-desde').value = hoyISO();
+  if (!$('ventas-hasta').value) $('ventas-hasta').value = hoyISO();
   const desde = new Date(`${$('ventas-desde').value}T00:00:00`);
   const hasta = new Date(`${$('ventas-hasta').value}T23:59:59.999`);
+  const yo = ++pedidoVentas;
   const { data, error } = await db.from('ventas')
     .select('id, created_at, cliente_nombre, medio_pago, total, costo_total, ganancia, impreso, anulada')
     .gte('created_at', desde.toISOString()).lte('created_at', hasta.toISOString())
     .order('created_at', { ascending: false }).limit(1000);
+  if (yo !== pedidoVentas) return;
   const body = $('ventas-body');
   if (error) { body.replaceChildren(h('tr', {}, h('td', { colspan: 6 }, error.message))); return; }
 
@@ -39,7 +45,9 @@ async function cargar() {
 }
 
 export async function verVenta(v) {
-  const { data: items } = await db.from('venta_items').select('codigo, descripcion, cantidad, precio_unit, costo_unit').eq('venta_id', v.id);
+  const { data: items, error: errItems } = await db.from('venta_items').select('codigo, descripcion, cantidad, precio_unit, costo_unit').eq('venta_id', v.id);
+  // Sin los renglones no se muestra la venta: se imprimiría un comprobante vacío en $0
+  if (errItems) { toast('No se pudieron leer los artículos de la venta: ' + errItems.message, 'error'); return; }
   openModal({
     title: `Venta Nº ${v.id}`, wide: true,
     body: h('div', {},
@@ -53,8 +61,13 @@ export async function verVenta(v) {
     foot: [
       !v.anulada ? h('button', { class: 'btn btn-red', onclick: async () => {
         closeModal();
-        if (!(await confirmar('Anular venta', `¿Anular la venta Nº ${v.id}? No se borra: queda tachada y deja de sumar en caja y cuenta corriente.`, { ok: 'Anular', peligro: true }))) return;
-        const { error } = await db.from('ventas').update({ anulada: true }).eq('id', v.id);
+        if (!(await confirmar('Anular venta', `¿Anular la venta Nº ${v.id}? No se borra: queda tachada, deja de sumar en caja y cuenta corriente, y lo vendido vuelve al stock.`, { ok: 'Anular', peligro: true }))) return;
+        // anular_venta (docs/gestion-v4.sql) devuelve el stock, saca lo pendiente de Reposición y reabre el presupuesto.
+        // Sin ese SQL todavía aplicado, se anula como antes (solo la marca).
+        let { error } = await db.rpc('anular_venta', { p_id: v.id });
+        if (error && /anular_venta/.test(error.message) && /find|exist/i.test(error.message)) {
+          ({ error } = await db.from('ventas').update({ anulada: true }).eq('id', v.id));
+        }
         if (error) return toast(error.message, 'error');
         toast('Venta anulada'); cargar();
       } }, icon('block'), 'Anular') : null,
@@ -70,6 +83,7 @@ async function cerrarCaja() {
     db.rpc('caja_del_dia', { p_fecha: hoy }),
     db.from('cierres_caja').select('fecha, efectivo_inicial, efectivo_contado, notas').order('fecha', { ascending: false }).limit(2),
   ]);
+  if (previo.error) toast('No se pudo leer el cierre anterior: revisá el cambio inicial', 'error');
   if (mov.error) {
     toast(/caja_del_dia|cierres_caja/.test(mov.error.message) ? 'Falta activar el cierre de caja en la base (docs/gestion-v3.sql)' : mov.error.message, 'error');
     return;

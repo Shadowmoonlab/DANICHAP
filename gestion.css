@@ -368,3 +368,4 @@ table.tbl { width: 100%; border-collapse: collapse; }
 .foto-prod img { width: 34px; height: 34px; object-fit: cover; border-radius: 6px; }
 .foto-prod.con-foto { border-style: solid; border-color: var(--green); }
 .foto-prod:focus-within { outline: 3px solid var(--navy-3); outline-offset: 2px; }
+.ti .sub.sin-precio { color: var(--red, #c62828); font-size: 12px; }

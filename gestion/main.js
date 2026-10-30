@@ -1,15 +1,15 @@
 // gestion/main.js — Entrada del panel: acceso solo admin, pestañas, atajos de teclado e inicio de módulos.
 import {
   $, closeModal, modalAbierto, mostrarVista, vistaActual, cargarConfig, cargarProveedores, actualizarBadgeRepo,
-} from './core.js?v=11';
-import { iniciarMostrador, limpiarBusqueda } from './mostrador.js?v=11';
-import { iniciarReposicion } from './reposicion.js?v=11';
-import { iniciarRecepcion } from './recepcion.js?v=11';
-import { iniciarVentas } from './ventas.js?v=11';
-import { iniciarLibro } from './libro.js?v=11';
-import { iniciarClientes, cargarClientes } from './clientes.js?v=11';
-import { iniciarProveedores } from './proveedores.js?v=11';
-import { iniciarAjustes } from './ajustes.js?v=11';
+} from './core.js?v=12';
+import { iniciarMostrador, limpiarBusqueda } from './mostrador.js?v=12';
+import { iniciarReposicion } from './reposicion.js?v=12';
+import { iniciarRecepcion } from './recepcion.js?v=12';
+import { iniciarVentas } from './ventas.js?v=12';
+import { iniciarLibro } from './libro.js?v=12';
+import { iniciarClientes, cargarClientes } from './clientes.js?v=12';
+import { iniciarProveedores } from './proveedores.js?v=12';
+import { iniciarAjustes } from './ajustes.js?v=12';
 
 const VISTAS = ['mostrador', 'reposicion', 'recepcion', 'ventas', 'libro', 'clientes', 'proveedores', 'ajustes'];
 
@@ -31,8 +31,9 @@ function atajos() {
   document.addEventListener('keydown', e => {
     if (modalAbierto()) { if (e.key === 'Escape') closeModal(); return; }
     if (e.key === 'F2') { e.preventDefault(); mostrarVista('mostrador'); $('pos-search').select(); }
-    else if (e.key === 'F9' && vistaActual() === 'mostrador') { e.preventDefault(); $('pos-cobrar').click(); }
-    else if (e.key === 'F4' && vistaActual() === 'mostrador') { e.preventDefault(); $('pos-presu').click(); }
+    // blur antes: si el cursor sigue en el precio o la cantidad del ticket, primero se aplica lo que se escribió
+    else if (e.key === 'F9' && vistaActual() === 'mostrador') { e.preventDefault(); document.activeElement?.blur(); $('pos-cobrar').click(); }
+    else if (e.key === 'F4' && vistaActual() === 'mostrador') { e.preventDefault(); document.activeElement?.blur(); $('pos-presu').click(); }
     // Esc funciona aunque el cursor no esté en el buscador (antes solo andaba con el foco ahí)
     // pero no si el cursor está en otro campo (cliente, cantidad, precio del ticket): ahí Esc no borra la búsqueda
     else if (e.key === 'Escape' && vistaActual() === 'mostrador'

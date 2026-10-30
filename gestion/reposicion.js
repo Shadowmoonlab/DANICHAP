@@ -4,9 +4,9 @@ import {
   $, h, icon, vacio, db, toast, money, fecha, estado, proveedor, nombreProveedor, DIAS_LARGO, debounce,
   buscarPrecios, openModal, closeModal, copiar, linkWhatsApp, pedirNumero, registrarVista, actualizarBadgeRepo,
   mostrarVista,
-} from './core.js?v=11';
-import { palabras } from './texto.js?v=11';
-import { pedidoProveedor } from './plantillas.js?v=11';
+} from './core.js?v=12';
+import { palabras } from './texto.js?v=12';
+import { pedidoProveedor } from './plantillas.js?v=12';
 
 let repoEstado = 'pendiente';
 
@@ -25,12 +25,15 @@ function etiquetaVisita(prov) {
   return h('span', { class: 'chip' }, `pasa el ${DIAS_LARGO[(new Date().getDay() + n) % 7]}`);
 }
 
+let pedidoRepo = 0;   // al cambiar rápido de pestaña, la respuesta vieja no pinta los items de la otra
 async function cargar() {
   const box = $('repo-list');
+  const yo = ++pedidoRepo;
   const { data, error } = await db.from('reposicion_items')
     .select('id, codigo, descripcion, cantidad, estado, created_at, pedido_at, precio_distribuidor_id, precio:precios_distribuidor(id, distribuidor, codigo, descripcion, precio_neto, activo)')
     .eq('estado', repoEstado)
     .order('created_at', { ascending: true });
+  if (yo !== pedidoRepo) return;
   if (error) { box.replaceChildren(h('div', { class: 'card empty' }, error.message)); return; }
   if (!data.length) {
     box.replaceChildren(h('div', { class: 'card' }, vacio(repoEstado === 'pendiente' ? 'task_alt' : 'local_shipping',

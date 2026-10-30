@@ -170,7 +170,7 @@ export async function leerFactura(client, entrada, { modelo } = {}) {
 // se reintenta una vez con Flash (más completo pero más lento). Todo dentro de los 150 s que da Supabase.
 export const MODELO_GEMINI = 'gemini-flash-lite-latest';
 export const MODELO_GEMINI_RESPALDO = 'gemini-flash-latest';
-const ESPERA_GEMINI_MS = [55_000, 75_000];
+const ESPERA_GEMINI_MS = [45_000, 70_000];   // 115 s en total: margen para el resto dentro de los 150 s de Supabase
 
 /**
  * Alternativa gratuita: lee el comprobante con Gemini (Google AI Studio, plan sin costo) por REST, sin SDK.

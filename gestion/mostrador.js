@@ -2,16 +2,18 @@
 import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
-  actualizarBadgeRepo, unaVez,
-} from './core.js?v=11';
-import { presupuesto as textoPresupuesto } from './plantillas.js?v=11';
-import { imprimirComprobante } from './comprobante.js?v=11';
-import { editarCliente } from './clientes.js?v=11';
+  actualizarBadgeRepo, unaVez, hoyISO,
+} from './core.js?v=12';
+import { numeroAR } from './texto.js?v=12';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=12';
+import { imprimirComprobante } from './comprobante.js?v=12';
+import { editarCliente } from './clientes.js?v=12';
 
 let resultados = [];
 let selIdx = -1;
 let venta = [];            // renglones de la venta actual
 let presupuestoId = null;  // si la venta se cargó desde un presupuesto
+let buscado = '';          // texto de la búsqueda que está en pantalla (Enter solo agrega de esa)
 
 const buscador = () => $('pos-search');
 
@@ -21,6 +23,7 @@ const ejecutarBusqueda = debounce(async () => {
   if (q.length < 2) { renderResultados(null); return; }
   const [stock, dist] = await Promise.all([buscarStock(q), buscarPrecios(q)]);
   if (buscador().value.trim() !== q) return; // llegó tarde: el usuario siguió escribiendo
+  buscado = q;
   const costoMin = Math.min(...dist.map(d => d.precio_neto ?? Infinity));
   resultados = [
     ...stock.map(p => ({
@@ -105,6 +108,8 @@ function moverSeleccion(delta) {
 }
 
 function agregarSeleccionado() {
+  // Mientras se tipea (o la búsqueda nueva no llegó), Enter no agrega un resultado de la búsqueda anterior
+  if (buscador().value.trim() !== buscado) return;
   const r = resultados[selIdx];
   if (!r) return;
   const ya = venta.find(v => v.key === r.key);
@@ -129,7 +134,7 @@ function renderVenta() {
       const qty = h('input', { value: v.cantidad, inputmode: 'numeric', 'aria-label': 'Cantidad',
         onchange: e => { v.cantidad = Math.max(1, parseInt(e.target.value, 10) || 1); renderVenta(); } });
       const pr = h('input', { class: 'pr num', value: v.precio_unit, inputmode: 'decimal', 'aria-label': 'Precio',
-        onchange: e => { v.precio_unit = Math.max(0, parseFloat(e.target.value.replace(',', '.')) || 0); renderVenta(); } });
+        onchange: e => { v.precio_unit = Math.max(0, numeroAR(e.target.value) ?? 0); renderVenta(); } });   // "15.000" = quince mil
       return h('div', { class: 'ti' },
         h('div', {}, h('div', { class: 'd' }, v.descripcion), h('div', { class: 'src' }, [v.origen, v.codigo].filter(Boolean).join(' · '))),
         h('button', { class: 'btn btn-icon btn-red', title: 'Quitar', 'aria-label': 'Quitar', onclick: () => { venta = venta.filter(x => x !== v); renderVenta(); } }, icon('close')),
@@ -139,7 +144,7 @@ function renderVenta() {
             qty,
             h('button', { onclick: () => { v.cantidad++; renderVenta(); }, 'aria-label': 'Más' }, '+')),
           h('span', { class: 'muted' }, '×'), pr),
-        h('div', { class: 'sub num' }, money(v.cantidad * v.precio_unit)));
+        h('div', { class: 'sub num' + (v.precio_unit > 0 ? '' : ' sin-precio') }, v.precio_unit > 0 ? money(v.cantidad * v.precio_unit) : 'Sin precio'));
     }));
   }
   const total = venta.reduce((s, v) => s + v.cantidad * v.precio_unit, 0);
@@ -171,12 +176,17 @@ function limpiarVenta() {
   $('pos-cliente').value = '';
   $('pos-print').checked = false;
   $('pos-pago').value = 'efectivo';
+  $('pos-cc-aviso')?.classList.add('hidden');   // el cartel de fiado no queda puesto para la venta siguiente
   renderVenta();
 }
 
 // unaVez: mientras se registra, tocar +/− rehabilita el botón; igual no se puede cobrar dos veces
 const cobrar = unaVez(async () => {
   if (!venta.length) return;
+  const gratis = venta.filter(v => !(v.precio_unit > 0));
+  if (gratis.length && !(await confirmar('Artículos sin precio',
+    `${gratis.length === 1 ? 'Hay 1 artículo' : `Hay ${gratis.length} artículos`} a $0 (${gratis.map(v => v.descripcion).join(', ').slice(0, 120)}). ¿Cobrar igual?`,
+    { ok: 'Cobrar igual' }))) return;
   const { nombre, cliente } = clienteElegido();
   const medio = $('pos-pago').value;
   if (medio === 'cuenta_corriente' && !cliente) {
@@ -211,7 +221,7 @@ async function presupuestoWhatsApp() {
   const area = h('textarea', { class: 'input', rows: 14 }, texto);
   const guardar = unaVez(async () => {
     const total = venta.reduce((s, v) => s + v.cantidad * v.precio_unit, 0);
-    const valido = new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 10);
+    const valido = new Date(Date.parse(hoyISO() + 'T12:00:00Z') + 2 * 864e5).toISOString().slice(0, 10);   // hoy en Argentina + 2 días
     const datos = { cliente_id: cliente?.id ?? null, cliente_nombre: cliente?.nombre ?? (nombre || null), items: itemsParaGuardar(), total, valido_hasta: valido };
     const q = presupuestoId ? db.from('presupuestos').update(datos).eq('id', presupuestoId) : db.from('presupuestos').insert(datos);
     const { data, error } = await q.select('id').single();
@@ -248,7 +258,7 @@ async function verPresupuestos() {
     .select('id, cliente_nombre, items, total, valido_hasta, created_at').eq('estado', 'abierto')
     .order('created_at', { ascending: false }).limit(50);
   if (error) { toast(error.message, 'error'); return; }
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyISO();   // no la fecha UTC: después de las 21 h ya sería mañana
   openModal({
     title: 'Presupuestos abiertos', wide: true,
     body: data.length ? h('table', { class: 'tbl' },
@@ -262,7 +272,8 @@ async function verPresupuestos() {
         h('td', { style: 'white-space:nowrap' },
           h('button', { class: 'btn btn-sm btn-primary', onclick: () => cargarPresupuesto(p) }, 'Cargar'),
           h('button', { class: 'btn btn-sm btn-icon btn-red', title: 'Descartar', 'aria-label': 'Descartar', style: 'margin-left:4px', onclick: async () => {
-            await db.from('presupuestos').update({ estado: 'descartado' }).eq('id', p.id);
+            const { error: e } = await db.from('presupuestos').update({ estado: 'descartado' }).eq('id', p.id);
+            if (e) { toast('No se pudo descartar: ' + e.message, 'error'); return; }
             closeModal(); actualizarBadgePresupuestos(); verPresupuestos();
           } }, icon('close'))))))) : vacio('request_quote', 'No hay presupuestos abiertos.'),
   });
@@ -287,7 +298,7 @@ export function limpiarBusqueda() {
 
 /* ── Inicio ──────────────────────────────────────────────────────────── */
 export function iniciarMostrador() {
-  buscador().addEventListener('input', ejecutarBusqueda);
+  buscador().addEventListener('input', () => { buscado = null; ejecutarBusqueda(); });
   buscador().addEventListener('keydown', e => {
     if (e.key === 'ArrowDown') { e.preventDefault(); moverSeleccion(1); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); moverSeleccion(-1); }

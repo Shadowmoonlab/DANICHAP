@@ -2,8 +2,8 @@
 import {
   $, h, icon, vacio, db, toast, money, fecha, fechaCorta, estado, hoyISO, openModal, closeModal, confirmar,
   linkWhatsApp, registrarVista, PAGOS, unaVez,
-} from './core.js?v=11';
-import { recordatorioSaldo } from './plantillas.js?v=11';
+} from './core.js?v=12';
+import { recordatorioSaldo } from './plantillas.js?v=12';
 
 export async function cargarClientes() {
   const { data, error } = await db.from('clientes_resumen').select('*').order('nombre');
@@ -86,8 +86,11 @@ async function fichaCliente(c) {
           h('td', {}, m.tipo === 'pago' ? h('button', { class: 'btn btn-icon btn-sm btn-red', title: 'Anular pago', 'aria-label': 'Anular pago', onclick: async () => {
             closeModal();
             if (!(await confirmar('Anular pago', `¿Anular el pago de ${money(m.haber)}? El saldo vuelve a subir.`, { ok: 'Anular', peligro: true }))) return;
-            await db.from('pagos_clientes').update({ anulado: true }).eq('id', m.id);
-            await cargarClientes(); fichaCliente(estado.clientes.find(x => x.id === c.id));
+            const { error } = await db.from('pagos_clientes').update({ anulado: true }).eq('id', m.id);
+            if (error) { toast('No se pudo anular el pago: ' + error.message, 'error'); return; }
+            await cargarClientes();
+            const actualizado = estado.clientes.find(x => x.id === c.id);
+            if (actualizado) fichaCliente(actualizado);
           } }, icon('undo')) : null)))))) : h('p', { class: 'muted' }, 'Todavía no compró.')),
     foot: [
       h('button', { class: 'btn', onclick: () => editarCliente(c) }, icon('edit'), 'Editar'),

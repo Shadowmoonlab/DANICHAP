@@ -1,6 +1,6 @@
 // plan.mjs — Imprime la lista de robots activos para la matriz del workflow (lista=[...] en GITHUB_OUTPUT).
-// Con SOLO_PENDIENTES=true (corridas de reintento de la tarde) deja solo los que no terminaron bien en las
-// últimas 20 h: si un sitio estaba caído a la mañana, se vuelve a intentar sin repetir los que ya cargaron.
+// Con SOLO_PENDIENTES=true (corridas de reintento de la tarde) deja solo los que no terminaron bien
+// hoy: si un sitio estaba caído a la mañana, se vuelve a intentar sin repetir los que ya cargaron.
 // Los que fallaron por clave mal o cuenta bloqueada NO se reintentan en el día (cada intento es un login fallido más).
 // También cierra las corridas que quedaron abiertas (trabajo cancelado o cortado por tiempo en GitHub).
 import fs from 'node:fs';
@@ -21,7 +21,8 @@ if (SUPABASE_URL && KEY) {
 }
 
 if (process.env.SOLO_PENDIENTES === 'true') {
-  const desde = new Date(Date.now() - 20 * 3600_000).toISOString();
+  // Desde las 00:00 de hoy en Argentina (UTC-3): la corrida de ayer a la tarde no cuenta como "ya cargó hoy"
+  const desde = `${new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)}T03:00:00.000Z`;
   const res = await api(`scraper_runs?select=distribuidor,ok,error&fin=gte.${desde}`).catch(() => null);
   if (res?.ok) {
     const corridas = await res.json();

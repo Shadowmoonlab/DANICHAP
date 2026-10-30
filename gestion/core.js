@@ -1,6 +1,6 @@
 // gestion/core.js — Base compartida del panel: DOM, formato, modal, configuración, proveedores, búsqueda
 // Usa los globales de supabase.js (_supabase) y toast.js (showToast), que cargan antes como scripts clásicos.
-import { normalizar, palabras } from './texto.js?v=11';
+import { normalizar, palabras } from './texto.js?v=12';
 
 export const db = window._supabase ?? _supabase;
 export const toast = (msg, tipo) => window.showToast(msg, tipo);
@@ -44,7 +44,12 @@ export function debounce(fn, ms) {
 }
 
 /* ── Modal genérico ──────────────────────────────────────────────────── */
-export function openModal({ title, body, foot = [], wide = false }) {
+// Si el diálogo se cierra con Esc, la X o tocando afuera, el que esperaba una respuesta recibe "cancelar"
+// (si no, la promesa no terminaba nunca y un botón con unaVez quedaba trabado hasta recargar).
+let alCerrar = null;
+export function openModal({ title, body, foot = [], wide = false, onClose = null }) {
+  const anterior = alCerrar; alCerrar = onClose;
+  anterior?.();   // un diálogo que reemplaza a otro cancela al anterior
   $('modal-title').textContent = title;
   $('modal-body').replaceChildren(body);
   $('modal-foot').replaceChildren(...foot.filter(Boolean));
@@ -52,15 +57,18 @@ export function openModal({ title, body, foot = [], wide = false }) {
   $('modal').classList.toggle('wide', wide);
   $('modal-bg').classList.remove('hidden');
 }
-export function closeModal() { $('modal-bg').classList.add('hidden'); }
+export function closeModal() {
+  $('modal-bg').classList.add('hidden');
+  const f = alCerrar; alCerrar = null; f?.();
+}
 export const modalAbierto = () => !$('modal-bg').classList.contains('hidden');
 
 /** Diálogo de confirmación propio (confirm() nativo se bloquea en algunos contextos). */
 export function confirmar(titulo, texto, { ok = 'Confirmar', peligro = false } = {}) {
   return new Promise(resolve => {
-    const cerrar = v => { closeModal(); resolve(v); };
+    const cerrar = v => { resolve(v); closeModal(); };   // resolve primero: el onClose de abajo ya no cambia nada
     openModal({
-      title: titulo,
+      title: titulo, onClose: () => resolve(false),
       body: h('p', { style: 'margin:0;font-size:15px' }, texto),
       foot: [h('button', { class: 'btn', onclick: () => cerrar(false) }, 'Cancelar'),
              h('button', { class: `btn ${peligro ? 'btn-danger' : 'btn-primary'}`, onclick: () => cerrar(true) }, ok)],
@@ -72,11 +80,11 @@ export function confirmar(titulo, texto, { ok = 'Confirmar', peligro = false } =
 export function pedirNumero(titulo, etiqueta, inicial = 1) {
   return new Promise(resolve => {
     const input = h('input', { class: 'input', type: 'number', min: 1, value: inicial, inputmode: 'numeric' });
-    const cerrar = v => { closeModal(); resolve(v); };
+    const cerrar = v => { resolve(v); closeModal(); };
     const aceptar = () => { const n = parseInt(input.value, 10); cerrar(n > 0 ? n : null); };
     input.addEventListener('keydown', e => { if (e.key === 'Enter') aceptar(); });
     openModal({
-      title: titulo,
+      title: titulo, onClose: () => resolve(null),
       body: h('div', { class: 'field' }, h('label', { class: 'label' }, etiqueta), input),
       foot: [h('button', { class: 'btn', onclick: () => cerrar(null) }, 'Cancelar'),
              h('button', { class: 'btn btn-primary', onclick: aceptar }, 'Aceptar')],
@@ -116,7 +124,7 @@ export function precioVenta(costo, distribuidor) {
 }
 
 /* ── WhatsApp ────────────────────────────────────────────────────────── */
-export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=11';
+export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=12';
 export async function copiar(texto, aviso = 'Copiado') {
   try { await navigator.clipboard.writeText(texto); toast(aviso, 'success'); return true; }
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }

@@ -30,8 +30,9 @@ async function pedir(url, { token, method = 'GET', json, intentos = 3 } = {}) {
 
 async function scrape() {
   const usuario = env('DISTRISUPER_USER');
+  // Solo un 401/403 es clave mal; una caída del sitio (5xx, red) sale tal cual y se reintenta más tarde
   const login = await pedir(`${AUTH}/api/auth/login`, { method: 'POST', json: { email: usuario, password: env('DISTRISUPER_PASSWORD') } })
-    .catch(() => null);
+    .catch(err => { if (/HTTP (401|403)/.test(err.message)) return null; throw err; });
   const token = login?.access_token;
   if (!token) throw new Error('Login rechazado: revisar DISTRISUPER_USER / DISTRISUPER_PASSWORD');
 

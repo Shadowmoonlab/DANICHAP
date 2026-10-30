@@ -96,7 +96,8 @@ async function leerFacturaLocal(req, res) {
     const base = {
       limite: async () => (await (await rest('/config_negocio?select=lecturas_ia_por_dia&id=eq.1')).json())[0]?.lecturas_ia_por_dia ?? LIMITE_DIARIO_DEFECTO,
       contarHoy: async (desde, hastaId) => {
-        const r = await rest(`/lecturas_ia?select=id&created_at=gte.${encodeURIComponent(desde)}${hastaId ? `&id=lte.${hastaId}` : ''}`, { headers: { Prefer: 'count=exact', Range: '0-0' } });
+        const hace3min = encodeURIComponent(new Date(Date.now() - 180_000).toISOString());
+        const r = await rest(`/lecturas_ia?select=id&created_at=gte.${encodeURIComponent(desde)}&or=(modelo.is.null,modelo.neq.leyendo,created_at.gt.${hace3min})${hastaId ? `&id=lte.${hastaId}` : ''}`, { headers: { Prefer: 'count=exact', Range: '0-0' } });
         return Number(r.headers.get('content-range')?.split('/')[1] ?? 0);
       },
       reservar: async () => (await (await rest('/lecturas_ia?select=id', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ modelo: 'leyendo' }) })).json())[0].id,

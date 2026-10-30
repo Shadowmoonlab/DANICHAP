@@ -42,7 +42,10 @@ Deno.serve(async (req) => {
       return data?.lecturas_ia_por_dia ?? LIMITE_DIARIO_DEFECTO;
     },
     contarHoy: async (desde: string, hastaId?: number) => {
-      let q = sb.from('lecturas_ia').select('id', { count: 'exact', head: true }).gte('created_at', desde);
+      // Una reserva "leyendo" de hace más de 3 min es de una lectura que se cortó (la función murió antes de liberarla): no cuenta
+      const hace3min = new Date(Date.now() - 180_000).toISOString();
+      let q = sb.from('lecturas_ia').select('id', { count: 'exact', head: true }).gte('created_at', desde)
+        .or(`modelo.is.null,modelo.neq.leyendo,created_at.gt.${hace3min}`);
       if (hastaId) q = q.lte('id', hastaId);
       const { count, error } = await q;
       if (error) throw new Error(`No se pudo controlar el límite diario: ${error.message}`);
@@ -58,13 +61,13 @@ Deno.serve(async (req) => {
   };
 
   try {
-    const entrada = await req.json();
+    const entrada = await req.json().catch(() => { throw new ErrorLectura('El pedido llegó mal armado', 'entrada'); });
     const resultado = geminiKey
       ? await leerFacturaConLimite(null, entrada, { base, lector: (_c: unknown, e: any) => leerFacturaGemini(geminiKey, e, { modelo: Deno.env.get('GEMINI_MODELO') }) })
-      : await leerFacturaConLimite(new Anthropic({ apiKey, timeout: 110_000, maxRetries: 1 }), entrada, { modelo: Deno.env.get('LECTURA_MODELO'), base });
+      : await leerFacturaConLimite(new Anthropic({ apiKey, timeout: 100_000, maxRetries: 0 }), entrada, { modelo: Deno.env.get('LECTURA_MODELO'), base });
     return json(200, resultado);
   } catch (e) {
-    if (e instanceof ErrorLectura) return json(e.codigo === 'entrada' ? 400 : e.codigo === 'limite_diario' || e.codigo === 'limite' ? 429 : e.codigo === 'api' ? 502 : 422, { error: e.message, codigo: e.codigo });
+    if (e instanceof ErrorLectura) return json(e.codigo === 'entrada' ? 400 : e.codigo === 'limite_diario' || e.codigo === 'limite' ? 429 : e.codigo === 'api' ? 502 : e.codigo === 'demora' ? 504 : 422, { error: e.message, codigo: e.codigo });
     if (e instanceof Anthropic.RateLimitError) return json(429, { error: 'Muchas lecturas seguidas, probá en un minuto', codigo: 'limite' });
     if (e instanceof Anthropic.APIError) return json(502, { error: `Error del servicio de lectura (${e.status})`, codigo: 'api' });
     console.error('[leer-factura]', e);

@@ -348,6 +348,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cat = CATEGORIAS.find(c => c.slug === p.categoria);
     const subLabel = p.sub ? (p.sub.includes('/') ? p.sub.split('/').pop().trim() : p.sub) : '';
 
+    // Todo lo que viene de la base se escapa antes de ir al HTML (el nombre puede venir de una factura leída)
+    const esc = v => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     // Todas las fotos del producto
     const allPhotos = [];
     if (p.imagen_url) allPhotos.push(p.imagen_url);
@@ -372,7 +374,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const imagenHtml = photoCount > 0
       ? `<div id="${imgAreaId}" class="w-full h-full relative overflow-hidden">
            <div class="card-slides">
-             ${allPhotos.map(url => `<div><img src="${url}" alt="" loading="lazy"/></div>`).join('')}
+             ${allPhotos.map(url => `<div><img src="${esc(url)}" alt="" loading="lazy"/></div>`).join('')}
            </div>
            ${hasMulti ? `
            <button onclick="cardPrev(event,'${imgAreaId}',${photoCount})" class="absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10">
@@ -391,18 +393,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="product-card bg-surface-container-lowest rounded-xl overflow-hidden group border border-surface-container flex flex-col">
         <div class="product-media h-40 flex items-center justify-center cursor-pointer" onclick="if(typeof openProductDetail==='function'&&window._prodStore)openProductDetail(window._prodStore['${p.id}'])">
           ${imagenHtml}
-          ${p.badge ? `<span class="absolute top-3 right-3 bg-primary-container text-white text-[10px] font-black px-2 py-1 uppercase tracking-widest font-label rounded z-20">${p.badge}</span>` : ''}
-          ${p.marca_rep ? `<span class="absolute top-3 left-3 bg-inverse-surface text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest font-label rounded z-20">${p.marca_rep}</span>` : ''}
+          ${p.badge ? `<span class="absolute top-3 right-3 bg-primary-container text-white text-[10px] font-black px-2 py-1 uppercase tracking-widest font-label rounded z-20">${esc(p.badge)}</span>` : ''}
+          ${p.marca_rep ? `<span class="absolute top-3 left-3 bg-inverse-surface text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest font-label rounded z-20">${esc(p.marca_rep)}</span>` : ''}
           ${hasMulti ? `<span class="absolute bottom-1.5 right-2 text-[9px] font-bold text-white/80 z-20 font-label">${photoCount} fotos</span>` : ''}
         </div>
         <div class="p-4 flex flex-col flex-1">
           <div class="flex items-center gap-1 mb-1">
             <span class="text-[10px] font-bold uppercase tracking-widest text-secondary font-label">${cat ? cat.label : ''}</span>
-            ${p.sub ? `<span class="text-[10px] text-secondary font-label">· ${subLabel}</span>` : ''}
+            ${p.sub ? `<span class="text-[10px] text-secondary font-label">· ${esc(subLabel)}</span>` : ''}
           </div>
-          <h3 class="font-headline font-bold text-sm uppercase mb-1 leading-tight cursor-pointer hover:text-primary-container transition-colors" onclick="if(typeof openProductDetail==='function'&&window._prodStore)openProductDetail(window._prodStore['${p.id}'])">${p.nombre}</h3>
-          ${(p.marca_rep || p.modelo) ? `<p class="text-[11px] text-secondary font-body font-semibold mb-2 truncate">${[p.marca_rep, p.modelo].filter(Boolean).join(' · ')}</p>` : ''}
-          <p class="text-xs text-tertiary font-body mb-4">✓ ${compat}${masCompat}</p>
+          <h3 class="font-headline font-bold text-sm uppercase mb-1 leading-tight cursor-pointer hover:text-primary-container transition-colors" onclick="if(typeof openProductDetail==='function'&&window._prodStore)openProductDetail(window._prodStore['${p.id}'])">${esc(p.nombre)}</h3>
+          ${(p.marca_rep || p.modelo) ? `<p class="text-[11px] text-secondary font-body font-semibold mb-2 truncate">${esc([p.marca_rep, p.modelo].filter(Boolean).join(' · '))}</p>` : ''}
+          <p class="text-xs text-tertiary font-body mb-4">✓ ${esc(compat)}${masCompat}</p>
           <div class="mt-auto space-y-2">
             ${stockBadge}
             <a href="${wpp}" target="_blank" rel="noopener"

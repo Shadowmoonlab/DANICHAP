@@ -42,7 +42,7 @@ export function leerCsv(texto) {
       precio_neto: neto ?? lista,
       imagen_url: null,
     };
-  }).filter(f => f.codigo && (f.precio_lista ?? f.precio_neto) != null);
+  }).filter(f => f.codigo && (f.precio_lista ?? f.precio_neto) > 0);   // "0,00" = sin precio
 }
 
 const sinAcentos = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();

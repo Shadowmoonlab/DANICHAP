@@ -36,3 +36,14 @@ export function linkWhatsApp(tel, texto) {
   const numero = telefonoWhatsApp(tel);
   return `https://wa.me/${numero ?? ''}?text=${encodeURIComponent(texto)}`;
 }
+
+/** Número escrito a la argentina → número. "15.000" → 15000, "1.500,50" → 1500.5, "$ 12000" → 12000, "12.5" → 12.5.
+ *  Vacío o inválido → null. Un punto seguido de exactamente 3 dígitos se toma como separador de miles. */
+export function numeroAR(texto) {
+  let t = String(texto ?? '').replace(/[$\s]/g, '');
+  if (!t) return null;
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}

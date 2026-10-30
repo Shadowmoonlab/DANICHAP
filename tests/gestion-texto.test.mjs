@@ -30,3 +30,16 @@ test('linkWhatsApp: codifica el texto y sin teléfono deja elegir contacto', () 
   assert.equal(linkWhatsApp('11 5555-1234', 'Hola & chau'), 'https://wa.me/5491155551234?text=Hola%20%26%20chau');
   assert.equal(linkWhatsApp(null, 'x'), 'https://wa.me/?text=x');
 });
+
+test('numeroAR: precios escritos a la argentina', async () => {
+  const { numeroAR } = await import('../gestion/texto.js');
+  assert.equal(numeroAR('15.000'), 15000);
+  assert.equal(numeroAR('1.500,50'), 1500.5);
+  assert.equal(numeroAR('1.234.567'), 1234567);
+  assert.equal(numeroAR('$ 12000'), 12000);
+  assert.equal(numeroAR('12,5'), 12.5);
+  assert.equal(numeroAR('12.5'), 12.5);
+  assert.equal(numeroAR('0'), 0);
+  assert.equal(numeroAR(''), null);
+  assert.equal(numeroAR('abc'), null);
+});

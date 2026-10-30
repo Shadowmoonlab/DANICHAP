@@ -4,8 +4,8 @@
 import {
   $, h, icon, vacio, db, toast, money, fechaCorta, estado, nombreProveedor, precioVenta, debounce,
   buscarStock, confirmar, registrarVista, actualizarBadgeRepo, hoyISO, unaVez,
-} from './core.js?v=11';
-import { normalizar } from './texto.js?v=11';
+} from './core.js?v=12';
+import { normalizar, numeroAR } from './texto.js?v=12';
 
 const CATEGORIAS = [
   ['mecanica', 'Mecánica'], ['iluminacion', 'Iluminación'], ['faros', 'Faros'], ['opticas', 'Ópticas'],
@@ -83,7 +83,7 @@ function pasoArchivo() {
         proveedor: prov.value, nro: d.numero || '', fecha: d.fecha || hoyISO(), total: d.total, origen: 'ia',
         advertencias: d.advertencias, preciosConIva: d.precios_con_iva, iaUso: data.uso ? { modelo: data.modelo, input_tokens: data.uso.input_tokens, output_tokens: data.uso.output_tokens } : null,
         filas: d.renglones.map(r => ({ ...filaVacia(), codigo: r.codigo || '', descripcion: r.descripcion,
-          cantidad: r.cantidad ?? 1, costo: r.precio_unitario, legible: r.legible, nota: r.nota })),
+          cantidad: r.cantidad, costo: r.precio_unitario, legible: r.legible && r.cantidad != null, nota: r.nota })),
       });
     } catch (e) {
       // Cualquier falla (sin conexión, cupo agotado, foto ilegible): seguir a mano, sin perder el proveedor elegido
@@ -233,18 +233,20 @@ function renderEditor() {
             ...CATEGORIAS.map(([v, l]) => h('option', { value: v, selected: v === f.categoria ? true : null }, l))),
           h('input', { class: 'input input-sm num', inputmode: 'decimal', 'aria-label': 'Precio de venta',
             placeholder: 'Precio venta', value: f.precio_venta ?? precioVenta(f.costo, b.proveedor) ?? '',
-            onchange: e => { f.precio_venta = parseFloat(e.target.value.replace(',', '.')) || null; } }),
+            oninput: e => { f.precio_venta = numeroAR(e.target.value) || null; } }),   // "12.500" = doce mil quinientos
           fotoProducto(f, repintar))
       : h('span', { class: 'muted', style: 'font-size:12px' }, 'No cambia el stock');
     return h('tr', { class: (f.legible ? '' : 'fila-revisar') + (f.incluir ? '' : ' fila-off') },
       h('td', {}, h('input', { type: 'checkbox', checked: f.incluir, 'aria-label': 'Incluir', onchange: e => { f.incluir = e.target.checked; repintar(); } })),
-      h('td', {}, h('input', { class: 'input input-sm', value: f.codigo, 'aria-label': 'Código', onchange: e => { f.codigo = e.target.value.trim(); } })),
-      h('td', {}, h('input', { class: 'input input-sm', value: f.descripcion, 'aria-label': 'Descripción', style: 'min-width:220px', onchange: e => { f.descripcion = e.target.value; } }),
+      h('td', {}, h('input', { class: 'input input-sm', value: f.codigo, 'aria-label': 'Código', oninput: e => { f.codigo = e.target.value.trim(); } })),
+      h('td', {}, h('input', { class: 'input input-sm', value: f.descripcion, 'aria-label': 'Descripción', style: 'min-width:220px', oninput: e => { f.descripcion = e.target.value; } }),
         h('div', { class: 'chips' }, ...chipsCoincidencia(f))),
       h('td', {}, h('input', { class: 'input input-sm num', value: f.cantidad ?? '', inputmode: 'numeric', style: 'width:64px', 'aria-label': 'Cantidad',
-        onchange: e => { f.cantidad = parseInt(e.target.value, 10) || null; repintar(); } })),
+        oninput: e => { f.cantidad = parseInt(e.target.value, 10) || null; },
+        onchange: () => { f.legible = f.costo != null && f.cantidad != null; repintar(); } })),
       h('td', {}, h('input', { class: 'input input-sm num', value: f.costo ?? '', inputmode: 'decimal', style: 'width:110px', 'aria-label': 'Costo unitario',
-        placeholder: '¿?', onchange: e => { f.costo = parseFloat(e.target.value.replace(',', '.')); if (!Number.isFinite(f.costo)) f.costo = null; f.legible = f.costo != null; repintar(); } })),
+        placeholder: '¿?', oninput: e => { f.costo = numeroAR(e.target.value); },
+        onchange: () => { f.legible = f.costo != null && f.cantidad != null; repintar(); } })),
       h('td', { class: 'right num' }, f.costo != null && f.cantidad ? money(f.costo * f.cantidad) : '—'),
       h('td', {}, accion, h('div', { style: 'margin-top:4px' }, detalleAccion)),
       h('td', {}, h('button', { class: 'btn btn-icon btn-red btn-sm', title: 'Quitar renglón', 'aria-label': 'Quitar renglón', onclick: () => { b.filas.splice(i, 1); repintar(); } }, icon('close'))));

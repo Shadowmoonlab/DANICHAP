@@ -1,10 +1,10 @@
 // gestion/proveedores.js — Proveedores (logística, WhatsApp), importación de listas de precios y estado de robots.
 import {
   $, h, icon, vacio, db, toast, money, fecha, estado, DIAS, cargarProveedores, openModal, closeModal, confirmar,
-  registrarVista, cargarSheetJS,
-} from './core.js?v=11';
-import { parsearLista, aFilasDePrecio } from './listas.js?v=11';
-import { estadoPrecios } from './robots.js?v=11';
+  registrarVista, cargarSheetJS, unaVez,
+} from './core.js?v=12';
+import { parsearLista, aFilasDePrecio } from './listas.js?v=12';
+import { estadoPrecios } from './robots.js?v=12';
 
 async function cargar() {
   await cargarProveedores();
@@ -109,9 +109,10 @@ async function importarLista() {
         // Excel en castellano exporta CSV con ";" — se detecta el separador que más aparece
         const texto = await archivo.text();
         const sep = (texto.match(/;/g) || []).length > (texto.match(/,/g) || []).length ? ';' : ',';
-        wb = XLSX.read(texto, { type: 'string', FS: sep });
+        // raw: los números quedan como texto y los lee aNumero ("58.300" = 58300, código "00123" se conserva)
+        wb = XLSX.read(texto, { type: 'string', FS: sep, raw: true });
       } else {
-        wb = XLSX.read(await archivo.arrayBuffer());
+        wb = XLSX.read(await archivo.arrayBuffer(), { raw: true });   // un .xls que en realidad es una tabla HTML también
       }
       const filas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
       parsed = parsearLista(filas);
@@ -121,7 +122,8 @@ async function importarLista() {
   });
   [descuento, sumarIva].forEach(el => el.addEventListener('input', previsualizar));
 
-  const importar = async () => {
+  // unaVez: un doble clic no importa la lista dos veces
+  const importar = unaVez(async () => {
     if (!parsed?.productos.length) { toast('Elegí primero una planilla con productos', 'error'); return; }
     const nombre = estado.proveedores.find(p => p.slug === prov.value)?.nombre;
     if (reemplazar.checked && !(await confirmar('Reemplazar lista', `Los productos de ${nombre} que no estén en esta planilla quedan como "ya no figura". ¿Seguimos?`, { ok: 'Sí, reemplazar' }))) return;
@@ -131,7 +133,7 @@ async function importarLista() {
     closeModal();
     toast(`Lista de ${nombre} importada: ${data.guardados} productos${data.desactivados ? `, ${data.desactivados} ya no figuran` : ''}`, 'success');
     cargar();
-  };
+  });
 
   openModal({
     title: 'Importar lista de precios', wide: true,
