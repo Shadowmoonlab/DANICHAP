@@ -152,3 +152,13 @@ test('cómo escribe cada proveedor: lado en el código (-DI/-TD), D/I, OP., pala
   assert.equal(aRegexJs(String.raw`\mgol\M`), '(?<![a-z0-9])gol(?![a-z0-9])');
   assert.equal(patron('206'), '(^|[^0-9])206([^0-9]|$)');
 });
+
+test('compuestas juntas o separadas ("porta maza" = "PORTAMAZA"), y lo que está junto va primero', async () => {
+  const { relevancia } = await import('../gestion/texto.js');
+  assert.deepEqual(palabras('porta maza fox'), ['portamaza', 'fox']);
+  assert.ok(coincidePalabras(normalizarAmbos('PORTA MAZA FOX DER'), palabras('portamaza fox')));
+  assert.ok(coincidePalabras(normalizarAmbos('PORTAMAZA FOX SURAN'), palabras('porta maza fox')));
+  assert.ok(coincidePalabras(normalizarAmbos('CUBRE CARTER C3 2022'), palabras('cubrecarter c3')));
+  const ws = palabras('bomba nafta');
+  assert.ok(relevancia('BOMBA DE NAFTA ELECTRICA', ws) < relevancia('BOMBA DE AGUA ISUZU 2.3 NAFTA', ws));
+});

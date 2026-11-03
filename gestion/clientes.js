@@ -2,7 +2,7 @@
 import {
   $, h, icon, vacio, db, toast, money, fecha, fechaCorta, estado, hoyISO, openModal, closeModal,
   registrarVista, PAGOS, unaVez,
-} from './core.js?v=37';
+} from './core.js?v=38';
 
 export async function cargarClientes() {
   const { data, error } = await db.from('clientes_resumen').select('*').order('nombre');

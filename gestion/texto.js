@@ -12,6 +12,9 @@ const RAICES = [
   [/^luc(e|es)?$|^luz$/, 'luz'], [/^moldur/, 'mold'], [/^distribuc/, 'distrib'], [/^direcc/, 'direcc'],
 ];
 const RAIZ = new Set(RAICES.map(([, r]) => r));
+// Palabras compuestas que los proveedores escriben juntas o separadas ("PORTA MAZA" 205 / "PORTAMAZA" 67)
+const COMPUESTO = /^(porta|cubre|levanta|limpia|guarda|salva|tapa)$/;
+const COMPUESTA = /^(porta|cubre|levanta|limpia|guarda|salva|tapa)([a-z]{3,})$/;
 
 // Cómo lo escribe cada proveedor (auditoría de 248 búsquedas en producción, nov 2026). Formato de la base
 // (Postgres): \m = comienzo de palabra, \M = fin de palabra. En el navegador se traduce con aRegexJs.
@@ -39,6 +42,8 @@ export function palabras(q) {
   const juntos = [];
   for (let i = 0; i < tokens.length; i++) {
     if (/^[a-z]$/.test(tokens[i]) && !VACIAS.has(tokens[i]) && /^\d+$/.test(tokens[i + 1] ?? '')) juntos.push(tokens[i] + tokens[++i]);
+    // "porta maza", "cubre carter": una sola palabra (se busca junta o separada, ver patron)
+    else if (COMPUESTO.test(tokens[i]) && /^[a-z]{3,}$/.test(tokens[i + 1] ?? '') && !VACIAS.has(tokens[i + 1])) juntos.push(tokens[i] + tokens[++i]);
     else juntos.push(tokens[i]);
   }
   const ws = juntos.flatMap(partesDe)
@@ -95,6 +100,8 @@ export function patron(w) {
   m = /^([a-z]{1,2})(\d+)$/.exec(w);
   if (m) return m[1] === 'r' ? String.raw`(\mr ?${m[2]}|renault ${m[2]})${fin}` : String.raw`\m${m[1]} ?${m[2]}${fin}`;
   if (w.length <= 3 && !RAIZ.has(w)) return String.raw`\m${escaparRegex(w)}\M`;
+  m = COMPUESTA.exec(w);
+  if (m) return String.raw`\m${m[1]} ?${escaparRegex(m[2])}`;
   return String.raw`\m${escaparRegex(w)}`;
 }
 /** El patrón de la base, para el navegador (que no conoce \m ni \M). */
@@ -117,7 +124,10 @@ export function relevancia(descripcion, ws, escritas = []) {
   // antes que su abreviatura ("DEL"): lo más parecido a lo que está en el buscador, primero
   const enteras = ws.filter(w => partes.includes(w)).length;
   const comoSeEscribio = escritas.filter(w => partes.some(p => p.replace(/s$/, '') === w.replace(/s$/, ''))).length;
-  return (lugar === 0 ? 0 : 100) + lugar * 10 - enteras * 3 - comoSeEscribio * 5 + Math.min(t.length, 200) / 100;
+  // Cercanía: la segunda palabra justo después de la primera ("BOMBA DE NAFTA" antes que "BOMBA DE AGUA … NAFTA")
+  const segunda = ws.length > 1 ? partes.findIndex((p, i) => i > lugar && p.startsWith(ws[1])) : -1;
+  const juntas = segunda > lugar && segunda - lugar <= 2 ? 8 : 0;
+  return (lugar === 0 ? 0 : 100) + lugar * 10 - enteras * 3 - comoSeEscribio * 5 - juntas + Math.min(t.length, 200) / 100;
 }
 
 /** Lo escrito sin palabras vacías ("de", "para"…), para la búsqueda de parecidos. */

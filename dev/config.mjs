@@ -57,6 +57,7 @@ export const MIGRACIONES = [
   'docs/gestion-v10.sql',
   'docs/gestion-v11.sql',
   'docs/gestion-v12.sql',
+  'docs/gestion-v13.sql',
 ];
 export const SEED = 'dev/seed.sql';
 

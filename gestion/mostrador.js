@@ -3,11 +3,11 @@ import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, mesListaDe, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
   actualizarBadgeRepo, unaVez, hoyISO, gananciaDe, gananciaDePrecio, buscarParecidos, errorAmigable,
-} from './core.js?v=37';
-import { numeroAR, palabras, normalizar } from './texto.js?v=37';
-import { presupuesto as textoPresupuesto } from './plantillas.js?v=37';
-import { imprimirComprobante } from './comprobante.js?v=37';
-import { editarCliente } from './clientes.js?v=37';
+} from './core.js?v=38';
+import { numeroAR, palabras, normalizar } from './texto.js?v=38';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=38';
+import { imprimirComprobante } from './comprobante.js?v=38';
+import { editarCliente } from './clientes.js?v=38';
 
 let resultados = [];
 let selIdx = -1;
@@ -60,6 +60,7 @@ const ejecutarBusqueda = debounce(async () => {
       extra: [d.marca, d.rubro, d.moneda !== 'ARS' ? `lista en ${d.moneda === 'USD' ? 'dólares' : 'euros'}: ${d.moneda} ${d.precio_original}` : null]
         .filter(Boolean).join(' · '),
       masBarato: dist.length > 1 && d.precio_neto === costoMin,
+      faltante: d.faltante || null,   // búsqueda flexible: no tiene esta palabra
       subio: d.precio_anterior > 0 && d.precio_neto > d.precio_anterior
         ? { pct: Math.max(1, Math.round((d.precio_neto / d.precio_anterior - 1) * 100)), antes: d.precio_anterior } : null,
     })),
@@ -186,7 +187,8 @@ function renderResultados(q) {
       r.codigo ? h('span', {}, r.codigo) : null,
       r.extra ? h('span', {}, r.extra) : null,
       r.sinStock ? h('span', { class: 'chip chip-gray' }, 'sin stock') : null,
-      r.subio ? h('span', { class: 'chip chip-amber', title: `Antes ${money(r.subio.antes)}` }, `subió ${r.subio.pct}%`) : null),
+      r.subio ? h('span', { class: 'chip chip-amber', title: `Antes ${money(r.subio.antes)}` }, `subió ${r.subio.pct}%`) : null,
+      r.faltante ? h('span', { class: 'chip chip-gray', title: 'Parecido: tiene todo lo buscado menos esta palabra' }, `no dice: ${r.faltante}`) : null),
   )));
 }
 

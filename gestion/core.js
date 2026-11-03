@@ -1,6 +1,6 @@
 // gestion/core.js — Base compartida del panel: DOM, formato, modal, configuración, proveedores, búsqueda
 // Usa los globales de supabase.js (_supabase) y toast.js (showToast), que cargan antes como scripts clásicos.
-import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero, sinPalabrasVacias, conTodosLosProveedores, separarMarcas, patron } from './texto.js?v=37';
+import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero, sinPalabrasVacias, conTodosLosProveedores, separarMarcas, patron } from './texto.js?v=38';
 
 export const db = window._supabase ?? _supabase;
 // Avisos del panel: los de éxito duran 4 s (se alcanzan a leer) y los errores quedan hasta cerrarlos
@@ -188,7 +188,7 @@ export function aPesos(precio, slug) {
 }
 
 /* ── WhatsApp ────────────────────────────────────────────────────────── */
-export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=37';
+export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=38';
 export async function copiar(texto, aviso = 'Copiado') {
   try { await navigator.clipboard.writeText(texto); toast(aviso, 'success'); return true; }
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }
@@ -311,13 +311,33 @@ export async function buscarPrecios(q, limite = 40) {
     const conMarca = blandas.length ? blandas.filter(b => coincidePalabras(normalizarAmbos([d.descripcion, d.marca, d.rubro].join(' ')), [b])).length * 4 : 0;
     return c === qCodigo ? -2000 : pareceCodigo && c.startsWith(qCodigo) ? -1000 : relevancia(d.descripcion, ws, escritas) - conMarca;
   };
-  return data
+  const exactos = data
     .filter(d => {
       const c = normalizar(d.codigo ?? '');
       return c === qCodigo || (qCodigo.length >= 3 && c.startsWith(qCodigo))
         || coincidePalabras(normalizarAmbos([d.codigo, d.descripcion, d.marca, d.rubro, d.origen].join(' ')), ws);
     })
-    .map((d, i) => ({ d, puntaje: puntaje(d), i }))
+    .map((d, i) => ({ d, puntaje: puntaje(d), i }));
+
+  // Búsqueda flexible: con 3 palabras o más y pocos resultados, una palabra de más puede dejar afuera lo buscado
+  // ("radiador DE AGUA corsa": los radiadores dicen "RADIADOR CORSA"). Se busca también sin cada palabra que no es
+  // la primera; esos resultados van DESPUÉS de los exactos y dicen qué palabra no tienen.
+  let flexibles = [];
+  // Sin ningún exacto, primero van los "parecidos" (errores de tipeo: "paragople"), que maneja el mostrador
+  if (exactos.length > 0 && exactos.length < 8 && ws.length >= 3) {
+    const sinUna = ws.slice(1).map(falta => ({ falta, resto: ws.filter(w => w !== falta) }));
+    const respuestas = await Promise.all(sinUna.map(({ resto }) => buscarEnBase(resto, null).catch(() => null)));
+    const ya = new Set(exactos.map(x => x.d.id));
+    respuestas.forEach((filasSin, k) => {
+      for (const d of filasSin || []) {
+        if (ya.has(d.id) || !coincidePalabras(normalizarAmbos([d.codigo, d.descripcion, d.marca, d.rubro, d.origen].join(' ')), sinUna[k].resto)) continue;
+        ya.add(d.id);
+        flexibles.push({ d: { ...d, faltante: escritas.find(e => palabras(e)[0] === sinUna[k].falta) ?? sinUna[k].falta }, puntaje: 5000 + puntaje(d), i: flexibles.length });
+      }
+    });
+  }
+
+  return [...exactos, ...flexibles]
     .sort((a, b) => a.puntaje - b.puntaje || a.i - b.i)
     .filter(conTodosLosProveedores(limite))
     .map(({ d }) => ({
