@@ -1,13 +1,14 @@
 // gestion/mostrador.js — Venta por teclado: buscar (F2) → Enter agrega → F9 cobra. Presupuestos por WhatsApp.
 import {
-  $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, precioVenta,
+  $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, mesListaDe, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
   actualizarBadgeRepo, unaVez, hoyISO, gananciaDe, gananciaDePrecio, buscarParecidos,
-} from './core.js?v=24';
-import { numeroAR, palabras, normalizar } from './texto.js?v=24';
-import { presupuesto as textoPresupuesto } from './plantillas.js?v=24';
-import { imprimirComprobante } from './comprobante.js?v=24';
-import { editarCliente } from './clientes.js?v=24';
+} from './core.js?v=25';
+import { numeroAR, palabras, normalizar } from './texto.js?v=25';
+import { mesCorto } from './listas.js?v=25';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=25';
+import { imprimirComprobante } from './comprobante.js?v=25';
+import { editarCliente } from './clientes.js?v=25';
 
 let resultados = [];
 let selIdx = -1;
@@ -46,7 +47,7 @@ const ejecutarBusqueda = debounce(async () => {
   resultados = [
     ...dist.map(d => ({
       tipo: 'dist', key: `d-${d.id}`, precio_distribuidor_id: d.id, distribuidor: d.distribuidor,
-      codigo: d.codigo, descripcion: d.descripcion, origen: nombreProveedor(d.distribuidor),
+      codigo: d.codigo, descripcion: d.descripcion, origen: nombreProveedor(d.distribuidor), listaMes: mesListaDe(d.distribuidor),
       precio: precioVenta(d.precio_neto, d.distribuidor), costo: d.precio_neto,
       extra: [d.marca, d.rubro, d.moneda !== 'ARS' ? `lista en ${d.moneda === 'USD' ? 'dólares' : 'euros'}: ${d.moneda} ${d.precio_original}` : null]
         .filter(Boolean).join(' · '),
@@ -158,6 +159,8 @@ function renderResultados(q) {
       r.costo != null ? h('div', { class: 'pc num' }, `costo ${money(r.costo)}`) : null),
     h('div', { class: 'meta' },
       h('span', { class: 'chip' + (r.tipo === 'stock' ? ' chip-stock' : '') }, r.origen),
+      r.listaMes ? h('span', { class: 'chip' + (r.listaMes.vieja ? ' chip-amber' : ' chip-gray'),
+        title: r.listaMes.vieja ? 'Lista de hace 2 meses o más: puede estar desactualizada' : 'Mes de la lista' }, `lista ${mesCorto(r.listaMes.mes)}`) : null,
       r.codigo ? h('span', {}, r.codigo) : null,
       r.extra ? h('span', {}, r.extra) : null,
       r.sinStock ? h('span', { class: 'chip chip-gray' }, 'sin stock') : null,

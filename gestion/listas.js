@@ -276,6 +276,52 @@ export function parsearLibro(hojas, opciones = {}) {
            preciosSinIva: sinIva !== conIva ? sinIva : null };
 }
 
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/** Meses ("2026-08") que aparecen en un texto: "Septiembre 2026", "03 de Agosto de 2026", "03/08/26", "01-07-2026".
+ *  Solo fechas con año, de los últimos 3 años y no futuras: un "12-13-15" de una descripción no cuenta. */
+function mesesEnTexto(texto, hoy, { sinAnio = false } = {}) {
+  const t = String(texto ?? '').toLowerCase().replace(/setiembre/g, 'septiembre');
+  const anioHoy = hoy.getFullYear(), mesHoy = hoy.getMonth() + 1;
+  const encontrados = [];
+  const sumar = (anio, mes) => {
+    if (anio < 100) anio += 2000;
+    if (mes < 1 || mes > 12 || anio < anioHoy - 3 || anio * 12 + mes > anioHoy * 12 + mesHoy) return;
+    encontrados.push(`${anio}-${String(mes).padStart(2, '0')}`);
+  };
+  for (const m of t.matchAll(/\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4}|\d{2})\b/g)) if (+m[1] >= 1 && +m[1] <= 31) sumar(+m[3], +m[2]);
+  for (const m of t.matchAll(new RegExp(`(${MESES.join('|')})(?:\\s+(?:de|del)?\\s*(\\d{4}))?`, 'g'))) {
+    const mes = MESES.indexOf(m[1]) + 1;
+    if (m[2]) sumar(+m[2], mes);
+    // Solo el mes ("chriva agosto"): el último que pasó (agosto en noviembre → este año; diciembre en marzo → el anterior)
+    else if (sinAnio) sumar(mes <= mesHoy ? anioHoy : anioHoy - 1, mes);
+  }
+  return encontrados;
+}
+
+/**
+ * De qué mes es la lista, para que en el buscador se vea si está al día. Busca primero en el nombre del archivo
+ * ("Ofertas Ford Septiembre 2026.pdf"), después en el nombre de las hojas y en los primeros renglones
+ * ("LISTA Nº 3/2026: 03/08/26"). Si hay varias fechas queda la más nueva. Sin ninguna → null (Daniel la elige).
+ * @param {{nombres: string[], hojas: {nombre: string, filas: any[][]}[]}} lista
+ * @returns {string|null} "2026-08"
+ */
+export function mesDeLista({ nombres = [], hojas = [] }, hoy = new Date()) {
+  const masNuevo = meses => (meses.length ? meses.sort().at(-1) : null);
+  const porNombre = masNuevo(nombres.flatMap(n => mesesEnTexto(n, hoy, { sinAnio: true })));
+  if (porNombre) return porNombre;
+  return masNuevo(hojas.flatMap(({ nombre, filas }) => [
+    ...mesesEnTexto(nombre, hoy),
+    ...(filas || []).slice(0, 12).flatMap(f => mesesEnTexto((f || []).filter(c => c != null).join(' '), hoy)),
+  ]));
+}
+
+/** "2026-08" → "ago 2026". */
+export const mesCorto = mes => {
+  const m = /^(\d{4})-(\d{2})$/.exec(mes ?? '');
+  return m ? `${MESES[+m[2] - 1].slice(0, 3)} ${m[1]}` : '';
+};
+
 /**
  * Convierte el texto de un PDF (pedazos con su posición, como los da pdf.js) en filas de celdas, para leerlo
  * con parsearLista. Arma renglones por altura y columnas por posición horizontal; descarta "$", "€" y guiones sueltos.

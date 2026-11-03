@@ -1,6 +1,6 @@
 // gestion/core.js — Base compartida del panel: DOM, formato, modal, configuración, proveedores, búsqueda
 // Usa los globales de supabase.js (_supabase) y toast.js (showToast), que cargan antes como scripts clásicos.
-import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero } from './texto.js?v=24';
+import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero } from './texto.js?v=25';
 
 export const db = window._supabase ?? _supabase;
 export const toast = (msg, tipo) => window.showToast(msg, tipo);
@@ -111,9 +111,23 @@ export async function cargarProveedores() {
   const { data, error } = await db.from('proveedores').select('*').order('orden').order('nombre');
   if (error) { console.warn('[gestion] proveedores:', error.message); return; }
   estado.proveedores = data;
+  // Último mes con precios buenos (robot o lista importada): el mes de la lista si el proveedor no tiene lista_mes
+  const { data: runs } = await db.from('scraper_runs').select('distribuidor, inicio').eq('ok', true)
+    .order('inicio', { ascending: false }).limit(400);
+  estado.ultimaCarga = {};
+  for (const r of runs || []) estado.ultimaCarga[r.distribuidor] ??= r.inicio;
 }
 export const proveedor = slug => estado.proveedores.find(p => p.slug === slug);
 export const nombreProveedor = slug => proveedor(slug)?.nombre || slug;
+const hoyLocalMes = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+/** Mes de la lista del proveedor ("2026-08", docs/gestion-v7.sql) y si tiene 2 meses o más (puede estar vieja). */
+export function mesListaDe(slug, hoy = new Date()) {
+  const carga = estado.ultimaCarga?.[slug];
+  const m = /^(\d{4})-(\d{2})$/.exec(proveedor(slug)?.lista_mes ?? (carga ? hoyLocalMes(new Date(carga)) : ''));
+  if (!m) return null;
+  const atras = hoy.getFullYear() * 12 + hoy.getMonth() + 1 - (+m[1] * 12 + +m[2]);
+  return { mes: m[0], vieja: atras >= 2 };
+}
 
 /** Ganancia (%) que se aplica a un proveedor: la suya si tiene, si no la general de Ajustes. */
 export function gananciaDe(distribuidor) {
@@ -143,7 +157,7 @@ export function aPesos(precio, slug) {
 }
 
 /* ── WhatsApp ────────────────────────────────────────────────────────── */
-export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=24';
+export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=25';
 export async function copiar(texto, aviso = 'Copiado') {
   try { await navigator.clipboard.writeText(texto); toast(aviso, 'success'); return true; }
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }

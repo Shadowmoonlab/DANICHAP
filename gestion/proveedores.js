@@ -1,11 +1,11 @@
 // gestion/proveedores.js — Proveedores (logística, WhatsApp), importación de listas de precios y estado de robots.
 import {
   $, h, icon, vacio, db, toast, money, fecha, estado, DIAS, cargarProveedores, openModal, closeModal, confirmar,
-  registrarVista, cargarSheetJS, unaVez, leerTextoPdf,
-} from './core.js?v=24';
-import { parsearLibro, filasDePdf, aFilasDePrecio } from './listas.js?v=24';
-import { numeroAR } from './texto.js?v=24';
-import { estadoPrecios } from './robots.js?v=24';
+  registrarVista, cargarSheetJS, unaVez, leerTextoPdf, mesListaDe,
+} from './core.js?v=25';
+import { parsearLibro, filasDePdf, aFilasDePrecio, mesDeLista, mesCorto } from './listas.js?v=25';
+import { numeroAR } from './texto.js?v=25';
+import { estadoPrecios } from './robots.js?v=25';
 
 const MONEDAS = { ARS: 'Pesos', USD: 'Dólares', EUR: 'Euros' };
 const cotizacionDe = m => Number(estado.config[m === 'USD' ? 'cotizacion_usd' : 'cotizacion_eur']) || 0;
@@ -26,6 +26,7 @@ async function cargar() {
         h('div', {}, h('h3', {}, p.nombre),
           h('div', { class: 'muted', style: 'font-size:13px', title: e.detalle || '' },
             h('span', { class: 'dot ' + e.tipo }), e.texto),
+          mesListaDe(p.slug) ? h('span', { class: 'chip' + (mesListaDe(p.slug).vieja ? ' chip-amber' : ' chip-gray'), title: 'Mes de la lista: se ve en el buscador' }, `Lista de ${mesCorto(mesListaDe(p.slug).mes)}`) : null,
           moneda ? h('span', { class: 'chip chip-amber', title: 'Se pasa a pesos con la cotización de Ajustes' },
             `Lista en ${MONEDAS[moneda].toLowerCase()} · ${moneda} 1 = ${money(cotizacionDe(moneda))}`) : null),
         h('div', { class: 'prov-acts' },
@@ -135,6 +136,9 @@ function importarLista(p) {
   const descuento = h('input', { class: 'input num', inputmode: 'decimal', value: previo.descuento ?? 0 });
   const sumarIva = h('input', { type: 'checkbox', checked: previo.sumarIva ? true : null });
   const reemplazar = h('input', { type: 'checkbox', checked: previo.reemplazar ? true : null });
+  // Mes de la lista: sale del archivo (nombre, hoja o encabezado); Daniel lo puede corregir
+  const ahora = new Date(), hoyMes = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`;
+  const mesLista = h('input', { class: 'input', type: 'month', value: hoyMes, max: hoyMes });
   const progreso = h('div', { class: 'progreso hidden' }, h('div', { class: 'barra' }), h('span', {}));
   let leido = null, hojasLeidas = null;
   const analizar = archivos => {
@@ -175,6 +179,7 @@ function importarLista(p) {
       hojasLeidas = [];
       for (const a of archivos) hojasLeidas.push(...(await leerArchivo(a)));
       analizar(archivos);
+      mesLista.value = mesDeLista({ nombres: archivos.map(a => a.name), hojas: hojasLeidas }) || hoyMes;
       // La lista dice SIN IVA y es la primera vez con este proveedor: se suma el 21% (se ve en el aviso y se puede destildar)
       if (leido.preciosSinIva === true && previo.sumarIva === undefined) sumarIva.checked = true;
       previsualizar();
@@ -232,8 +237,15 @@ function importarLista(p) {
     if (error) { toast(`La lista se cargó, pero no se pudo guardar la moneda: ${error.message}`, 'error'); return false; }
     return true;
   };
+  // El mes se ve en el buscador ("Francar · lista ago 2026"); sin docs/gestion-v7.sql se usa la fecha de carga
+  const guardarMes = async () => {
+    if (!('lista_mes' in p) || !/^\d{4}-\d{2}$/.test(mesLista.value)) return;
+    const { error } = await db.from('proveedores').update({ lista_mes: mesLista.value }).eq('slug', p.slug);
+    if (error) toast(`La lista se cargó, pero no se pudo guardar el mes: ${error.message}`, 'error');
+  };
   const terminar = async data => {
     await guardarMoneda();
+    await guardarMes();
     closeModal();
     toast(`Lista de ${p.nombre}: ${Number(data.guardados).toLocaleString('es-AR')} productos`
       + `${data.cambios != null ? ` (${Number(data.cambios).toLocaleString('es-AR')} nuevos o con precio cambiado)` : ''}`
@@ -248,7 +260,8 @@ function importarLista(p) {
       h('div', { class: 'grid4' },
         h('div', { class: 'field' }, h('label', { class: 'label' }, 'La lista está en'), moneda),
         h('div', { class: 'field' }, h('label', { class: 'label' }, 'Tu descuento (%)'), descuento),
-        h('div', { class: 'field span2' }, h('label', { class: 'label' }, 'Opciones'),
+        h('div', { class: 'field' }, h('label', { class: 'label' }, 'Mes de la lista'), mesLista),
+        h('div', { class: 'field' }, h('label', { class: 'label' }, 'Opciones'),
           h('label', { class: 'check', style: 'margin:4px 0' }, sumarIva, 'Sumar 21% de IVA a los precios'),
           h('label', { class: 'check', style: 'margin:4px 0' }, reemplazar, 'Reemplaza la lista anterior (lo que no venga queda como "ya no figura")'))),
       vista, progreso),
