@@ -3,10 +3,11 @@ name: Precios diarios de distribuidores
 # Corre solo todos los días en servidores de GitHub (gratis en repos públicos). No usa IA.
 # Qué distribuidores corren lo decide scrapers/distribuidores.mjs (activo: true): sumar uno no requiere tocar este archivo.
 on:
+  # Minuto 23 y no en punto: a las horas en punto GitHub está saturado y atrasaba la corrida de las 6 hasta 6 horas
   schedule:
-    - cron: '0 9 * * *'    # 06:00 hora Argentina (UTC-3): todos. GitHub puede atrasarlo unos minutos.
-    - cron: '0 15 * * *'   # 12:00: reintento solo de los que fallaron (sitio caído, etc.)
-    - cron: '0 21 * * *'   # 18:00: último reintento del día
+    - cron: '23 9 * * *'   # 06:23 hora Argentina (UTC-3): todos. GitHub puede atrasarlo unos minutos.
+    - cron: '23 15 * * *'  # 12:23: reintento solo de los que fallaron (sitio caído, etc.)
+    - cron: '23 21 * * *'  # 18:23: último reintento del día
   workflow_dispatch:       # botón "Run workflow" para correrlo a mano
 
 concurrency:
@@ -26,7 +27,7 @@ jobs:
       - id: plan
         run: node scrapers/plan.mjs
         env:
-          SOLO_PENDIENTES: ${{ github.event_name == 'schedule' && github.event.schedule != '0 9 * * *' }}
+          SOLO_PENDIENTES: ${{ github.event_name == 'schedule' && github.event.schedule != '23 9 * * *' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 

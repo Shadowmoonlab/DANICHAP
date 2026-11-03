@@ -5,6 +5,7 @@
 import { correrScraper, env } from './lib/db.mjs';
 import { crearSesion } from './lib/sesion.mjs';
 import { leerPlanilla } from './lib/planilla.mjs';
+import { linksDeDescarga } from './lib/dropbox.mjs';
 
 const BASE = 'https://autopartesfal.com';
 // Link de respaldo por si el sitio cambia de lugar el botón: va en el secret FAL_LISTA_URL (opcional),
@@ -22,9 +23,9 @@ async function linkDeLista() {
   } });
   const inicio = await s.texto('/');
   if (!/logout|cerrar sesi/i.test(inicio)) throw new Error('Login rechazado: revisar FAL_USER / FAL_PASSWORD');
-  const link = inicio.match(/https:\/\/www\.dropbox\.com\/[^"'\s]+?\.xlsx?\?[^"'\s]+/i)?.[0];
-  return link ? link.replace(/&amp;/g, '&').replace(/dl=0/, 'dl=1') : null;
+  return inicio.match(/https:\/\/www\.dropbox\.com\/[^"'\s<>]+?\.xlsx?\?[^"'\s<>]+/i)?.[0] ?? null;
 }
+
 
 async function scrape() {
   let link = null, errorLogin;
@@ -38,9 +39,9 @@ async function scrape() {
 
   // El link del sitio puede llevar a una vista previa de Dropbox (HTML) en vez del archivo: probar ambos
   let ultimoError;
-  for (const url of [...new Set([link, LISTA_RESPALDO].filter(Boolean))]) {
+  for (const url of [...new Set([link, LISTA_RESPALDO].filter(Boolean).flatMap(linksDeDescarga))]) {
     try {
-      const res = await fetch(url, { redirect: 'follow' });
+      const res = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { filas, hoja, descartadas } = leerPlanilla(Buffer.from(await res.arrayBuffer()));
       console.log(`[fal] ${url.split('?')[0].split('/').pop()} — hoja "${hoja}": ${filas.length} artículos (${descartadas} filas descartadas)`);
