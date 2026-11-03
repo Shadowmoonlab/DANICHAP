@@ -2,10 +2,10 @@
 import {
   $, h, icon, vacio, db, toast, money, fecha, estado, DIAS, cargarProveedores, openModal, closeModal, confirmar,
   registrarVista, cargarSheetJS, unaVez, leerTextoPdf, mesListaDe, bloquearModal, errorAmigable, linkWhatsApp,
-} from './core.js?v=39';
-import { parsearLibro, filasDePdf, aFilasDePrecio, mesDeLista, mesCorto } from './listas.js?v=39';
-import { numeroAR } from './texto.js?v=39';
-import { estadoPrecios } from './robots.js?v=39';
+} from './core.js?v=40';
+import { parsearLibro, filasDePdf, aFilasDePrecio, mesDeLista, mesCorto } from './listas.js?v=40';
+import { numeroAR } from './texto.js?v=40';
+import { estadoPrecios } from './robots.js?v=40';
 
 const MONEDAS = { ARS: 'Pesos', USD: 'Dólares', EUR: 'Euros' };
 const cotizacionDe = m => Number(estado.config[m === 'USD' ? 'cotizacion_usd' : 'cotizacion_eur']) || 0;

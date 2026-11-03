@@ -3,11 +3,11 @@ import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, mesListaDe, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
   actualizarBadgeRepo, unaVez, hoyISO, gananciaDe, gananciaDePrecio, buscarParecidos, errorAmigable, buscarListado, listarStock,
-} from './core.js?v=39';
-import { numeroAR, palabras, normalizar } from './texto.js?v=39';
-import { presupuesto as textoPresupuesto } from './plantillas.js?v=39';
-import { imprimirComprobante } from './comprobante.js?v=39';
-import { editarCliente } from './clientes.js?v=39';
+} from './core.js?v=40';
+import { numeroAR, palabras, normalizar } from './texto.js?v=40';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=40';
+import { imprimirComprobante } from './comprobante.js?v=40';
+import { editarCliente } from './clientes.js?v=40';
 
 let resultados = [];
 let selIdx = -1;
@@ -617,6 +617,7 @@ export function iniciarMostrador() {
   $('pos-cliente-nuevo').addEventListener('click', () => editarCliente(null, c => { $('pos-cliente').value = c.nombre; }));
   $('pos-pago').addEventListener('change', () => renderVenta());
   renderVenta();
+  renderProveedores(null);   // los proveedores ya están cargados (main.js los espera): la fila se ve desde el arranque
   actualizarBadgePresupuestos();
   registrarVista('mostrador', () => { renderProveedores(buscador().value.trim() || null); setTimeout(() => buscador().focus(), 0); });
 }
