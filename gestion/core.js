@@ -1,6 +1,6 @@
 // gestion/core.js — Base compartida del panel: DOM, formato, modal, configuración, proveedores, búsqueda
 // Usa los globales de supabase.js (_supabase) y toast.js (showToast), que cargan antes como scripts clásicos.
-import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero, sinPalabrasVacias, conTodosLosProveedores } from './texto.js?v=33';
+import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero, sinPalabrasVacias, conTodosLosProveedores, separarMarcas } from './texto.js?v=34';
 
 export const db = window._supabase ?? _supabase;
 // Avisos del panel: los de éxito duran 4 s (se alcanzan a leer) y los errores quedan hasta cerrarlos
@@ -188,7 +188,7 @@ export function aPesos(precio, slug) {
 }
 
 /* ── WhatsApp ────────────────────────────────────────────────────────── */
-export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=33';
+export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=34';
 export async function copiar(texto, aviso = 'Copiado') {
   try { await navigator.clipboard.writeText(texto); toast(aviso, 'success'); return true; }
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }
@@ -274,8 +274,10 @@ async function buscarEnBase(ws, codigo) {
 }
 
 export async function buscarPrecios(q, limite = 40) {
-  const ws = palabras(q);
-  if (!ws.length) return [];
+  const todas = palabras(q);
+  if (!todas.length) return [];
+  // La marca del auto no deja afuera a los proveedores que no la escriben (solo suma para ordenar)
+  const { duras: ws, blandas } = separarMarcas(todas);
   // Una sola "palabra" puede ser un código ("128", "CHECOR-001"): se busca aparte por código, así nunca queda afuera
   // de los 250 que trae la búsqueda general aunque haya muchas coincidencias
   const qCodigo = normalizar(q).replace(/\s+/g, '');
@@ -293,7 +295,8 @@ export async function buscarPrecios(q, limite = 40) {
     const c = normalizar(d.codigo ?? '');
     // Comienzo de código arriba solo si parece un código (con letras o largo): "206" o "128" son modelos de auto
     const pareceCodigo = /[a-z]/.test(qCodigo) || qCodigo.length >= 5;
-    return c === qCodigo ? -2000 : pareceCodigo && c.startsWith(qCodigo) ? -1000 : relevancia(d.descripcion, ws, escritas);
+    const conMarca = blandas.length ? blandas.filter(b => coincidePalabras(normalizarAmbos([d.descripcion, d.marca, d.rubro].join(' ')), [b])).length * 4 : 0;
+    return c === qCodigo ? -2000 : pareceCodigo && c.startsWith(qCodigo) ? -1000 : relevancia(d.descripcion, ws, escritas) - conMarca;
   };
   return data
     .filter(d => {

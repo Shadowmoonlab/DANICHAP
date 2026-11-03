@@ -5,6 +5,7 @@
 const VACIAS = new Set(['de', 'del', 'la', 'las', 'el', 'los', 'para', 'p', 'con', 'c', 'y', 'en', 'un', 'una']);
 // Cómo abrevian los proveedores: se busca por la raíz común, así "paragolpe" también encuentra "PARAG." o "PARAGOL"
 const RAICES = [
+  [/^farol/, 'faro'],   // "farol trasero": los proveedores escriben "FARO TRASERO" (y "faro" también encuentra "FAROL")
   [/^paragol/, 'parag'], [/^optica/, 'opt'], [/^delanter/, 'del'], [/^traser/, 'tras'], [/^izquierd/, 'izq'],
   [/^derech/, 'der'], [/^guardabarr/, 'guardab'], [/^amortiguad/, 'amort'], [/^parabris/, 'parabr'],
   [/^cerradur/, 'cerrad'], [/^levantavidri/, 'levantav'], [/^radiador/, 'radiad'], [/^espejo/, 'espej'],
@@ -100,6 +101,24 @@ export function conTodosLosProveedores(limite, porProveedor = 2) {
     }
     return elegidos.has(x);
   };
+}
+
+// Marcas de auto: muchos proveedores no las escriben cuando ya está el modelo ("OPTICA 206…", sin "PEUGEOT")
+const MARCAS = new Set(['peugeot', 'chevrolet', 'chevrolete', 'chevy', 'gm', 'ford', 'fiat', 'renault', 'volkswagen', 'vw',
+  'citroen', 'toyota', 'honda', 'nissan', 'suzuki', 'hyundai', 'kia', 'jeep', 'dodge', 'mercedes', 'benz', 'audi', 'bmw',
+  'chery', 'iveco', 'mitsubishi', 'seat', 'alfa', 'scania', 'ram']);
+/**
+ * Palabras obligatorias y opcionales de una búsqueda. La marca del auto es opcional cuando además hay al menos dos
+ * palabras más (repuesto + modelo: "optica peugeot 206" → opt + 206 obligatorias, peugeot ayuda a ordenar).
+ * Si la marca es lo único que precisa la búsqueda ("faro peugeot"), sigue siendo obligatoria.
+ */
+export function separarMarcas(ws) {
+  const duras = ws.filter(w => !MARCAS.has(w));
+  // Hace falta un modelo claro además del repuesto: un nombre ("gol", "corsa") o un número de 3 cifras (206, 504, 128).
+  // "renault 9" o "fiat 1": un número corto aparece en cualquier código, sin la marca traería cualquier cosa
+  const modeloClaro = duras.slice(1).some(w => (/^\d+$/.test(w) ? w.length >= 3 : w.length >= 2));
+  if (modeloClaro && duras.length >= 2 && duras.length < ws.length) return { duras, blandas: ws.filter(w => MARCAS.has(w)) };
+  return { duras: ws, blandas: [] };
 }
 
 /** Teléfono argentino → formato internacional de WhatsApp (549 + área + número), o null. */

@@ -110,3 +110,23 @@ test('buscador: los 2 mejores de cada proveedor siempre entran (las listas chica
   assert.equal(quedan.length, 43);
   assert.deepEqual(quedan.slice(0, 40), orden.slice(0, 40));   // el orden se mantiene
 });
+
+test('marca opcional: "optica peugeot 206" encuentra "OPTICA 206…" aunque no diga Peugeot', async () => {
+  const { separarMarcas } = await import('../gestion/texto.js');
+  const s = separarMarcas(palabras('optica peugeot 206'));
+  assert.deepEqual(s, { duras: ['opt', '206'], blandas: ['peugeot'] });
+  assert.ok(coincidePalabras(normalizarAmbos('OPTICA 206 VIDRIO LISO PARABOLA DOBLE'), s.duras));
+  assert.deepEqual(separarMarcas(palabras('parrilla vw gol')).duras, ['parrilla', 'gol']);
+});
+
+test('marca obligatoria si no queda un modelo claro ("faro peugeot", "cerradura renault 9")', async () => {
+  const { separarMarcas } = await import('../gestion/texto.js');
+  assert.deepEqual(separarMarcas(palabras('faro peugeot')), { duras: ['faro', 'peugeot'], blandas: [] });
+  assert.deepEqual(separarMarcas(palabras('cerradura renault 9')).blandas, []);   // un "9" solo traería cualquier código
+  assert.deepEqual(separarMarcas(palabras('optica 206')).blandas, []);
+});
+
+test('"farol" busca "faro" (los proveedores escriben FARO TRASERO)', () => {
+  assert.deepEqual(palabras('farol trasero clio'), ['faro', 'tras', 'clio']);
+  assert.ok(coincidePalabras(normalizarAmbos('FARO TRASERO RENAULT CLIO'), palabras('farol trasero clio')));
+});

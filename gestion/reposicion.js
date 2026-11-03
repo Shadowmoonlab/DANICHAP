@@ -4,9 +4,9 @@ import {
   $, h, icon, vacio, db, toast, money, fecha, estado, proveedor, nombreProveedor, DIAS_LARGO, debounce,
   buscarPrecios, openModal, closeModal, copiar, linkWhatsApp, pedirNumero, registrarVista, actualizarBadgeRepo,
   mostrarVista, aPesos,
-} from './core.js?v=33';
-import { palabras } from './texto.js?v=33';
-import { pedidoProveedor } from './plantillas.js?v=33';
+} from './core.js?v=34';
+import { palabras } from './texto.js?v=34';
+import { pedidoProveedor } from './plantillas.js?v=34';
 
 let repoEstado = 'pendiente';
 
