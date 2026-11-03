@@ -2,12 +2,12 @@
 // Los totales los calcula la base (libro_resumen / libro_movimientos, docs/add-libro-diario.sql).
 import {
   $, h, icon, vacio, db, toast, money, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, cargarSheetJS, unaVez,
-} from './core.js?v=36';
+} from './core.js?v=37';
 import {
   rangoPeriodo, moverPeriodo, periodoDeHoy, conResultados, totales, etiquetaFila, margen, etiquetaMovimiento,
   hojasExcel, TIPOS_MOV, CATEGORIAS,
-} from './libro-calc.js?v=36';
-import { verVenta } from './ventas.js?v=36';
+} from './libro-calc.js?v=37';
+import { verVenta } from './ventas.js?v=37';
 
 const MEDIOS_MOV = { efectivo: 'Efectivo', transferencia: 'Transferencia', debito: 'Débito', credito: 'Crédito', otro: 'Otro' };
 const hora = iso => new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });

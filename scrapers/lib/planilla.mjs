@@ -147,6 +147,20 @@ export function leerPlanilla(buffer, opciones = {}) {
           .map(f => [String(f[r.columnas.codigo] ?? '').trim(), String(f[iRubro] ?? '').trim()]));
         for (const p of r.productos) p.rubro = porCodigo.get(p.codigo) || p.rubro;
       }
+      // Columnas del AUTO (Otero: "Marca | Modelo | Subrubro | Código | Nombre | Precio"): el vehículo se guarda en
+      // "marca" (entra en la búsqueda y se ve en el resultado) y, si el nombre viene vacío o "false" (celda vacía
+      // de Excel), el nombre se arma con subrubro + auto + modelo: así ningún artículo queda sin poder buscarse
+      const iModelo = enc.findIndex(c => /^(modelo|vehiculo|aplicacion|aplica)/.test(c));
+      const iMarcaAuto = iModelo >= 0 ? enc.findIndex(c => /^marca/.test(c)) : -1;
+      if (iModelo >= 0) {
+        const auto = new Map(filas.slice(r.columnas.encabezado + 1).map(f => [String(f[r.columnas.codigo] ?? '').trim(),
+          [iMarcaAuto >= 0 ? f[iMarcaAuto] : '', f[iModelo]].map(v => String(v ?? '').trim()).filter(v => v && !/^(false|true)$/i.test(v)).join(' ')]));
+        for (const p of r.productos) {
+          const veh = auto.get(p.codigo);
+          if (veh) p.marca = veh;
+          if (!p.descripcion || /^(false|true|null)$/i.test(p.descripcion)) p.descripcion = [p.rubro, veh].filter(Boolean).join(' · ') || p.codigo;
+        }
+      }
     }
     mejor = { nombre, r };
   }

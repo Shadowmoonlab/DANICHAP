@@ -421,7 +421,7 @@ export function aFilasDePrecio(productos, { descuentoPct = 0, sumarIva = false, 
   return productos.map(p => {
     const lista = Math.round(p.precio * (sumarIva ? 1 + ivaPct / 100 : 1) * 100) / 100;
     const neto = Math.round(lista * (1 - descuentoPct / 100) * 100) / 100;
-    return { codigo: p.codigo, descripcion: p.descripcion, rubro: p.rubro, marca: null, origen: null,
+    return { codigo: p.codigo, descripcion: p.descripcion, rubro: p.rubro, marca: p.marca ?? null, origen: null,
              precio_lista: lista, precio_neto: neto, imagen_url: null };
   });
 }
