@@ -1,17 +1,18 @@
 // gestion/proveedores.js — Proveedores (logística, WhatsApp), importación de listas de precios y estado de robots.
 import {
   $, h, icon, vacio, db, toast, money, fecha, estado, DIAS, cargarProveedores, openModal, closeModal, confirmar,
-  registrarVista, cargarSheetJS, unaVez, leerTextoPdf, mesListaDe, bloquearModal, errorAmigable,
-} from './core.js?v=38';
-import { parsearLibro, filasDePdf, aFilasDePrecio, mesDeLista, mesCorto } from './listas.js?v=38';
-import { numeroAR } from './texto.js?v=38';
-import { estadoPrecios } from './robots.js?v=38';
+  registrarVista, cargarSheetJS, unaVez, leerTextoPdf, mesListaDe, bloquearModal, errorAmigable, linkWhatsApp,
+} from './core.js?v=39';
+import { parsearLibro, filasDePdf, aFilasDePrecio, mesDeLista, mesCorto } from './listas.js?v=39';
+import { numeroAR } from './texto.js?v=39';
+import { estadoPrecios } from './robots.js?v=39';
 
 const MONEDAS = { ARS: 'Pesos', USD: 'Dólares', EUR: 'Euros' };
 const cotizacionDe = m => Number(estado.config[m === 'USD' ? 'cotizacion_usd' : 'cotizacion_eur']) || 0;
 
 async function cargar() {
   await cargarProveedores();
+  mostrarPendientes();
   // 3 corridas por día (06/12/18 h) × proveedores: 400 alcanza para encontrar la última buena de cada uno
   const { data: runs } = await db.from('scraper_runs').select('distribuidor, inicio, fin, ok, productos, error')
     .order('inicio', { ascending: false }).limit(400);
@@ -145,6 +146,9 @@ function importarLista(p) {
   const mesLista = h('input', { class: 'input', type: 'month', max: hoyMes, 'aria-label': 'Mes de la lista' });
   const botonImportar = h('button', { class: 'btn btn-primary' }, icon('upload'), h('span', {}, 'Importar'));
   const botonCancelar = h('button', { class: 'btn', onclick: closeModal }, 'Cancelar');
+  // Si el panel no la lee bien (o es de un proveedor nuevo con un formato raro): se manda tal cual para que la carguemos
+  const botonRevisar = h('button', { class: 'btn', title: 'Mandar el archivo para que lo carguen a mano', onclick: () => enviarARevisar(p, [...file.files]) },
+    icon('outgoing_mail'), 'Enviar a revisar');
   const confirmacion = h('div', { class: 'aviso hidden', role: 'alert' });
   let confirmado = false;   // "borrar lo que no venga" / "cambiar de moneda" se confirman en la misma ventana
   const textoBoton = t => { botonImportar.lastChild.textContent = t; };
@@ -158,7 +162,8 @@ function importarLista(p) {
   const previsualizar = () => {
     if (!leido) return;
     if (!leido.productos.length) {
-      vista.replaceChildren(h('div', { class: 'aviso' }, 'No encontré productos con precio en este archivo. ¿Es una lista de precios? Si es una foto, cargala a mano.'));
+      vista.replaceChildren(h('div', { class: 'aviso' }, 'No pude leer los productos de este archivo. Tocá ', h('b', {}, 'Enviar a revisar'),
+        ': nos llega el archivo y la cargamos nosotros.'));
       return;
     }
     const filas = aFilasDePrecio(leido.productos, opciones());
@@ -300,11 +305,90 @@ function importarLista(p) {
           h('label', { class: 'check', style: 'margin:4px 0' }, sumarIva, 'Sumar 21% de IVA a los precios'),
           h('label', { class: 'check', style: 'margin:4px 0' }, reemplazar, `Borrar de ${p.nombre} los productos que no vengan en este archivo`))),
       vista, confirmacion, progreso),
-    foot: [botonCancelar, botonImportar],
+    foot: [botonCancelar, botonRevisar, botonImportar],
   });
 }
 
+/* ── Proveedor nuevo: nombre (y si quiere WhatsApp y web); después se sube su lista ── */
+const aSlug = t => String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '').slice(0, 30) || 'proveedor';
+
+function nuevoProveedor() {
+  const nombre = h('input', { class: 'input', placeholder: 'Ej: Repuestos San Martín' });
+  const whatsapp = h('input', { class: 'input', type: 'tel', placeholder: 'Ej: 11 5555-1234 (opcional)' });
+  const web = h('input', { class: 'input', type: 'url', placeholder: 'https://… (opcional)' });
+  const guardar = unaVez(async () => {
+    const n = nombre.value.trim();
+    if (!n) { toast('Escribí el nombre del proveedor', 'error'); nombre.focus(); return; }
+    if (estado.proveedores.some(p => p.nombre.toLowerCase() === n.toLowerCase())) { toast(`Ya existe ${n}`, 'error'); return; }
+    const url = web.value.trim();
+    if (url && !/^https?:\/\//i.test(url)) { toast('La página web tiene que empezar con http:// o https://', 'error'); return; }
+    let slug = aSlug(n);
+    for (let i = 2; estado.proveedores.some(p => p.slug === slug); i++) slug = `${aSlug(n)}${i}`;
+    const orden = Math.max(0, ...estado.proveedores.map(p => p.orden || 0)) + 1;
+    const { data, error } = await db.from('proveedores')
+      .insert({ slug, nombre: n, whatsapp: whatsapp.value.trim() || null, web: url || null, activo: true, orden }).select().single();
+    if (error) { toast(errorAmigable(error, 'No se pudo agregar el proveedor'), 'error'); return; }
+    closeModal();
+    toast(`Proveedor ${n} agregado. Ahora subí su lista.`, 'success');
+    await cargar();
+    importarLista(data);   // directo a subir su lista
+  });
+  [nombre, whatsapp, web].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') guardar(); }));
+  openModal({
+    title: 'Agregar proveedor',
+    body: h('div', {},
+      h('div', { class: 'field' }, h('label', { class: 'label' }, 'Nombre del proveedor'), nombre),
+      h('div', { class: 'grid2' },
+        h('div', { class: 'field' }, h('label', { class: 'label' }, 'WhatsApp para pedidos'), whatsapp),
+        h('div', { class: 'field' }, h('label', { class: 'label' }, 'Página web'), web)),
+      h('p', { class: 'hint' }, 'Después de agregarlo se abre la ventana para subir su lista (Excel o PDF).')),
+    foot: [h('button', { class: 'btn', onclick: closeModal }, 'Cancelar'), h('button', { class: 'btn btn-primary', onclick: guardar }, icon('add_business'), 'Agregar')],
+  });
+  setTimeout(() => nombre.focus(), 50);
+}
+
+/* ── Lista para revisar: el archivo se guarda (privado) y queda anotado; se avisa por WhatsApp ── */
+async function enviarARevisar(p, archivos) {
+  if (!archivos.length) { toast('Elegí primero el archivo de la lista', 'error'); return; }
+  bloquearModal(true);
+  try {
+    for (const a of archivos) {
+      const ruta = `${p.slug}/${Date.now()}-${a.name.replace(/[^\w.\-]+/g, '_')}`;
+      const subida = await db.storage.from('listas').upload(ruta, a, { contentType: a.type || 'application/octet-stream' });
+      if (subida.error) throw subida.error;
+      const { error } = await db.from('listas_pendientes').insert({ proveedor: p.slug, archivo: ruta, nombre_original: a.name });
+      if (error) throw error;
+    }
+  } catch (e) {
+    bloquearModal(false);
+    toast(/listas_pendientes|bucket|not found/i.test(String(e.message)) ? 'Falta activar el envío de listas en la base (docs/gestion-v14.sql)' : errorAmigable(e, 'No se pudo enviar la lista'), 'error');
+    return;
+  }
+  bloquearModal(false);
+  const texto = `Hola! Subí la lista de precios de ${p.nombre} al sistema de DANICHAP (${archivos.map(a => a.name).join(', ')}) para que la carguen.`;
+  openModal({
+    title: 'Lista enviada',
+    body: h('div', {},
+      h('p', { style: 'margin-top:0;font-size:16px' }, `Listo: la lista de ${p.nombre} quedó guardada para revisar. Cuando esté cargada, sus precios aparecen solos en el buscador.`),
+      h('p', { class: 'muted' }, 'Avisá por WhatsApp a quien te arma el sistema para que la cargue:')),
+    foot: [h('button', { class: 'btn', onclick: closeModal }, 'Cerrar'),
+      h('a', { class: 'btn btn-green', href: linkWhatsApp(null, texto), target: '_blank', rel: 'noopener', onclick: () => setTimeout(closeModal, 300) }, icon('chat'), 'Avisar por WhatsApp')],
+  });
+  mostrarPendientes();
+}
+
+async function mostrarPendientes() {
+  const box = $('prov-pendientes');
+  const { data, error } = await db.from('listas_pendientes').select('proveedor, nombre_original, created_at').eq('estado', 'pendiente')
+    .order('created_at', { ascending: false }).limit(20);
+  if (error || !data?.length) { box.classList.add('hidden'); return; }   // sin v14 o sin pendientes: nada
+  box.classList.remove('hidden');
+  box.replaceChildren(icon('hourglass_top'), h('b', {}, ` Listas enviadas para cargar (${data.length}): `),
+    data.map(l => `${estado.proveedores.find(p => p.slug === l.proveedor)?.nombre || l.proveedor} — ${l.nombre_original} (${fecha(l.created_at)})`).join(' · '));
+}
+
 export function iniciarProveedores() {
+  $('prov-nuevo').addEventListener('click', nuevoProveedor);
   $('prov-importar').addEventListener('click', elegirProveedorParaLista);
   registrarVista('proveedores', cargar);
 }

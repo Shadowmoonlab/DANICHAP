@@ -2,12 +2,12 @@
 import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, mesListaDe, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
-  actualizarBadgeRepo, unaVez, hoyISO, gananciaDe, gananciaDePrecio, buscarParecidos, errorAmigable,
-} from './core.js?v=38';
-import { numeroAR, palabras, normalizar } from './texto.js?v=38';
-import { presupuesto as textoPresupuesto } from './plantillas.js?v=38';
-import { imprimirComprobante } from './comprobante.js?v=38';
-import { editarCliente } from './clientes.js?v=38';
+  actualizarBadgeRepo, unaVez, hoyISO, gananciaDe, gananciaDePrecio, buscarParecidos, errorAmigable, buscarListado, listarStock,
+} from './core.js?v=39';
+import { numeroAR, palabras, normalizar } from './texto.js?v=39';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=39';
+import { imprimirComprobante } from './comprobante.js?v=39';
+import { editarCliente } from './clientes.js?v=39';
 
 let resultados = [];
 let selIdx = -1;
@@ -15,11 +15,36 @@ let venta = [];            // renglones de la venta actual
 let presupuestoId = null;  // si la venta se cargó desde un presupuesto
 let buscado = '';          // texto de la búsqueda que está en pantalla (Enter solo agrega de esa)
 let enterEnEspera = null;  // texto para el que se apretó Enter antes de que llegaran sus resultados: se agrega apenas lleguen
-let filtro = 'todos';      // 'todos' | 'stock' | slug de un proveedor (botones arriba de los resultados)
 let sonParecidos = false;  // la búsqueda exacta no encontró nada y se muestran artículos parecidos (errores de tipeo)
+// Proveedores elegidos con los botones de abajo del buscador (uno, dos o tres: "los de chapa"). Vacío = todos.
+// 'stock' = Mi stock. Sin escribir nada, se ve TODO lo de los elegidos; escribiendo, se busca solo en ellos.
+const seleccion = new Set();
+let listado = null;        // { desde, hayMas } mientras se muestra todo lo de los elegidos (sin escribir)
+const POR_PAGINA = 60;
 
 const buscador = () => $('pos-search');
-const visibles = () => resultados.filter(r => filtro === 'todos' || (filtro === 'stock' ? r.tipo === 'stock' : r.distribuidor === filtro));
+const visibles = () => resultados;
+const elegidosDist = () => [...seleccion].filter(k => k !== 'stock');
+const conStock = () => !seleccion.size || seleccion.has('stock');
+const conDist = () => !seleccion.size || elegidosDist().length > 0;
+
+const aResultadoDist = (dist, d) => ({
+  tipo: 'dist', key: `d-${d.id}`, precio_distribuidor_id: d.id, distribuidor: d.distribuidor,
+  codigo: d.codigo, descripcion: d.descripcion, origen: nombreProveedor(d.distribuidor), listaMes: mesListaDe(d.distribuidor),
+  precio: precioVenta(d.precio_neto, d.distribuidor), costo: d.precio_neto,
+  extra: [d.marca, d.rubro, d.moneda !== 'ARS' ? `lista en ${d.moneda === 'USD' ? 'dólares' : 'euros'}: ${d.moneda} ${d.precio_original}` : null]
+    .filter(Boolean).join(' · '),
+  masBarato: dist.costoMin != null && dist.length > 1 && d.precio_neto === dist.costoMin,
+  faltante: d.faltante || null,   // búsqueda flexible: no tiene esta palabra
+  subio: d.precio_anterior > 0 && d.precio_neto > d.precio_anterior
+    ? { pct: Math.max(1, Math.round((d.precio_neto / d.precio_anterior - 1) * 100)), antes: d.precio_anterior } : null,
+});
+const aResultadoStock = p => ({
+  tipo: 'stock', key: `p-${p.id}`, producto_id: p.id, codigo: p.costo?.codigo_proveedor || '',
+  descripcion: p.nombre, origen: 'Mi stock', precio: p.precio, costo: p.costo?.costo ?? null,
+  extra: p.stock_cantidad != null ? `${p.stock_cantidad} u.` : (p.stock ? 'Con stock' : 'Sin stock'),
+  sinStock: p.stock === false || p.stock_cantidad === 0,
+});
 
 /* ── Búsqueda ────────────────────────────────────────────────────────── */
 let pedido = 0;   // cada búsqueda tiene su número: la respuesta de una búsqueda vieja nunca pisa a la nueva
@@ -28,16 +53,20 @@ const dejarDeBuscar = () => { const caja = $('pos-results'); caja.classList.remo
 const ejecutarBusqueda = debounce(async () => {
   const q = buscador().value.trim();
   const este = ++pedido;
-  if (q.length < 2) { enterEnEspera = null; dejarDeBuscar(); renderResultados(null); return; }
+  if (q.length < 2) {
+    enterEnEspera = null; dejarDeBuscar();
+    if (seleccion.size) { listar(0); return; }   // proveedores elegidos y nada escrito: todo lo de ellos
+    listado = null; resultados = []; renderResultados(null); return;
+  }
   const caja = $('pos-results');
   caja.classList.add('buscando');   // se nota que está buscando: nunca parece que se trabó
   let stock, dist, parecidos = false;
   try {
-    [stock, dist] = await Promise.all([buscarStock(q), buscarPrecios(q)]);
+    [stock, dist] = await Promise.all([conStock() ? buscarStock(q) : [], conDist() ? buscarPrecios(q, 40, { proveedores: elegidosDist() }) : []]);
     // Nada exacto: se buscan parecidos ("paragople" → "paragolpe"), como hacen los buscadores grandes
-    if (!stock.length && !dist.length && este === pedido) {
+    if (!stock.length && !dist.length && conDist() && este === pedido) {
       caja.dataset.estado = 'Buscando parecidos…';
-      dist = await buscarParecidos(q);
+      dist = (await buscarParecidos(q)).filter(d => !elegidosDist().length || seleccion.has(d.distribuidor));
       parecidos = dist.length > 0;
     }
   } catch {
@@ -50,29 +79,10 @@ const ejecutarBusqueda = debounce(async () => {
   dejarDeBuscar();
   sonParecidos = parecidos;
   buscado = q;
-  const costoMin = Math.min(...dist.map(d => d.precio_neto ?? Infinity));
+  listado = null;
+  dist.costoMin = Math.min(...dist.map(d => d.precio_neto ?? Infinity));
   // Primero los precios de los proveedores (al día); después "Mi stock" (los productos cargados a mano)
-  resultados = [
-    ...dist.map(d => ({
-      tipo: 'dist', key: `d-${d.id}`, precio_distribuidor_id: d.id, distribuidor: d.distribuidor,
-      codigo: d.codigo, descripcion: d.descripcion, origen: nombreProveedor(d.distribuidor), listaMes: mesListaDe(d.distribuidor),
-      precio: precioVenta(d.precio_neto, d.distribuidor), costo: d.precio_neto,
-      extra: [d.marca, d.rubro, d.moneda !== 'ARS' ? `lista en ${d.moneda === 'USD' ? 'dólares' : 'euros'}: ${d.moneda} ${d.precio_original}` : null]
-        .filter(Boolean).join(' · '),
-      masBarato: dist.length > 1 && d.precio_neto === costoMin,
-      faltante: d.faltante || null,   // búsqueda flexible: no tiene esta palabra
-      subio: d.precio_anterior > 0 && d.precio_neto > d.precio_anterior
-        ? { pct: Math.max(1, Math.round((d.precio_neto / d.precio_anterior - 1) * 100)), antes: d.precio_anterior } : null,
-    })),
-    ...stock.map(p => ({
-      tipo: 'stock', key: `p-${p.id}`, producto_id: p.id, codigo: p.costo?.codigo_proveedor || '',
-      descripcion: p.nombre, origen: 'Mi stock', precio: p.precio, costo: p.costo?.costo ?? null,
-      extra: p.stock_cantidad != null ? `${p.stock_cantidad} u.` : (p.stock ? 'Con stock' : 'Sin stock'),
-      sinStock: p.stock === false || p.stock_cantidad === 0,
-    })),
-  ];
-  // El filtro elegido se mantiene si el proveedor sigue apareciendo en la búsqueda nueva
-  if (filtro !== 'todos' && !visibles().length) filtro = 'todos';
+  resultados = [...dist.map(d => aResultadoDist(dist, d)), ...stock.map(aResultadoStock)];
   selIdx = visibles().length ? 0 : -1;
   renderResultados(q);
   // Un Enter apurado (para ESTE mismo texto) agrega el primero; nunca un "parecido": eso lo elige Daniel mirando
@@ -84,7 +94,7 @@ const ejecutarBusqueda = debounce(async () => {
 function errorDeBusqueda(q) {
   enterEnEspera = null;
   resultados = []; selIdx = -1; buscado = null;
-  renderWebs(null); renderFiltros(null);
+  renderWebs(null); renderProveedores(null);
   $('pos-results').replaceChildren(h('div', { class: 'empty' },
     vacio('wifi_off', `No se pudo buscar "${q}".`, h('br'), 'Revisá que haya internet y tocá Reintentar.'),
     h('button', { class: 'btn btn-primary', onclick: () => { ejecutarBusqueda(); buscador().focus(); } }, icon('refresh'), 'Reintentar')));
@@ -115,21 +125,65 @@ function abrirWeb(p, q) {
   toast(buscar ? `Buscando en ${p.nombre}` : `Copiado "${q}": pegalo (Ctrl+V) en el buscador de ${p.nombre}`, 'success');
 }
 
-/* ── Filtro por proveedor: un botón por cada origen que salió en la búsqueda, con cuántos resultados tiene ── */
-function renderFiltros(q) {
+/* ── Proveedores, siempre a la vista abajo del buscador: se eligen uno o varios (y Mi stock) ──
+   Sin escribir: todo lo de los elegidos, por nombre. Escribiendo: se busca solo en ellos (en la base, no solo
+   entre los 40 que se ven). Con una búsqueda en todos, cada botón muestra cuántos resultados tiene. */
+const proveedoresConPrecios = () => estado.proveedores.filter(p => p.activo && (estado.ultimaCarga?.[p.slug] || p.lista_mes));
+
+function renderProveedores(q) {
   const box = $('pos-filtros');
   const cuenta = new Map();
-  for (const r of resultados) { const k = r.tipo === 'stock' ? 'stock' : r.distribuidor; cuenta.set(k, (cuenta.get(k) || 0) + 1); }
-  box.classList.toggle('hidden', q == null || cuenta.size < 2);
-  if (q == null || cuenta.size < 2) { box.replaceChildren(); return; }
-  const boton = (k, texto, n) => h('button', {
-    class: 'filtro' + (filtro === k ? ' on' : ''), 'aria-pressed': filtro === k ? 'true' : 'false',
-    onclick: () => { filtro = k; selIdx = 0; renderResultados(q); buscador().focus(); },
-  }, texto, h('span', { class: 'n' }, n));
+  if (q) for (const r of resultados) { const k = r.tipo === 'stock' ? 'stock' : r.distribuidor; cuenta.set(k, (cuenta.get(k) || 0) + 1); }
+  const boton = (k, texto) => h('button', {
+    class: 'filtro' + (seleccion.has(k) ? ' on' : ''), 'aria-pressed': seleccion.has(k) ? 'true' : 'false',
+    title: seleccion.has(k) ? 'Tocá de nuevo para sacarlo' : 'Tocá para ver o buscar solo en este (podés elegir varios)',
+    onclick: () => elegir(k),
+  }, seleccion.has(k) ? icon('check') : null, texto, cuenta.has(k) ? h('span', { class: 'n' }, cuenta.get(k)) : null);
+  box.classList.remove('hidden');
   box.replaceChildren(
-    boton('todos', 'Todos', resultados.length),
-    ...[...cuenta.entries()].sort((a, b) => (a[0] === 'stock') - (b[0] === 'stock') || b[1] - a[1])
-      .map(([k, n]) => boton(k, k === 'stock' ? 'Mi stock' : nombreProveedor(k), n)));
+    h('button', { class: 'filtro' + (seleccion.size ? '' : ' on'), 'aria-pressed': seleccion.size ? 'false' : 'true', onclick: () => elegir(null) },
+      'Todos', q && resultados.length && !seleccion.size ? h('span', { class: 'n' }, resultados.length) : null),
+    boton('stock', 'Mi stock'),
+    ...proveedoresConPrecios().map(p => boton(p.slug, p.nombre)));
+  const nombres = [...seleccion].map(k => (k === 'stock' ? 'Mi stock' : nombreProveedor(k)));
+  buscador().placeholder = nombres.length ? `Buscá solo en ${nombres.join(', ')}…` : 'Buscá en tu stock y en todos los proveedores: nombre, código o vehículo…';
+}
+
+function elegir(k) {
+  if (k == null) seleccion.clear();
+  else if (seleccion.has(k)) seleccion.delete(k);
+  else seleccion.add(k);
+  buscado = null;
+  renderProveedores(buscador().value.trim() || null);
+  ejecutarBusqueda();
+  buscador().focus();
+}
+
+/** Todo lo de los proveedores elegidos (sin escribir nada), por nombre, de a 60 con "Ver más". */
+async function listar(desde = 0) {
+  const este = ++pedido;
+  const caja = $('pos-results');
+  caja.classList.add('buscando');
+  let dist, stock;
+  try {
+    [dist, stock] = await Promise.all([buscarListado(elegidosDist(), desde, POR_PAGINA),
+      seleccion.has('stock') ? listarStock(desde, POR_PAGINA) : []]);
+  } catch {
+    if (este !== pedido) return;
+    dejarDeBuscar();
+    errorDeBusqueda('los productos elegidos');
+    return;
+  }
+  if (este !== pedido) return;
+  dejarDeBuscar();
+  dist.costoMin = null;   // en el listado no se compara "más barato"
+  const nuevos = [...dist.map(d => aResultadoDist(dist, d)), ...stock.map(aResultadoStock)];
+  resultados = desde ? [...resultados, ...nuevos] : nuevos;
+  listado = { desde: desde + POR_PAGINA, hayMas: dist.length === POR_PAGINA || stock.length === POR_PAGINA };
+  sonParecidos = false;
+  buscado = '';
+  if (!desde) selIdx = resultados.length ? 0 : -1;
+  renderResultados('');
 }
 
 /** Marca en la descripción las palabras buscadas: el ojo va directo a lo que importa. */
@@ -152,8 +206,8 @@ function recordarBusqueda(q) {
 }
 
 function renderResultados(q) {
-  renderWebs(q);
-  renderFiltros(q);
+  renderWebs(q || null);   // en el listado (q = '') no hace falta buscar en las webs
+  renderProveedores(q || null);
   const box = $('pos-results');
   if (q == null) {
     const ultimas = recientes();
@@ -162,14 +216,23 @@ function renderResultados(q) {
         ...ultimas.map(t => h('button', { class: 'filtro', onclick: () => { buscador().value = t; buscado = null; ejecutarBusqueda(); buscador().focus(); } }, t))) : '');
     return;
   }
+  if (q === '' && !resultados.length) {
+    box.replaceChildren(vacio('inventory_2', 'Este proveedor todavía no tiene productos cargados.'));
+    return;
+  }
   if (!resultados.length) {
     box.replaceChildren(h('div', { class: 'empty' },
       vacio('search_off', `No encontré nada con "${q}".`, h('br'), 'Probá con menos palabras o con el código.'),
       h('button', { class: 'btn btn-primary', onclick: () => venderAMano(q) }, icon('edit_note'), `Vender "${q.slice(0, 40)}" a mano`)));
     return;
   }
-  const aviso = sonParecidos ? h('div', { class: 'aviso-parecidos' }, icon('spellcheck'),
-    h('span', {}, `No encontré exacto "${q}". Estos se parecen (¿quizás está escrito distinto?):`)) : null;
+  const nombres = [...seleccion].map(k => (k === 'stock' ? 'Mi stock' : nombreProveedor(k))).join(', ');
+  const aviso = q === '' ? h('div', { class: 'aviso-listado' }, icon('list'),
+      h('span', {}, `Todo lo de ${nombres}, por nombre. Escribí arriba para buscar solo en ${seleccion.size > 1 ? 'estos' : 'este'}.`))
+    : sonParecidos ? h('div', { class: 'aviso-parecidos' }, icon('spellcheck'),
+      h('span', {}, `No encontré exacto "${q}". Estos se parecen (¿quizás está escrito distinto?):`)) : null;
+  const verMas = q === '' && listado?.hayMas
+    ? h('button', { class: 'btn ver-mas', onclick: () => listar(listado.desde) }, icon('expand_more'), `Ver ${POR_PAGINA} más`) : null;
   box.replaceChildren(aviso || '', ...visibles().map((r, i) => h('div', {
     class: 'res' + (i === selIdx ? ' sel' : ''), 'data-i': i, role: 'option', 'aria-selected': i === selIdx ? 'true' : 'false',
     // Un clic en la lista vieja (mientras llega la nueva) no hace nada: nunca agrega otra cosa que la tocada
@@ -189,7 +252,7 @@ function renderResultados(q) {
       r.sinStock ? h('span', { class: 'chip chip-gray' }, 'sin stock') : null,
       r.subio ? h('span', { class: 'chip chip-amber', title: `Antes ${money(r.subio.antes)}` }, `subió ${r.subio.pct}%`) : null,
       r.faltante ? h('span', { class: 'chip chip-gray', title: 'Parecido: tiene todo lo buscado menos esta palabra' }, `no dice: ${r.faltante}`) : null),
-  )));
+  )), verMas || '');
 }
 
 function moverSeleccion(delta) {
@@ -431,7 +494,7 @@ const cobrar = unaVez(async () => {
   limpiarVenta();
   actualizarBadgeRepo();
   if (payload.presupuesto_id) actualizarBadgePresupuestos();
-  filtro = 'todos';   // el próximo cliente arranca viendo todos los proveedores
+  seleccion.clear();   // el próximo cliente arranca buscando en todos los proveedores
   limpiarBusqueda();
 });
 
@@ -517,10 +580,10 @@ export function limpiarBusqueda() {
   enterEnEspera = null;
   pedido++;   // lo que estaba buscando ya no importa
   dejarDeBuscar();
-  filtro = 'todos';
   buscador().value = '';
-  resultados = []; selIdx = -1; buscado = null;
-  renderResultados(null);
+  resultados = []; selIdx = -1; buscado = null; listado = null;
+  // Esc borra lo escrito pero deja los proveedores elegidos (vuelve a mostrar todo lo de ellos)
+  if (seleccion.size) listar(0); else renderResultados(null);
   buscador().focus();
 }
 
@@ -555,6 +618,6 @@ export function iniciarMostrador() {
   $('pos-pago').addEventListener('change', () => renderVenta());
   renderVenta();
   actualizarBadgePresupuestos();
-  registrarVista('mostrador', () => setTimeout(() => buscador().focus(), 0));
+  registrarVista('mostrador', () => { renderProveedores(buscador().value.trim() || null); setTimeout(() => buscador().focus(), 0); });
 }
 

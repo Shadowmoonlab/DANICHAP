@@ -21,8 +21,9 @@ if (SUPABASE_URL && KEY) {
 }
 
 // Cuentas con la clave rechazada (o bloqueadas) hoy: ni el reintento ni una corrida manual vuelven a probar
-// (cada intento fallido acerca el bloqueo de la cuenta)
-if (SUPABASE_URL && KEY) {
+// (cada intento fallido acerca el bloqueo de la cuenta). Corrida manual con "forzar": se prueban igual
+// (para después de cargar una clave nueva en Secrets)
+if (SUPABASE_URL && KEY && process.env.FORZAR !== 'true') {
   const desde = `${new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)}T03:00:00.000Z`;
   const res = await api(`scraper_runs?select=distribuidor,ok,error&fin=gte.${desde}&order=inicio.desc`).catch(() => null);
   if (res?.ok) {

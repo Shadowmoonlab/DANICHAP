@@ -22,7 +22,7 @@ async function filas(quien, tabla) {
 }
 
 const INTERNAS = ['precios_distribuidor', 'ventas', 'venta_items', 'clientes', 'pagos_clientes', 'recepciones', 'proveedores',
-  'reposicion_items', 'presupuestos', 'config_negocio', 'productos_costos', 'scraper_runs', 'lecturas_ia', 'movimientos'];
+  'reposicion_items', 'presupuestos', 'config_negocio', 'productos_costos', 'scraper_runs', 'lecturas_ia', 'movimientos', 'cierres_caja', 'listas_pendientes'];
 
 let fallas = 0;
 const revisar = (ok, texto) => { console.log(`${ok ? '✅' : '❌'} ${texto}`); if (!ok) fallas++; };

@@ -20,7 +20,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
 <script src="toast.js?v=3" defer></script>
 <script src="supabase.js?v=2" defer></script>
-<script type="module" src="gestion/main.js?v=38"></script>
+<script type="module" src="gestion/main.js?v=39"></script>
 </head>
 <body>
 
@@ -75,7 +75,7 @@
           <span><span class="kbd">F9</span> cobrar</span>
           <span><span class="kbd">Esc</span> limpiar</span>
         </div>
-        <div class="pos-filtros hidden" id="pos-filtros" role="toolbar" aria-label="Mostrar resultados de un proveedor"></div>
+        <div class="pos-filtros" id="pos-filtros" role="toolbar" aria-label="Elegir en qué proveedores buscar (uno o varios)"></div>
         <div class="card results" id="pos-results" role="listbox" aria-label="Resultados"></div>
         <div class="pos-webs hidden" id="pos-webs" aria-label="Buscar en las webs de los proveedores"></div>
       </div>
@@ -249,10 +249,12 @@
     <div class="view-title">
       <h2>Proveedores</h2>
       <div class="view-acts">
+        <button class="btn" id="prov-nuevo"><span class="ms">add_business</span>Agregar proveedor</button>
         <button class="btn btn-primary" id="prov-importar"><span class="ms">upload_file</span>Importar lista (Excel o PDF)</button>
       </div>
     </div>
     <p class="view-hint">Los precios de DM, PR, Goicoechea, Distrisuper, Otero, Fal y Del Viso se actualizan solos todos los días a la mañana (si un sitio falla, se reintenta al mediodía y a la tarde). Los demás: tocá <b>Lista</b> en la tarjeta del proveedor y elegí su Excel o PDF (cada proveedor tiene su lista, no se pisan). Cargá qué días pasa cada proveedor y su WhatsApp para mandarle los pedidos directo.</p>
+    <div id="prov-pendientes" class="aviso hidden"></div>
     <div id="prov-list" class="prov-cards"></div>
   </section>
 

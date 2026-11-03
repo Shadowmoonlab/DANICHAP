@@ -1,6 +1,6 @@
 // gestion/core.js — Base compartida del panel: DOM, formato, modal, configuración, proveedores, búsqueda
 // Usa los globales de supabase.js (_supabase) y toast.js (showToast), que cargan antes como scripts clásicos.
-import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero, sinPalabrasVacias, conTodosLosProveedores, separarMarcas, patron } from './texto.js?v=38';
+import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero, sinPalabrasVacias, conTodosLosProveedores, separarMarcas, patron } from './texto.js?v=39';
 
 export const db = window._supabase ?? _supabase;
 // Avisos del panel: los de éxito duran 4 s (se alcanzan a leer) y los errores quedan hasta cerrarlos
@@ -188,7 +188,7 @@ export function aPesos(precio, slug) {
 }
 
 /* ── WhatsApp ────────────────────────────────────────────────────────── */
-export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=38';
+export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=39';
 export async function copiar(texto, aviso = 'Copiado') {
   try { await navigator.clipboard.writeText(texto); toast(aviso, 'success'); return true; }
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }
@@ -256,9 +256,26 @@ let sinFuncionBuscar = false;
 // buscar_precios2 (docs/gestion-v12.sql) recibe un patrón por palabra: sinónimos y abreviaturas de cada proveedor,
 // lado (-DI/-TD, D/I), números exactos, palabras cortas enteras. Sin v12, buscar_precios (v10) con las palabras.
 let sinPatrones = false;
-async function buscarEnBase(ws, codigo) {
+// buscar_precios3 (docs/gestion-v14.sql) busca además solo en los proveedores elegidos con los botones del mostrador
+let sinFiltroProveedores = false;
+async function buscarEnBase(ws, codigo, proveedores = []) {
+  const primera = ws.find(w => !/^\d/.test(w)) ?? null;
+  if (!sinFiltroProveedores) {
+    const { data, error } = await db.rpc('buscar_precios3', { p_patrones: ws.map(patron), p_primera: primera, p_codigo: codigo, p_limite: 250,
+      p_proveedores: proveedores.length ? proveedores : null });
+    if (!error) return data;
+    if (!/buscar_precios3/.test(error.message) || !/find|exist|schema cache/i.test(error.message)) {
+      console.warn('[gestion] buscarPrecios:', error.message);
+      return null;
+    }
+    sinFiltroProveedores = true;
+  }
+  const filas = await buscarEnBaseSinFiltro(ws, codigo, primera);
+  // Sin v14 el filtro por proveedor se hace acá (sobre los 250 que trae la base)
+  return filas && proveedores.length ? filas.filter(d => proveedores.includes(d.distribuidor)) : filas;
+}
+async function buscarEnBaseSinFiltro(ws, codigo, primera) {
   if (!sinPatrones) {
-    const primera = ws.find(w => !/^\d/.test(w)) ?? null;
     const { data, error } = await db.rpc('buscar_precios2', { p_patrones: ws.map(patron), p_primera: primera, p_codigo: codigo, p_limite: 250 });
     if (!error) return data;
     if (!/buscar_precios2/.test(error.message) || !/find|exist|schema cache/i.test(error.message)) {
@@ -286,7 +303,29 @@ async function buscarEnBase(ws, codigo) {
   return [...(codigos.data || []), ...general.data];
 }
 
-export async function buscarPrecios(q, limite = 40) {
+/**
+ * TODO lo de los proveedores elegidos (sin escribir nada), por nombre y de a páginas: "¿qué tiene Chriva?".
+ * Consulta directa (sin palabras no hace falta el índice de búsqueda).
+ */
+export async function buscarListado(proveedores, desde = 0, cuantos = 60) {
+  if (!proveedores.length) return [];
+  const { data, error } = await db.from('precios_distribuidor').select(COLUMNAS_PRECIO).eq('activo', true)
+    .in('distribuidor', proveedores).order('descripcion').order('id').range(desde, desde + cuantos - 1);
+  if (error) { console.warn('[gestion] buscarListado:', error.message); throw new Error('No se pudo buscar'); }
+  return data.map(d => ({ ...d, moneda: monedaDe(d.distribuidor), precio_original: d.precio_neto,
+    precio_neto: aPesos(d.precio_neto, d.distribuidor), precio_anterior: aPesos(d.precio_anterior, d.distribuidor) }));
+}
+
+/** Todo "Mi stock" por nombre, de a páginas (para el botón Mi stock sin escribir nada). */
+export async function listarStock(desde = 0, cuantos = 60) {
+  const { data, error } = await db.from('productos')
+    .select('id, nombre, precio, stock, stock_cantidad, marca_rep, modelo, categoria, costo:productos_costos(costo, proveedor, codigo_proveedor)')
+    .order('nombre').range(desde, desde + cuantos - 1);
+  if (error) { console.warn('[gestion] listarStock:', error.message); throw new Error('No se pudo buscar'); }
+  return data;
+}
+
+export async function buscarPrecios(q, limite = 40, { proveedores = [] } = {}) {
   const todas = palabras(q);
   if (!todas.length) return [];
   // La marca del auto no deja afuera a los proveedores que no la escriben (solo suma para ordenar)
@@ -297,7 +336,7 @@ export async function buscarPrecios(q, limite = 40) {
   const codigo = !/\s/.test(q.trim()) && qCodigo.length >= 3 ? q.trim().replace(/[%_*,()]/g, '') : null;
   // Se traen más de los que se muestran y se ordenan por relevancia (lo que empieza con la primera palabra, primero);
   // antes eran los 40 más baratos y lo buscado quedaba afuera detrás de soportes y vidrios
-  const filas = await buscarEnBase(ws, codigo);
+  const filas = await buscarEnBase(ws, codigo, proveedores);
   // Un error (sin internet, sesión vencida) NO es "no lo tengo": el mostrador avisa y deja reintentar
   if (!filas) throw new Error('No se pudo buscar');
   const vistos = new Set();
@@ -326,7 +365,7 @@ export async function buscarPrecios(q, limite = 40) {
   // Sin ningún exacto, primero van los "parecidos" (errores de tipeo: "paragople"), que maneja el mostrador
   if (exactos.length > 0 && exactos.length < 8 && ws.length >= 3) {
     const sinUna = ws.slice(1).map(falta => ({ falta, resto: ws.filter(w => w !== falta) }));
-    const respuestas = await Promise.all(sinUna.map(({ resto }) => buscarEnBase(resto, null).catch(() => null)));
+    const respuestas = await Promise.all(sinUna.map(({ resto }) => buscarEnBase(resto, null, proveedores).catch(() => null)));
     const ya = new Set(exactos.map(x => x.d.id));
     respuestas.forEach((filasSin, k) => {
       for (const d of filasSin || []) {

@@ -174,20 +174,28 @@ def busqueda(page):
     return f"'{primero[:45]}' primero; {len(textos)} resultados con 'cola' como palabra"
 
 
-@paso("Filtro por proveedor")
+@paso("Proveedores abajo del buscador: elegir uno o varios, ver todo lo suyo y buscar solo en ellos")
 def filtros(page):
     page.keyboard.press("Escape")
-    page.keyboard.type("paragolpe")
-    expect(page.locator("#pos-filtros .filtro").first).to_be_visible(timeout=8000)
+    # Siempre a la vista, aunque no se haya buscado nada
+    expect(page.locator("#pos-filtros .filtro", has_text="Francar")).to_be_visible(timeout=8000)
     botones = page.locator("#pos-filtros .filtro").all_inner_texts()
-    francar = page.locator("#pos-filtros .filtro", has_text="Francar")
-    francar.click()
-    origenes = set(page.locator("#pos-results .res .meta .chip").first.all_inner_texts())
+    # Sin escribir: todo lo de Francar, por nombre
+    page.locator("#pos-filtros .filtro", has_text="Francar").click()
+    expect(page.locator("#pos-results .aviso-listado")).to_be_visible(timeout=8000)
     todos = page.locator("#pos-results .res .meta .chip:first-child").all_inner_texts()
-    assert todos and all(t.strip().upper() == "FRANCAR" for t in todos), f"con el filtro Francar aparecen: {set(todos)}"
+    assert todos and all(t.strip().upper() == "FRANCAR" for t in todos), f"listado de Francar trae: {set(todos)}"
+    # Escribiendo: solo en Francar (en la base, no solo entre lo que se ve)
+    page.locator("#pos-search").click()
+    page.keyboard.type("paragolpe")
+    expect(page.locator("#pos-results .aviso-listado")).to_have_count(0, timeout=8000)
+    page.wait_for_timeout(600)
+    todos = page.locator("#pos-results .res .meta .chip:first-child").all_inner_texts()
+    assert todos and all(t.strip().upper() == "FRANCAR" for t in todos), f"buscando en Francar aparecen: {set(todos)}"
     page.keyboard.press("Enter")
     expect(page.locator("#pos-items .ti").first).to_be_visible(timeout=5000)
-    return f"botones: {', '.join(b.replace(chr(10), ' ') for b in botones[:5])}…"
+    page.locator("#pos-filtros .filtro", has_text="Todos").click()   # vuelve a todos para los pasos siguientes
+    return f"{len(botones)} botones; listado y búsqueda solo en Francar OK"
 
 
 @paso("Ganancia en el ticket: elegir 50% y 'a toda la venta'")
