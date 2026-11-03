@@ -24,9 +24,20 @@ export const palabras = q => String(q).toLowerCase().replace(/[,()*%\\:"']/g, ' 
  * va primero ("óptica de corsa" → "ÓPTICA CORSA…" antes que "SOPORTE ÓPTICA CORSA"); después, cuanto antes
  * aparezca esa palabra y más cerca estén las demás, mejor.
  */
+// Cada palabra tiene que coincidir con el COMIENZO de una palabra: "gol" encuentra "GOL TREND" y "P/GOL",
+// pero no "paraGOLpe". Solo números ("400", "128": modelos y medidas) van en cualquier parte.
+export const escaparRegex = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export const esNumero = w => /^\d+$/.test(w);
+/** La misma regla que la base; recibe el texto ya normalizado con normalizarAmbos (pegado + separado). */
+export function coincidePalabras(textoNormalizado, ws) {
+  return ws.every(w => (esNumero(w) ? textoNormalizado.includes(w) : new RegExp(`(^|[^a-z0-9])${escaparRegex(w)}`).test(textoNormalizado)));
+}
+// Texto con - / . , como espacios: "OPT.DEL.IZQ" → "opt del izq" (para ubicar cada palabra)
+const separado = q => String(q).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[-/.,]/g, ' ');
+
 export function relevancia(descripcion, ws, escritas = []) {
   if (!ws.length) return 0;
-  const t = normalizar(descripcion).replace(/\s+/g, ' ').trim();
+  const t = separado(descripcion).replace(/\s+/g, ' ').trim();
   const partes = t.split(' ');
   const lugar = partes.findIndex(p => p.startsWith(ws[0]));   // en qué palabra de la descripción aparece
   if (lugar === -1) return t.includes(ws[0]) ? 500 : 1000;
@@ -37,9 +48,18 @@ export function relevancia(descripcion, ws, escritas = []) {
   return (lugar === 0 ? 0 : 100) + lugar * 10 - enteras * 3 - comoSeEscribio * 5 + Math.min(t.length, 200) / 100;
 }
 
-/** Igual que la columna precios_distribuidor.busqueda: sin acentos ni - / . → "f100" encuentra "F-100". */
+/** Sin acentos ni - / . → "f100" encuentra "F-100". */
 export const normalizar = q => String(q).toLowerCase().normalize('NFD')
   .replace(/[̀-ͯ]/g, '').replace(/[-/.]/g, '');
+
+/**
+ * Igual que la columna precios_distribuidor.busqueda (docs/gestion-v6.sql): el texto PEGADO ("f100", "pgol")
+ * y SEPARADO ("f 100", "p gol", "opt del izq"), así se encuentra tanto el código como cada palabra abreviada.
+ */
+export const normalizarAmbos = q => {
+  const base = String(q).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  return `${base.replace(/[-/.,]/g, '')} ${base.replace(/[-/.,]/g, ' ')}`;
+};
 
 /** Teléfono argentino → formato internacional de WhatsApp (549 + área + número), o null. */
 export function telefonoWhatsApp(tel) {

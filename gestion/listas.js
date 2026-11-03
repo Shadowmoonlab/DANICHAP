@@ -86,7 +86,7 @@ function columnaDeTexto(filas, excluir) {
  * columnas parecidas, como sin IVA / con IVA, la de la izquierda); código = valores cortos, con números y casi
  * todos distintos. Sin columna de código se busca al principio de la descripción ("8909 TOP TEC 4200").
  */
-export function detectarSinEncabezado(filas) {
+export function detectarSinEncabezado(filas, { minimoPrecio = 100 } = {}) {
   const muestra = filas.slice(0, 500);
   const descripcion = columnaDeTexto(muestra, []);
   if (descripcion === -1) return null;
@@ -98,7 +98,7 @@ export function detectarSinEncabezado(filas) {
     const montos = conDesc.map(f => f[i]).filter(v => esMonto(v) && aNumero(v) > 0).map(aNumero);
     if (montos.length >= Math.max(3, conDesc.length * 0.3)) candidatos.push({ i, med: mediana(montos) });
   }
-  const precios = candidatos.filter(c => c.med >= 100);
+  const precios = candidatos.filter(c => c.med >= minimoPrecio);   // en dólares, un precio de 12,5 es normal
   if (!precios.length) return null;
   const mayor = Math.max(...precios.map(c => c.med));
   const precio = precios.filter(c => c.med * 1.6 >= mayor).sort((a, b) => a.i - b.i)[0].i;
@@ -127,14 +127,14 @@ export function detectarSinEncabezado(filas) {
 }
 
 /** Detecta columnas a partir del primer encabezado y del contenido de las filas siguientes. */
-export function detectarColumnas(filas) {
+export function detectarColumnas(filas, opciones = {}) {
   const iEnc = filas.findIndex(esEncabezado);
   if (iEnc === -1) {
     // "Descripción | Precio" sin código: la descripción se elige por contenido (el encabezado puede venir corrido)
     const iSin = filas.findIndex(esEncabezadoSinCodigo);
-    if (iSin === -1) return detectarSinEncabezado(filas);
+    if (iSin === -1) return detectarSinEncabezado(filas, opciones);
     // El encabezado puede venir corrido (Reposiciones: el código no tiene título): se deduce por el contenido
-    const porContenido = detectarSinEncabezado(filas.slice(iSin + 1));
+    const porContenido = detectarSinEncabezado(filas.slice(iSin + 1), opciones);
     if (porContenido) return { ...porContenido, encabezado: iSin };
     const enc = filas[iSin].map(sinAcentos);
     let precio = -1;
@@ -172,8 +172,8 @@ export function detectarColumnas(filas) {
  * @returns {{ columnas, productos: {codigo, descripcion, rubro, precio}[], secciones: string[],
  *             preciosSinIva: boolean|null, descartadas: number }}
  */
-export function parsearLista(filas) {
-  const columnas = detectarColumnas(filas);
+export function parsearLista(filas, opciones = {}) {
+  const columnas = detectarColumnas(filas, opciones);
   if (!columnas) return { columnas: null, productos: [], secciones: [], preciosSinIva: null, descartadas: 0 };
 
   const productos = [];
@@ -202,7 +202,8 @@ export function parsearLista(filas) {
   const leerCodigo = (fila, descripcion) => {
     if (columnas.codigo >= 0) return { codigo: texto(fila[columnas.codigo]), descripcion };
     const m = columnas.codigoEnDesc && descripcion.match(/^(\d{3,6})\s+(.+)$/);
-    return m ? { codigo: m[1], descripcion: m[2] } : { codigo: descripcion, descripcion };
+    // Sin código: el código es "sección · descripción", así "PARAGOLPE DELANTERO" de GOL y el de CORSA no se pisan
+    return m ? { codigo: m[1], descripcion: m[2] } : { codigo: rubro ? `${rubro} · ${descripcion}` : descripcion, descripcion };
   };
 
   for (const fila of filas.slice(columnas.encabezado + 1)) {
@@ -251,13 +252,13 @@ export function parsearLista(filas) {
  * ("ENGANCHES", "PORTAMAZAS") pasa a ser el rubro. Código repetido en otra hoja: queda la primera aparición.
  * @param {{nombre: string, filas: any[][]}[]} hojas
  */
-export function parsearLibro(hojas) {
+export function parsearLibro(hojas, opciones = {}) {
   const productos = [], secciones = [], porHoja = [];
   const vistos = new Set();
   let descartadas = 0, sinIva = false, conIva = false;
   for (const { nombre, filas } of hojas) {
     if (!filas || filas.length < 2) continue;
-    const r = parsearLista(filas);
+    const r = parsearLista(filas, opciones);
     porHoja.push({ nombre, productos: r.productos.length, descartadas: r.descartadas });
     if (!r.productos.length) continue;
     const rubroHoja = /^(hoja|sheet|pagina)\s*\d*$/i.test(String(nombre).trim()) ? null : String(nombre).trim();

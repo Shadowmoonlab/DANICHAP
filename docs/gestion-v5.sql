@@ -104,24 +104,26 @@ set search_path = public, extensions, pg_temp
 as $$
 declare
   v_palabras text[];
-  v_principal text;
+  v_condicion text;
 begin
-  -- Cada palabra tiene que parecerse a alguna palabra del artículo ("paragople corsa": las dos);
-  -- la más larga usa el índice y las demás se controlan sobre esos candidatos
+  -- Cada palabra tiene que parecerse a alguna palabra del artículo ("paragople corsa": las dos).
+  -- Todas van como condición indexable: Postgres cruza los candidatos de cada una en el índice
+  -- (BitmapAnd) antes de leer la tabla, así una palabra muy común no hace lenta la búsqueda.
   select array_agg(w order by length(w) desc) into v_palabras
-  from unnest(regexp_split_to_array(lower(trim(coalesce(p_q, ''))), '\s+')) w where length(w) >= 3;
+  from (select distinct w from unnest(regexp_split_to_array(lower(trim(coalesce(p_q, ''))), '\s+')) w where length(w) >= 3) x;
   if v_palabras is null then return; end if;
-  v_principal := v_palabras[1];
+  v_palabras := v_palabras[1:4];
+  select string_agg(format('%L <%% t.busqueda', w), ' and ') into v_condicion from unnest(v_palabras) w;
   perform set_config('pg_trgm.word_similarity_threshold', '0.5', true);
-  return query
-    select t.id, t.distribuidor, t.codigo, t.descripcion, t.marca, t.rubro,
-           t.precio_neto, t.precio_anterior, t.precio_cambio_at,
-           (select avg(word_similarity(w, t.busqueda)) from unnest(v_palabras) w)::real
-    from public.precios_distribuidor t
-    where t.activo and v_principal <% t.busqueda
-      and (select bool_and(w <% t.busqueda) from unnest(v_palabras) w)
-    order by 10 desc, t.precio_neto nulls last
-    limit least(greatest(p_limite, 1), 100);
+  return query execute format(
+    'select t.id, t.distribuidor, t.codigo, t.descripcion, t.marca, t.rubro,
+            t.precio_neto, t.precio_anterior, t.precio_cambio_at,
+            (select avg(word_similarity(w, t.busqueda)) from unnest($1) w)::real
+     from public.precios_distribuidor t
+     where t.activo and %s
+     order by 10 desc, t.precio_neto nulls last
+     limit $2', v_condicion)
+  using v_palabras, least(greatest(p_limite, 1), 100);
 end;
 $$;
 

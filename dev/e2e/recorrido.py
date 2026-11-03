@@ -127,7 +127,8 @@ def entrar_y_buscar(page):
 @paso("3. 'Buscalo en sus webs'")
 def webs(page):
     page.fill("#pos-search", "radiador corsa xyz")
-    page.wait_for_timeout(1500)
+    # Espera por condición (sin resultados exactos también se buscan parecidos): no un tiempo fijo
+    page.wait_for_selector(".pos-webs button", timeout=10000)
     botones = page.locator(".pos-webs button").count()
     assert botones > 0, "no aparecen botones de webs de proveedores"
     return f"{botones} proveedores para buscar a mano"

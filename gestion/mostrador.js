@@ -3,11 +3,11 @@ import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
   actualizarBadgeRepo, unaVez, hoyISO, gananciaDe, gananciaDePrecio, buscarParecidos,
-} from './core.js?v=21';
-import { numeroAR, palabras, normalizar } from './texto.js?v=21';
-import { presupuesto as textoPresupuesto } from './plantillas.js?v=21';
-import { imprimirComprobante } from './comprobante.js?v=21';
-import { editarCliente } from './clientes.js?v=21';
+} from './core.js?v=24';
+import { numeroAR, palabras, normalizar } from './texto.js?v=24';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=24';
+import { imprimirComprobante } from './comprobante.js?v=24';
+import { editarCliente } from './clientes.js?v=24';
 
 let resultados = [];
 let selIdx = -1;
@@ -25,12 +25,19 @@ const visibles = () => resultados.filter(r => filtro === 'todos' || (filtro === 
 const ejecutarBusqueda = debounce(async () => {
   const q = buscador().value.trim();
   if (q.length < 2) { enterEnEspera = false; renderResultados(null); return; }
-  let [stock, dist] = await Promise.all([buscarStock(q), buscarPrecios(q)]);
-  // Nada exacto: se buscan parecidos ("paragople" → "paragolpe"), como hacen los buscadores grandes
-  sonParecidos = false;
-  if (!stock.length && !dist.length && buscador().value.trim() === q) {
-    dist = await buscarParecidos(q);
-    sonParecidos = dist.length > 0;
+  const caja = $('pos-results');
+  caja.classList.add('buscando');   // se nota que está buscando: nunca parece que se trabó
+  try {
+    var [stock, dist] = await Promise.all([buscarStock(q), buscarPrecios(q)]);
+    // Nada exacto: se buscan parecidos ("paragople" → "paragolpe"), como hacen los buscadores grandes
+    sonParecidos = false;
+    if (!stock.length && !dist.length && buscador().value.trim() === q) {
+      caja.dataset.estado = 'Buscando parecidos…';
+      dist = await buscarParecidos(q);
+      sonParecidos = dist.length > 0;
+    }
+  } finally {
+    if (buscador().value.trim() === q) { caja.classList.remove('buscando'); delete caja.dataset.estado; }
   }
   if (buscador().value.trim() !== q) return; // llegó tarde: el usuario siguió escribiendo
   buscado = q;
@@ -57,13 +64,15 @@ const ejecutarBusqueda = debounce(async () => {
   if (filtro !== 'todos' && !visibles().length) filtro = 'todos';
   selIdx = visibles().length ? 0 : -1;
   renderResultados(q);
-  if (enterEnEspera) { enterEnEspera = false; agregarSeleccionado(); }
+  // Un Enter apurado nunca agrega un artículo "parecido": eso lo elige Daniel mirando la lista
+  if (enterEnEspera) { enterEnEspera = false; if (!sonParecidos) agregarSeleccionado(); }
 }, 220);
 
 /* ── Buscar en las webs: proveedores que no salieron en esta búsqueda (los que el robot no lee, o sin coincidencias) ── */
 function renderWebs(q) {
   const box = $('pos-webs');
-  const conResultados = new Set(resultados.filter(r => r.tipo === 'dist').map(r => r.distribuidor));
+  // Si solo hay "parecidos" (nada exacto), todas las webs valen la pena: puede estar en un proveedor sin robot
+  const conResultados = new Set(sonParecidos ? [] : resultados.filter(r => r.tipo === 'dist').map(r => r.distribuidor));
   const webs = q == null ? [] : estado.proveedores.filter(p => p.activo && esLink(p.web) && !conResultados.has(p.slug));
   box.classList.toggle('hidden', !webs.length);
   if (!webs.length) { box.replaceChildren(); return; }
@@ -107,7 +116,9 @@ function resaltar(texto, q) {
   if (!ws.length || sonParecidos) return [texto];
   return texto.split(/(\s+)/).map(parte => {
     const n = normalizar(parte);
-    return parte.trim() && ws.some(w => (/^\d+$/.test(w) ? n.includes(w) : n.startsWith(w))) ? h('mark', {}, parte) : parte;
+    // "P/GOL" o "OPT.DEL": se mira cada pedazo separado por / . -
+    const pedazos = [n, ...parte.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[-/.,]/)];
+    return parte.trim() && ws.some(w => (/^\d+$/.test(w) ? n.includes(w) : pedazos.some(p => p.startsWith(w)))) ? h('mark', {}, parte) : parte;
   });
 }
 
@@ -126,7 +137,7 @@ function renderResultados(q) {
     const ultimas = recientes();
     box.replaceChildren(vacio('manage_search', 'Escribí lo que te piden.', h('br'), 'Busca en tu stock y en todos los distribuidores a la vez.'),
       ultimas.length ? h('div', { class: 'recientes' }, h('span', { class: 'muted' }, icon('history'), 'Buscaste hace poco:'),
-        ...ultimas.map(t => h('button', { class: 'filtro', onclick: () => { buscador().value = t; ejecutarBusqueda(); buscador().focus(); } }, t))) : null);
+        ...ultimas.map(t => h('button', { class: 'filtro', onclick: () => { buscador().value = t; ejecutarBusqueda(); buscador().focus(); } }, t))) : '');
     return;
   }
   if (!resultados.length) {
@@ -245,7 +256,14 @@ function selectorGanancia(v) {
     buscador().focus();
   };
   const otro = h('input', { class: 'input input-sm num', inputmode: 'decimal', placeholder: 'otro %', 'aria-label': 'Otra ganancia en %',
-    onkeydown: e => { if (e.key === 'Enter') { const n = numeroAR(e.target.value); if (n != null && n > -100) aplicar(n); } } });
+    onkeydown: async e => {
+      if (e.key !== 'Enter') return;
+      const n = numeroAR(e.target.value);
+      if (n == null || n <= -100) return;
+      // Ganancia negativa = vender por debajo del costo: se pregunta, nunca pasa por un error de tipeo
+      if (n < 0 && !(await confirmar('Venta por debajo del costo', `Con ${n}% vendés por debajo de lo que te cuesta. ¿Seguro?`, { ok: 'Sí, vender así', peligro: true }))) return;
+      aplicar(n);
+    } });
   return h('div', { class: 'gan-selector', role: 'group', 'aria-label': 'Elegir ganancia' },
     ...opciones.map(p => h('button', {
       class: 'gan-op' + (Math.abs(p - actual) < 0.5 ? ' on' : '') + (p === base ? ' base' : ''),
@@ -271,10 +289,13 @@ function venderAMano(texto = '') {
   const cantidad = h('input', { class: 'input num', inputmode: 'numeric', value: 1, 'aria-label': 'Cantidad' });
   const pedir = h('input', { type: 'checkbox' });
   const resumen = h('p', { class: 'muted' });
+  let precioEscrito = false;   // si Daniel escribió el precio, cambiar el costo recalcula la ganancia (no le pisa el precio)
   const actualizar = origen => {
+    if (origen === 'precio') precioEscrito = numeroAR(precio.value) > 0;
+    if (origen === 'ganancia') precioEscrito = false;
     const c = numeroAR(costo.value), g = numeroAR(ganancia.value), p = numeroAR(precio.value);
-    if (origen !== 'precio' && c > 0 && g != null) precio.value = precioVenta(c, null, g);
-    if (origen === 'precio' && c > 0 && p > 0) ganancia.value = gananciaDePrecio(p, c);
+    if (!precioEscrito && origen !== 'precio' && c > 0 && g != null) precio.value = precioVenta(c, null, g);
+    if (precioEscrito && c > 0 && p > 0) ganancia.value = gananciaDePrecio(p, c);
     const pf = numeroAR(precio.value);
     resumen.textContent = c > 0 && pf > 0 ? `Ganás ${money(pf - c)} por unidad.` : 'Sin costo cargado: la venta suma igual, pero sin ganancia calculada.';
   };
@@ -361,6 +382,7 @@ const cobrar = unaVez(async () => {
   actualizarBadgeRepo();
   if (payload.presupuesto_id) actualizarBadgePresupuestos();
   buscador().value = '';
+  filtro = 'todos';   // el próximo cliente arranca viendo todos los proveedores
   renderResultados(null);
   buscador().focus();
 });
@@ -443,6 +465,7 @@ async function cargarPresupuesto(p) {
 /** Esc: borra la búsqueda y deja el cursor listo para la próxima (la venta en curso no se toca). */
 export function limpiarBusqueda() {
   enterEnEspera = false;
+  filtro = 'todos';
   buscador().value = '';
   resultados = []; selIdx = -1;
   renderResultados(null);

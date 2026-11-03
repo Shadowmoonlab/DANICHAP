@@ -1,6 +1,6 @@
 // gestion/core.js — Base compartida del panel: DOM, formato, modal, configuración, proveedores, búsqueda
 // Usa los globales de supabase.js (_supabase) y toast.js (showToast), que cargan antes como scripts clásicos.
-import { normalizar, palabras, relevancia } from './texto.js?v=21';
+import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero } from './texto.js?v=24';
 
 export const db = window._supabase ?? _supabase;
 export const toast = (msg, tipo) => window.showToast(msg, tipo);
@@ -143,7 +143,7 @@ export function aPesos(precio, slug) {
 }
 
 /* ── WhatsApp ────────────────────────────────────────────────────────── */
-export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=21';
+export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=24';
 export async function copiar(texto, aviso = 'Copiado') {
   try { await navigator.clipboard.writeText(texto); toast(aviso, 'success'); return true; }
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }
@@ -185,45 +185,55 @@ export async function cargarPdfJs() {
 export async function leerTextoPdf(archivo) {
   const lib = await cargarPdfJs();
   const doc = await lib.getDocument({ data: new Uint8Array(await archivo.arrayBuffer()) }).promise;
-  const paginas = [];
-  for (let n = 1; n <= doc.numPages; n++) {
-    const { items } = await (await doc.getPage(n)).getTextContent();
-    paginas.push(items.map(it => ({ x: it.transform[4], y: it.transform[5], s: it.str })));
+  try {
+    const paginas = [];
+    for (let n = 1; n <= doc.numPages; n++) {
+      const { items } = await (await doc.getPage(n)).getTextContent();
+      paginas.push(items.map(it => ({ x: it.transform[4], y: it.transform[5], s: it.str })));
+    }
+    return paginas;
+  } finally {
+    doc.destroy();   // libera la memoria del PDF (listas grandes)
   }
-  return paginas;
 }
 
 /* ── Búsqueda en precios de distribuidores y stock propio ────────────── */
 // Cada palabra tiene que coincidir con el COMIENZO de una palabra (\m en Postgres): "gol" encuentra "GOL TREND"
 // pero no "paraGOLpe". Usa el mismo índice trigram de la columna busqueda.
 // Solo números ("400", "128", "1500": modelos y medidas) van en cualquier parte: "p/400" queda "p400" en la búsqueda.
-const escaparRegex = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const esNumero = w => /^\d+$/.test(w);
-/** La misma regla que la base, hecha acá con los acentos bien tratados (no depende del idioma de la base). */
-export function coincidePalabras(textoNormalizado, ws) {
-  return ws.every(w => (esNumero(w) ? textoNormalizado.includes(w) : new RegExp(`(^|[^a-z0-9])${escaparRegex(w)}`).test(textoNormalizado)));
-}
+// (escaparRegex, esNumero y coincidePalabras viven en texto.js: son puras y tienen tests)
+
+const COLUMNAS_PRECIO = 'id, distribuidor, codigo, descripcion, marca, rubro, origen, precio_neto, precio_anterior, precio_cambio_at';
 
 export async function buscarPrecios(q, limite = 40) {
   const ws = palabras(normalizar(q));
   if (!ws.length) return [];
-  let query = db.from('precios_distribuidor')
-    .select('id, distribuidor, codigo, descripcion, marca, rubro, precio_neto, precio_anterior, precio_cambio_at')
-    .eq('activo', true);
+  let query = db.from('precios_distribuidor').select(COLUMNAS_PRECIO).eq('activo', true);
   for (const w of ws) query = esNumero(w) ? query.ilike('busqueda', `%${w}%`) : query.filter('busqueda', 'imatch', `\\m${escaparRegex(w)}`);
+  // Una sola "palabra" puede ser un código ("128", "CHECOR-001"): se busca aparte por código, así nunca queda afuera
+  // de los 250 que trae la búsqueda general aunque haya muchas coincidencias
+  const qCodigo = normalizar(q).replace(/\s+/g, '');
+  const porCodigo = !/\s/.test(q.trim()) && qCodigo.length >= 3
+    ? db.from('precios_distribuidor').select(COLUMNAS_PRECIO).eq('activo', true).ilike('codigo', `${q.trim().replace(/[%_*,()]/g, '')}%`).limit(20)
+    : Promise.resolve({ data: [] });
   // Se traen más de los que se muestran y se ordenan por relevancia (lo que empieza con la primera palabra, primero);
   // antes eran los 40 más baratos y lo buscado quedaba afuera detrás de soportes y vidrios
-  const { data, error } = await query.order('precio_neto', { ascending: true, nullsFirst: false }).limit(250);
-  if (error) { console.warn('[gestion] buscarPrecios:', error.message); return []; }
+  const [general, codigos] = await Promise.all([query.order('precio_neto', { ascending: true, nullsFirst: false }).limit(250), porCodigo]);
+  if (general.error) { console.warn('[gestion] buscarPrecios:', general.error.message); return []; }
+  const vistos = new Set();
+  const data = [...(codigos.data || []), ...general.data].filter(d => !vistos.has(d.id) && vistos.add(d.id));
   // Código exacto (o su comienzo) primero de todo: "CHECOR-001" → ese artículo arriba
-  const qCodigo = normalizar(q).replace(/\s+/g, '');
   const escritas = normalizar(q).split(/\s+/).filter(w => w.length > 1);   // las palabras tal como se escribieron
   const puntaje = d => {
     const c = normalizar(d.codigo ?? '');
     return c === qCodigo ? -2000 : qCodigo.length >= 3 && c.startsWith(qCodigo) ? -1000 : relevancia(d.descripcion, ws, escritas);
   };
   return data
-    .filter(d => coincidePalabras(normalizar([d.codigo, d.descripcion, d.marca, d.rubro].join(' ')).replace(/,/g, ''), ws))
+    .filter(d => {
+      const c = normalizar(d.codigo ?? '');
+      return c === qCodigo || (qCodigo.length >= 3 && c.startsWith(qCodigo))
+        || coincidePalabras(normalizarAmbos([d.codigo, d.descripcion, d.marca, d.rubro, d.origen].join(' ')), ws);
+    })
     .map((d, i) => ({ d, puntaje: puntaje(d), i }))
     .sort((a, b) => a.puntaje - b.puntaje || a.i - b.i)
     .slice(0, limite)
@@ -262,7 +272,7 @@ export async function buscarStock(q, limite = 15) {
   const claves = ws.map(normalizar);
   const escritasStock = normalizar(q).split(/\s+/).filter(w => w.length > 1);
   return data
-    .filter(p => coincidePalabras(normalizar([p.nombre, p.modelo, p.marca_rep].join(' ')), claves))
+    .filter(p => coincidePalabras(normalizarAmbos([p.nombre, p.modelo, p.marca_rep].join(' ')), claves))
     .sort((a, b) => relevancia(a.nombre, ws.map(normalizar), escritasStock) - relevancia(b.nombre, ws.map(normalizar), escritasStock))
     .slice(0, limite);
 }

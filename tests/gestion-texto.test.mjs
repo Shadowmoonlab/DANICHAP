@@ -67,3 +67,16 @@ test('relevancia: la palabra tal como se escribió gana sobre su abreviatura', a
   const orden = ['ALMA DE PARAGOLPE DEL ONIX', 'ALMA DE PARAGOLPE DELANTERA'].sort((a, b) => relevancia(a, ws, escritas) - relevancia(b, ws, escritas));
   assert.equal(orden[0], 'ALMA DE PARAGOLPE DELANTERA');
 });
+
+test('búsqueda: encuentra palabras pegadas con "/" o "." (FARO P/GOL, OPT.DEL.IZQ) sin traer "paraGOLpe"', async () => {
+  const { palabras, normalizar, normalizarAmbos, coincidePalabras } = await import('../gestion/texto.js');
+  const encuentra = (q, desc) => coincidePalabras(normalizarAmbos(desc), palabras(normalizar(q)));
+  assert.equal(encuentra('faro gol', 'FARO P/GOL TREND'), true);
+  assert.equal(encuentra('optica delantera corsa', 'OPT.DEL.IZQ CORSA'), true);
+  assert.equal(encuentra('paragolpe der', 'PARAGOLPE DEL. IZQ/DER'), true);
+  assert.equal(encuentra('espejo control', 'ESPEJO C/CONTROL'), true);
+  assert.equal(encuentra('f100', 'ARO DE FARO F-100'), true);        // el código pegado sigue andando
+  assert.equal(encuentra('gol', 'PARAGOLPE CORSA'), false);         // "gol" no es "paraGOLpe"
+  assert.equal(encuentra('aro', 'FARO TRASERO'), false);
+  assert.equal(encuentra('malacate 400', 'Malacate p/400 kg'), true);
+});

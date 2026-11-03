@@ -79,7 +79,7 @@ test('PDF (ofertas Mello): sin código, "$ | 15 500", títulos de modelo', () =>
   ];
   const r = parsearLista(filasDePdf([pag]));
   assert.deepEqual(r.productos.map(p => [p.codigo, p.precio, p.rubro]),
-    [['OP.Fiat 600', 15500, 'FIAT 600'], ['Aro Fiat 600 Cromado', 4250, 'FIAT 600'], ['Giro Del F.600', 7500, 'FIAT 600']]);
+    [['FIAT 600 · OP.Fiat 600', 15500, 'FIAT 600'], ['FIAT 600 · Aro Fiat 600 Cromado', 4250, 'FIAT 600'], ['FIAT 600 · Giro Del F.600', 7500, 'FIAT 600']]);
 });
 
 test('Libro con varias hojas (Senesa): junta todo y el nombre de la hoja es el rubro', () => {
@@ -109,4 +109,18 @@ test('arreglarAcentos: repara texto UTF-8 leído como Windows-1252 y no toca el 
   assert.equal(arreglarAcentos('AGR\u00c3\u008dCOLA'), 'AGRÍCOLA');
   assert.equal(arreglarAcentos('\u00c3\u2018ANDU'), 'ÑANDU');
   assert.equal(arreglarAcentos('ÓPTICA CORSA PIÑÓN'), 'ÓPTICA CORSA PIÑÓN');
+});
+
+test('sin columna de código: el mismo artículo en dos secciones no se pisa', async () => {
+  const { parsearLista } = await import('../gestion/listas.js');
+  const r = parsearLista([['', 'GOL', ''], ['', 'PARAGOLPE DELANTERO', '10.000'], ['', 'ALMA DELANTERA', '5.000'], ['', 'CORSA', ''],
+    ['', 'PARAGOLPE DELANTERO', '12.000'], ['', 'ALMA TRASERA', '6.000']]);
+  assert.deepEqual(r.productos.map(p => [p.codigo, p.precio]),
+    [['GOL · PARAGOLPE DELANTERO', 10000], ['GOL · ALMA DELANTERA', 5000], ['CORSA · PARAGOLPE DELANTERO', 12000], ['CORSA · ALMA TRASERA', 6000]]);
+});
+
+test('lista en dólares sin encabezado: precios chicos (12,5) se leen si se avisa la moneda', async () => {
+  const { parsearLista } = await import('../gestion/listas.js');
+  const filas = [['A-1', 'FILTRO ACEITE', '12,5'], ['A-2', 'FILTRO AIRE', '18,9'], ['A-3', 'BUJIA', '4,2'], ['A-4', 'CORREA', '45']];
+  assert.equal(parsearLista(filas, { minimoPrecio: 1 }).productos.length, 4);
 });

@@ -2,10 +2,10 @@
 import {
   $, h, icon, vacio, db, toast, money, fecha, estado, DIAS, cargarProveedores, openModal, closeModal, confirmar,
   registrarVista, cargarSheetJS, unaVez, leerTextoPdf,
-} from './core.js?v=21';
-import { parsearLibro, filasDePdf, aFilasDePrecio } from './listas.js?v=21';
-import { numeroAR } from './texto.js?v=21';
-import { estadoPrecios } from './robots.js?v=21';
+} from './core.js?v=24';
+import { parsearLibro, filasDePdf, aFilasDePrecio } from './listas.js?v=24';
+import { numeroAR } from './texto.js?v=24';
+import { estadoPrecios } from './robots.js?v=24';
 
 const MONEDAS = { ARS: 'Pesos', USD: 'Dólares', EUR: 'Euros' };
 const cotizacionDe = m => Number(estado.config[m === 'USD' ? 'cotizacion_usd' : 'cotizacion_eur']) || 0;
@@ -64,7 +64,11 @@ function editarProveedor(p) {
       if (url && !/^https?:\/\//i.test(url)) { toast('La página web tiene que empezar con http:// o https://', 'error'); return; }
       datos.web = url || null;
     }
-    if ('moneda' in p) datos.moneda = moneda.value;   // llega con docs/gestion-v5.sql
+    if ('moneda' in p) {   // llega con docs/gestion-v5.sql
+      if (moneda.value !== (p.moneda || 'ARS') && !(await confirmar('Cambiar la moneda',
+        `Los precios de ${p.nombre} que ya están cargados se van a leer en ${MONEDAS[moneda.value].toLowerCase()}. Lo correcto es volver a cargar su lista después (botón Lista). ¿Cambiar igual?`, { ok: 'Sí, cambiar' }))) return;
+      datos.moneda = moneda.value;
+    }
     const { error } = await db.from('proveedores').update(datos).eq('slug', p.slug);
     if (error) { toast(error.message, 'error'); return; }
     closeModal(); toast('Proveedor guardado', 'success'); cargar();
@@ -132,7 +136,10 @@ function importarLista(p) {
   const sumarIva = h('input', { type: 'checkbox', checked: previo.sumarIva ? true : null });
   const reemplazar = h('input', { type: 'checkbox', checked: previo.reemplazar ? true : null });
   const progreso = h('div', { class: 'progreso hidden' }, h('div', { class: 'barra' }), h('span', {}));
-  let leido = null;
+  let leido = null, hojasLeidas = null;
+  const analizar = archivos => {
+    leido = { ...parsearLibro(hojasLeidas, { minimoPrecio: moneda.value === 'ARS' ? 100 : 1 }), archivos };
+  };
 
   const opciones = () => ({ descuentoPct: numeroAR(descuento.value) || 0, sumarIva: sumarIva.checked });
   const previsualizar = () => {
@@ -148,7 +155,7 @@ function importarLista(p) {
         h('b', {}, `Encontré ${leido.productos.length.toLocaleString('es-AR')} productos`),
         leido.archivos.length > 1 ? ` en ${leido.archivos.length} archivos` : '',
         leido.porHoja.filter(x => x.productos).length > 1 ? ` (${leido.porHoja.filter(x => x.productos).length} hojas)` : '', '.',
-        leido.preciosSinIva === true ? ' La lista dice que los precios son SIN IVA.' : leido.preciosSinIva === false ? ' La lista dice que los precios incluyen IVA.' : '',
+        leido.preciosSinIva === true ? (sumarIva.checked ? ' La lista dice SIN IVA: se le suma el 21% (si no corresponde, destildá "Sumar 21% de IVA").' : ' La lista dice que los precios son SIN IVA.') : leido.preciosSinIva === false ? ' La lista dice que los precios incluyen IVA.' : '',
         leido.descartadas ? ` ${leido.descartadas} renglones sin precio no se importan.` : '',
         m !== 'ARS' ? ` Precios en ${MONEDAS[m].toLowerCase()}: se ven en pesos con la cotización de Ajustes (${money(cotizacionDe(m))}).` : ''),
       h('div', { class: 'tbl-wrap', style: 'max-height:250px' }, h('table', { class: 'tbl' },
@@ -165,29 +172,34 @@ function importarLista(p) {
     nombres.textContent = archivos.map(a => a.name).join(' · ');
     vista.replaceChildren(vacio('hourglass_top', archivos.some(a => /\.pdf$/i.test(a.name)) ? 'Leyendo el PDF…' : 'Leyendo la planilla…'));
     try {
-      const hojas = [];
-      for (const a of archivos) hojas.push(...(await leerArchivo(a)));
-      leido = { ...parsearLibro(hojas), archivos };
-      if (leido.preciosSinIva === true && previo.sumarIva === undefined) sumarIva.checked = false;
+      hojasLeidas = [];
+      for (const a of archivos) hojasLeidas.push(...(await leerArchivo(a)));
+      analizar(archivos);
+      // La lista dice SIN IVA y es la primera vez con este proveedor: se suma el 21% (se ve en el aviso y se puede destildar)
+      if (leido.preciosSinIva === true && previo.sumarIva === undefined) sumarIva.checked = true;
       previsualizar();
     } catch (e) {
       leido = null;
       vista.replaceChildren(h('div', { class: 'aviso' }, `No pude leer el archivo: ${e.message}`));
     }
   });
-  [descuento, sumarIva, moneda].forEach(el => el.addEventListener('input', previsualizar));
+  [descuento, sumarIva].forEach(el => el.addEventListener('input', previsualizar));
+  // En dólares o euros los precios son chicos (12,5): se vuelve a leer la lista con esa moneda en mente
+  moneda.addEventListener('input', () => { if (hojasLeidas) analizar(leido?.archivos || []); previsualizar(); });
 
   // unaVez: un doble clic no importa la lista dos veces
   const importar = unaVez(async () => {
     if (!leido?.productos.length) { toast('Elegí primero la lista (Excel o PDF)', 'error'); return; }
-    if (reemplazar.checked && !(await confirmar('Reemplazar lista',
+    // Cambiar la moneda: todos los precios del proveedor pasan a leerse en la moneda nueva, así que la lista
+    // tiene que reemplazar a la anterior (si no, lo viejo en pesos quedaría multiplicado por el dólar)
+    const cambiaMoneda = 'moneda' in p && moneda.value !== (p.moneda || 'ARS');
+    if (cambiaMoneda && !reemplazar.checked) {
+      if (!(await confirmar('Cambio de moneda', `La lista de ${p.nombre} pasa a ${MONEDAS[moneda.value].toLowerCase()}. Para que no se mezclen precios, esta lista va a reemplazar a la anterior completa. ¿Seguimos?`, { ok: 'Sí, reemplazar' }))) return;
+      reemplazar.checked = true;
+    } else if (reemplazar.checked && !(await confirmar('Reemplazar lista',
       `Los productos de ${p.nombre} que no estén en esta lista quedan como "ya no figura". ¿Seguimos?`, { ok: 'Sí, reemplazar' }))) return;
     const filas = aFilasDePrecio(leido.productos, opciones());
     guardarRecuerdo(p.slug, { descuento: numeroAR(descuento.value) || 0, sumarIva: sumarIva.checked, reemplazar: reemplazar.checked });
-    if ('moneda' in p && moneda.value !== (p.moneda || 'ARS')) {
-      const { error } = await db.from('proveedores').update({ moneda: moneda.value }).eq('slug', p.slug);
-      if (error) { toast(error.message, 'error'); return; }
-    }
     // Sin docs/gestion-v5.sql todavía: un solo pedido con la función anterior (alcanza para listas chicas)
     const probar = await db.rpc('importar_lista_lote', { p_proveedor: p.slug, p_rows: [] });
     if (probar.error && /importar_lista_lote/.test(probar.error.message) && /find|exist/i.test(probar.error.message)) {
@@ -213,7 +225,15 @@ function importarLista(p) {
     if (error) { toast(error.message, 'error'); return; }
     terminar(data);
   });
-  const terminar = data => {
+  // La moneda se guarda recién con la lista completa ya importada (un corte a mitad no deja precios mezclados)
+  const guardarMoneda = async () => {
+    if (!('moneda' in p) || moneda.value === (p.moneda || 'ARS')) return true;
+    const { error } = await db.from('proveedores').update({ moneda: moneda.value }).eq('slug', p.slug);
+    if (error) { toast(`La lista se cargó, pero no se pudo guardar la moneda: ${error.message}`, 'error'); return false; }
+    return true;
+  };
+  const terminar = async data => {
+    await guardarMoneda();
     closeModal();
     toast(`Lista de ${p.nombre}: ${Number(data.guardados).toLocaleString('es-AR')} productos`
       + `${data.cambios != null ? ` (${Number(data.cambios).toLocaleString('es-AR')} nuevos o con precio cambiado)` : ''}`

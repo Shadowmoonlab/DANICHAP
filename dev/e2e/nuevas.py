@@ -57,7 +57,8 @@ def importar(page, slug, archivos, moneda=None, reemplazar=False):
     if casilla.is_checked() != reemplazar:
         casilla.click()
     page.click("#modal-foot button:has-text('Importar')")
-    if reemplazar:
+    # Al cambiar la moneda (o si se pidió reemplazar) el panel pide confirmar el reemplazo de la lista
+    if reemplazar or moneda:
         page.click("#modal-foot button:has-text('Sí, reemplazar')")
     expect(page.locator("#toast-container *").filter(has_text=re.compile(rf"Lista de {re.escape(slug)}.*productos")).first).to_be_visible(timeout=180000)
     return aviso
