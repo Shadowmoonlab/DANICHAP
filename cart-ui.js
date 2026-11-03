@@ -215,7 +215,7 @@ const CartUI = {
 
   _sendWhatsApp() {
     const text = this._buildWppText();
-    window.open(`https://wa.me/541123409187?text=${encodeURIComponent(text)}`, '_blank');
+    window.open(`https://wa.me/5491123409187?text=${encodeURIComponent(text)}`, '_blank');
   },
 
   _confirmClear() {
