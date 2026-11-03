@@ -1,6 +1,6 @@
 // gestion/core.js — Base compartida del panel: DOM, formato, modal, configuración, proveedores, búsqueda
 // Usa los globales de supabase.js (_supabase) y toast.js (showToast), que cargan antes como scripts clásicos.
-import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero } from './texto.js?v=26';
+import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero } from './texto.js?v=27';
 
 export const db = window._supabase ?? _supabase;
 export const toast = (msg, tipo) => window.showToast(msg, tipo);
@@ -157,7 +157,7 @@ export function aPesos(precio, slug) {
 }
 
 /* ── WhatsApp ────────────────────────────────────────────────────────── */
-export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=26';
+export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=27';
 export async function copiar(texto, aviso = 'Copiado') {
   try { await navigator.clipboard.writeText(texto); toast(aviso, 'success'); return true; }
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }
@@ -219,23 +219,42 @@ export async function leerTextoPdf(archivo) {
 
 const COLUMNAS_PRECIO = 'id, distribuidor, codigo, descripcion, marca, rubro, origen, precio_neto, precio_anterior, precio_cambio_at';
 
+// Con RLS el índice de búsqueda no se puede usar (3-5 s por búsqueda): la función buscar_precios
+// (docs/gestion-v8.sql) verifica que sea admin y busca con el índice (~30 ms). Sin v8, la consulta de antes.
+let sinFuncionBuscar = false;
+async function buscarEnBase(ws, codigo) {
+  if (!sinFuncionBuscar) {
+    const { data, error } = await db.rpc('buscar_precios', { p_palabras: ws, p_codigo: codigo, p_limite: 250 });
+    if (!error) return data;
+    if (!/buscar_precios/.test(error.message) || !/find|exist|schema cache/i.test(error.message)) {
+      console.warn('[gestion] buscarPrecios:', error.message);
+      return null;
+    }
+    sinFuncionBuscar = true;
+  }
+  let query = db.from('precios_distribuidor').select(COLUMNAS_PRECIO).eq('activo', true);
+  for (const w of ws) query = esNumero(w) ? query.ilike('busqueda', `%${w}%`) : query.filter('busqueda', 'imatch', `\\m${escaparRegex(w)}`);
+  const porCodigo = codigo
+    ? db.from('precios_distribuidor').select(COLUMNAS_PRECIO).eq('activo', true).ilike('codigo', `${codigo}%`).limit(20)
+    : Promise.resolve({ data: [] });
+  const [general, codigos] = await Promise.all([query.order('precio_neto', { ascending: true, nullsFirst: false }).limit(250), porCodigo]);
+  if (general.error) { console.warn('[gestion] buscarPrecios:', general.error.message); return null; }
+  return [...(codigos.data || []), ...general.data];
+}
+
 export async function buscarPrecios(q, limite = 40) {
   const ws = palabras(normalizar(q));
   if (!ws.length) return [];
-  let query = db.from('precios_distribuidor').select(COLUMNAS_PRECIO).eq('activo', true);
-  for (const w of ws) query = esNumero(w) ? query.ilike('busqueda', `%${w}%`) : query.filter('busqueda', 'imatch', `\\m${escaparRegex(w)}`);
   // Una sola "palabra" puede ser un código ("128", "CHECOR-001"): se busca aparte por código, así nunca queda afuera
   // de los 250 que trae la búsqueda general aunque haya muchas coincidencias
   const qCodigo = normalizar(q).replace(/\s+/g, '');
-  const porCodigo = !/\s/.test(q.trim()) && qCodigo.length >= 3
-    ? db.from('precios_distribuidor').select(COLUMNAS_PRECIO).eq('activo', true).ilike('codigo', `${q.trim().replace(/[%_*,()]/g, '')}%`).limit(20)
-    : Promise.resolve({ data: [] });
+  const codigo = !/\s/.test(q.trim()) && qCodigo.length >= 3 ? q.trim().replace(/[%_*,()]/g, '') : null;
   // Se traen más de los que se muestran y se ordenan por relevancia (lo que empieza con la primera palabra, primero);
   // antes eran los 40 más baratos y lo buscado quedaba afuera detrás de soportes y vidrios
-  const [general, codigos] = await Promise.all([query.order('precio_neto', { ascending: true, nullsFirst: false }).limit(250), porCodigo]);
-  if (general.error) { console.warn('[gestion] buscarPrecios:', general.error.message); return []; }
+  const filas = await buscarEnBase(ws, codigo);
+  if (!filas) return [];
   const vistos = new Set();
-  const data = [...(codigos.data || []), ...general.data].filter(d => !vistos.has(d.id) && vistos.add(d.id));
+  const data = filas.filter(d => !vistos.has(d.id) && vistos.add(d.id));
   // Código exacto (o su comienzo) primero de todo: "CHECOR-001" → ese artículo arriba
   const escritas = normalizar(q).split(/\s+/).filter(w => w.length > 1);   // las palabras tal como se escribieron
   const puntaje = d => {

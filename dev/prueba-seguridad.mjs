@@ -58,6 +58,12 @@ for (const [fn, body] of [['libro_resumen', { p_desde: '2026-01-01', p_hasta: '2
   if (r.status === 404) console.log('·  buscar_parecidos: no existe en esta base (se omite)');
   else revisar(!r.ok || (await r.json()).length === 0, `cliente busca parecidos → no ve precios (HTTP ${r.status})`);
 }
+// El buscador rápido (security definer) también: un cliente no ve precios de proveedores
+{
+  const r = await pedir('cliente', 'rpc/buscar_precios', { method: 'POST', body: JSON.stringify({ p_palabras: ['faro'], p_codigo: 'TR-07' }) });
+  if (r.status === 404) console.log('·  buscar_precios: no existe en esta base (se omite)');
+  else revisar(!r.ok || (await r.json()).length === 0, `cliente usa el buscador → no ve precios (HTTP ${r.status})`);
+}
 
 // Lo público sigue andando: catálogo para todos, perfil propio para el cliente
 revisar((await filas('anonimo', 'productos')) > 0, 'anónimo ve el catálogo de productos');
