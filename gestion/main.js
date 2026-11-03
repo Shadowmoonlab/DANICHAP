@@ -1,15 +1,15 @@
 // gestion/main.js — Entrada del panel: acceso solo admin, pestañas, atajos de teclado e inicio de módulos.
 import {
   $, closeModal, modalAbierto, mostrarVista, vistaActual, cargarConfig, cargarProveedores, actualizarBadgeRepo,
-} from './core.js?v=28';
-import { iniciarMostrador, limpiarBusqueda } from './mostrador.js?v=28';
-import { iniciarReposicion } from './reposicion.js?v=28';
-import { iniciarRecepcion } from './recepcion.js?v=28';
-import { iniciarVentas } from './ventas.js?v=28';
-import { iniciarLibro } from './libro.js?v=28';
-import { iniciarClientes, cargarClientes } from './clientes.js?v=28';
-import { iniciarProveedores } from './proveedores.js?v=28';
-import { iniciarAjustes } from './ajustes.js?v=28';
+} from './core.js?v=29';
+import { iniciarMostrador, limpiarBusqueda } from './mostrador.js?v=29';
+import { iniciarReposicion } from './reposicion.js?v=29';
+import { iniciarRecepcion } from './recepcion.js?v=29';
+import { iniciarVentas } from './ventas.js?v=29';
+import { iniciarLibro } from './libro.js?v=29';
+import { iniciarClientes, cargarClientes } from './clientes.js?v=29';
+import { iniciarProveedores } from './proveedores.js?v=29';
+import { iniciarAjustes } from './ajustes.js?v=29';
 
 const VISTAS = ['mostrador', 'reposicion', 'recepcion', 'ventas', 'libro', 'clientes', 'proveedores', 'ajustes'];
 
