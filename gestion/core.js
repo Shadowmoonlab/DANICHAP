@@ -1,6 +1,6 @@
 // gestion/core.js — Base compartida del panel: DOM, formato, modal, configuración, proveedores, búsqueda
 // Usa los globales de supabase.js (_supabase) y toast.js (showToast), que cargan antes como scripts clásicos.
-import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero, sinPalabrasVacias, conTodosLosProveedores, separarMarcas } from './texto.js?v=34';
+import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero, sinPalabrasVacias, conTodosLosProveedores, separarMarcas, patron } from './texto.js?v=35';
 
 export const db = window._supabase ?? _supabase;
 // Avisos del panel: los de éxito duran 4 s (se alcanzan a leer) y los errores quedan hasta cerrarlos
@@ -188,7 +188,7 @@ export function aPesos(precio, slug) {
 }
 
 /* ── WhatsApp ────────────────────────────────────────────────────────── */
-export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=34';
+export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=35';
 export async function copiar(texto, aviso = 'Copiado') {
   try { await navigator.clipboard.writeText(texto); toast(aviso, 'success'); return true; }
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }
@@ -253,7 +253,20 @@ const COLUMNAS_PRECIO = 'id, distribuidor, codigo, descripcion, marca, rubro, or
 // Con RLS el índice de búsqueda no se puede usar (3-5 s por búsqueda): la función buscar_precios
 // (docs/gestion-v8.sql) verifica que sea admin y busca con el índice (~30 ms). Sin v8, la consulta de antes.
 let sinFuncionBuscar = false;
+// buscar_precios2 (docs/gestion-v12.sql) recibe un patrón por palabra: sinónimos y abreviaturas de cada proveedor,
+// lado (-DI/-TD, D/I), números exactos, palabras cortas enteras. Sin v12, buscar_precios (v10) con las palabras.
+let sinPatrones = false;
 async function buscarEnBase(ws, codigo) {
+  if (!sinPatrones) {
+    const primera = ws.find(w => !/^\d/.test(w)) ?? null;
+    const { data, error } = await db.rpc('buscar_precios2', { p_patrones: ws.map(patron), p_primera: primera, p_codigo: codigo, p_limite: 250 });
+    if (!error) return data;
+    if (!/buscar_precios2/.test(error.message) || !/find|exist|schema cache/i.test(error.message)) {
+      console.warn('[gestion] buscarPrecios:', error.message);
+      return null;
+    }
+    sinPatrones = true;
+  }
   if (!sinFuncionBuscar) {
     const { data, error } = await db.rpc('buscar_precios', { p_palabras: ws, p_codigo: codigo, p_limite: 250 });
     if (!error) return data;

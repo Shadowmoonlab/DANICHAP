@@ -134,6 +134,16 @@ export async function correrScraper(distribuidor, scrape) {
     })).filter(f => f.codigo);
     const filas = [...new Map(leidas.map(f => [f.codigo, f])).values()];   // un código repetido rompe el upsert
     if (filas.length === 0) throw new Error('El distribuidor no devolvió productos');
+    // Sin descripción (vacía, o "false" de una celda vacía de Excel) un artículo no se encuentra buscando palabras:
+    // se le pone "Sin descripción · rubro" (se encuentra por código) y, si son muchos, la corrida avisa
+    let sinDescripcion = 0;
+    for (const f of filas) {
+      if (!String(f.descripcion ?? '').trim() || /^(false|true|null|undefined|nan)$/i.test(String(f.descripcion).trim())) {
+        sinDescripcion++;
+        f.descripcion = ['Sin descripción', f.rubro, f.marca].filter(Boolean).join(' · ');
+      }
+    }
+    if (sinDescripcion) console.warn(`[${distribuidor}] ${sinDescripcion} de ${filas.length} artículos sin descripción`);
     // Un artículo sin precio (0 o vacío) NO se guarda: pisaría el precio bueno que ya tenía. Sigue contando como
     // "visto" (no se da de baja). Si son muchos, el sitio no mostró precios (sesión a medias): no se toca nada.
     const sinPrecio = filas.filter(f => f.precio_lista == null && f.precio_neto == null);
@@ -147,6 +157,12 @@ export async function correrScraper(distribuidor, scrape) {
 
     // Lectura incompleta (menos del 85 % de lo que había): los precios leídos se guardan, pero la corrida queda
     // como fallida para que se reintente en el día y el panel lo muestre (antes quedaba "OK" y el resto, viejo)
+    if (sinDescripcion > filas.length * 0.2) {
+      await terminarRun(run?.id, { ok: false, productos: filas.length, error: `${sinDescripcion} de ${filas.length} artículos llegaron sin descripción (no se encuentran buscando): revisar el robot` });
+      resumen(`⚠️ **${distribuidor}**: ${sinDescripcion} de ${filas.length} sin descripción`);
+      process.exitCode = 1;
+      return;
+    }
     if (sinBajas) {
       await terminarRun(run?.id, { ok: false, productos: filas.length, error: `Lista incompleta: ${sinBajas}. Se guardaron los leídos; se reintenta.` });
       console.warn(`[${distribuidor}] INCOMPLETO — ${filas.length} productos (${cambios} con cambios), ${sinBajas}`);

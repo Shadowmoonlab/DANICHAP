@@ -130,3 +130,25 @@ test('"farol" busca "faro" (los proveedores escriben FARO TRASERO)', () => {
   assert.deepEqual(palabras('farol trasero clio'), ['faro', 'tras', 'clio']);
   assert.ok(coincidePalabras(normalizarAmbos('FARO TRASERO RENAULT CLIO'), palabras('farol trasero clio')));
 });
+
+test('cómo escribe cada proveedor: lado en el código (-DI/-TD), D/I, OP., palabras cortas enteras, números exactos', async () => {
+  const { patron, aRegexJs } = await import('../gestion/texto.js');
+  const ok = (q, desc) => coincidePalabras(normalizarAmbos(desc), palabras(q));
+  assert.ok(ok('optica 206 izq', '1005206-DI OPTICA 206 IZQ'));                 // Otero: lado en el código
+  assert.ok(ok('optica 206 izq', 'OPTICA P-206 V/RAY D/I IMP'));                 // D/I sirve para los dos lados
+  assert.ok(ok('faro trasero derecho palio', '1220401-TD FARO TRASERO PALIO'));
+  assert.ok(ok('optica taunus', 'OP. Taunus 73/81'));                            // Mello / Ópticas LAM
+  assert.ok(ok('optica delantera izquierda 206', 'OPTICAS 206 99/03 V/RAYADO IZQUIERDA'));
+  assert.ok(ok('optica r12', 'OPTICAS RENAULT 12'));
+  assert.ok(ok('optica s 10', 'OPTICA CHEVROLET S-10 DER'));
+  assert.ok(ok('correa distribucion 206', 'CORREA SINCRONICA PEUGEOT 206'));
+  assert.ok(ok('sensor oxigeno gol', 'SONDA LAMBDA VW GOL TREND'));
+  assert.ok(ok('llave luces onix', 'LLAVE LUCES ONIX'));
+  assert.ok(!ok('paragolpe gol', 'PARAGOLPE DELANTERO GOLF 2015'));               // gol no es Golf
+  assert.ok(!ok('capot gol', 'CAPOT SORENTO - 1 Golpe'));
+  assert.ok(!ok('optica 206 izq', 'OPTICAS ATOS 02/06 IZQUIERDA'));               // 206 no es "02/06"
+  assert.ok(!ok('bomba agua palio 1.4', 'BOMBA AGUA PALIO 1.6 16V'));
+  assert.ok(ok('bomba agua palio 1.4', 'BOMBA AGUA PALIO 1.4 FIRE'));
+  assert.equal(aRegexJs(String.raw`\mgol\M`), '(?<![a-z0-9])gol(?![a-z0-9])');
+  assert.equal(patron('206'), '(^|[^0-9])206([^0-9]|$)');
+});

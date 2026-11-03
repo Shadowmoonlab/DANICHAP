@@ -9,18 +9,45 @@ const RAICES = [
   [/^paragol/, 'parag'], [/^optica/, 'opt'], [/^delanter/, 'del'], [/^traser/, 'tras'], [/^izquierd/, 'izq'],
   [/^derech/, 'der'], [/^guardabarr/, 'guardab'], [/^amortiguad/, 'amort'], [/^parabris/, 'parabr'],
   [/^cerradur/, 'cerrad'], [/^levantavidri/, 'levantav'], [/^radiador/, 'radiad'], [/^espejo/, 'espej'],
+  [/^luc(e|es)?$|^luz$/, 'luz'], [/^moldur/, 'mold'], [/^distribuc/, 'distrib'], [/^direcc/, 'direcc'],
 ];
+const RAIZ = new Set(RAICES.map(([, r]) => r));
+
+// Cómo lo escribe cada proveedor (auditoría de 248 búsquedas en producción, nov 2026). Formato de la base
+// (Postgres): \m = comienzo de palabra, \M = fin de palabra. En el navegador se traduce con aRegexJs.
+const SINONIMOS = {
+  opt: String.raw`\mop(t|\M)`,                          // "OP. Taunus" (Mello, Ópticas LAM)
+  izq: String.raw`(\mizq|\m(di|ti|li)\M|\md i\M)`,      // Otero: código "-DI"/"-TI"; "D/I" = sirve para los dos lados
+  der: String.raw`(\mder|\m(dd|td|ld)\M|\md i\M)`,
+  luz: String.raw`\mlu(z|ces)`,
+  levantav: String.raw`\mlevanta ?(vidri|cristal)`,     // DM: "MAQUINA LEVANTA CRISTAL"
+  distrib: String.raw`\m(distrib|sincron|dentad)`,      // correa de distribución = sincrónica / dentada
+  espiral: String.raw`\m(espiral|resorte)`,
+  oxigeno: String.raw`\m(oxigeno|lambda)`,               // sensor de oxígeno = sonda lambda
+  sensor: String.raw`\m(sensor|sonda)`,
+  direcc: String.raw`\m(direcc|hidraul)`,                // bomba de dirección = bomba hidráulica
+};
 
 /** Palabras de búsqueda seguras para filtros de PostgREST.
  *  Sin la "s" final (búsqueda por substring): "paragolpes" también encuentra "PARAGOLPE".
  *  Sin palabras vacías ("de", "del") y con la raíz de las abreviaturas comunes ("paragolpe" → "parag"). */
-export const palabras = q => String(q).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-  .replace(/[,()*%\\:"']/g, ' ').split(/\s+/)
-  .flatMap(partesDe)
-  .filter(w => (w.length > 1 || /^\d$/.test(w)) && !VACIAS.has(w))
-  .map(singular)
-  .map(w => RAICES.find(([re]) => re.test(w))?.[1] ?? w)
-  .slice(0, 6);
+export function palabras(q) {
+  const tokens = String(q).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/(\d)[.,](\d)/g, '$1·$2')          // "1.4" / "1,6" (cilindrada) es un solo dato
+    .replace(/[,()*%\\:"']/g, ' ').split(/\s+/).filter(Boolean);
+  // "s 10", "r 12", "f 100": la letra va con el número (S-10, R12, F-100)
+  const juntos = [];
+  for (let i = 0; i < tokens.length; i++) {
+    if (/^[a-z]$/.test(tokens[i]) && !VACIAS.has(tokens[i]) && /^\d+$/.test(tokens[i + 1] ?? '')) juntos.push(tokens[i] + tokens[++i]);
+    else juntos.push(tokens[i]);
+  }
+  const ws = juntos.flatMap(partesDe)
+    .filter(w => (w.length > 1 || /^\d$/.test(w)) && !VACIAS.has(w))
+    .map(singular)
+    .map(w => RAICES.find(([re]) => re.test(w))?.[1] ?? w);
+  // "óptica delantera": las ópticas casi nunca dicen "delantera" (las de atrás son "faro trasero")
+  return (ws.includes('opt') ? ws.filter(w => w !== 'del') : ws).slice(0, 6);
+}
 
 // "OPT.DEL.IZQ" → opt, del, izq y "p/400" → p, 400 (cada pedazo se busca por separado, como en la base);
 // pero "F-100" queda "f100": una letra suelta que no es palabra vacía no sirve para buscar
@@ -33,7 +60,6 @@ function partesDe(token) {
 // Plural → singular: "paragolpes" → "paragolpe", "rulemanes" → "ruleman", "luces" → "luz" (la búsqueda es por
 // comienzo de palabra, así que quedarse corto nunca deja afuera el artículo)
 function singular(w) {
-  if (w.length > 4 && w.endsWith('ces')) return w.slice(0, -3) + 'z';
   if (w.length > 5 && /[rnldj]es$/.test(w)) return w.slice(0, -2);
   return w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w;
 }
@@ -49,8 +75,35 @@ export const escaparRegex = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 export const esNumero = w => /^\d+$/.test(w);
 /** La misma regla que la base; recibe el texto ya normalizado con normalizarAmbos (pegado + separado). */
 export function coincidePalabras(textoNormalizado, ws) {
-  return ws.every(w => (esNumero(w) ? textoNormalizado.includes(w) : new RegExp(`(^|[^a-z0-9])${escaparRegex(w)}`).test(textoNormalizado)));
+  return ws.every(w => regexJs(w).test(textoNormalizado));
 }
+
+/**
+ * Cómo se busca cada palabra (la misma regla en la base y en el navegador):
+ * - sinónimos y abreviaturas de los proveedores (SINONIMOS);
+ * - número: solo ese número ("206" no está dentro de "1005206"; "1·4" = "1.4");
+ * - letra + número ("s10", "r12", "f100"): con o sin espacio/guion; "r12" también "renault 12";
+ * - palabra corta escrita tal cual ("gol", "ka", "uno"): entera ("gol" no trae "GOLF" ni "Golpe");
+ * - el resto (y las raíces como "parag", "del"): comienzo de palabra.
+ */
+export function patron(w) {
+  if (SINONIMOS[w]) return SINONIMOS[w];
+  const fin = '([^0-9]|$)';
+  if (/^\d+$/.test(w)) return `(^|[^0-9])${w}${fin}`;
+  let m = /^(\d+)·(\d+)$/.exec(w);
+  if (m) return `(^|[^0-9])${m[1]} ${m[2]}${fin}`;
+  m = /^([a-z]{1,2})(\d+)$/.exec(w);
+  if (m) return m[1] === 'r' ? String.raw`(\mr ?${m[2]}|renault ${m[2]})${fin}` : String.raw`\m${m[1]} ?${m[2]}${fin}`;
+  if (w.length <= 3 && !RAIZ.has(w)) return String.raw`\m${escaparRegex(w)}\M`;
+  return String.raw`\m${escaparRegex(w)}`;
+}
+/** El patrón de la base, para el navegador (que no conoce \m ni \M). */
+export const aRegexJs = p => p.replace(/\\m/g, '(?<![a-z0-9])').replace(/\\M/g, '(?![a-z0-9])');
+const regexes = new Map();
+const regexJs = w => {
+  if (!regexes.has(w)) regexes.set(w, new RegExp(aRegexJs(patron(w))));
+  return regexes.get(w);
+};
 // Texto con - / . , como espacios: "OPT.DEL.IZQ" → "opt del izq" (para ubicar cada palabra)
 const separado = q => String(q).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[-/.,]/g, ' ');
 

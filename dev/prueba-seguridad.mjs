@@ -54,6 +54,11 @@ for (const [fn, body] of [['libro_resumen', { p_desde: '2026-01-01', p_hasta: '2
     revisar(!r.ok, `${rol} llama ${fn} → HTTP ${r.status}`);
   }
 }
+// El buscador con patrones (v12) tampoco le muestra precios a un cliente
+{
+  const r = await pedir('cliente', 'rpc/buscar_precios2', { method: 'POST', body: JSON.stringify({ p_patrones: ['\mfaro'] }) });
+  if (r.status !== 404) revisar(!r.ok || (await r.json()).length === 0, `cliente usa buscar_precios2 → no ve precios (HTTP ${r.status})`);
+}
 // El buscador tampoco responde sin sesión
 {
   const r = await pedir('anonimo', 'rpc/buscar_precios', { method: 'POST', body: JSON.stringify({ p_palabras: ['faro'] }) });

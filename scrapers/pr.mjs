@@ -23,12 +23,24 @@ async function api(ruta, body, token) {
   return res.json();
 }
 
+// La descripción viene en distintos lugares según el artículo (texto, objeto o lista): se toma el primero con texto.
+// Antes se leía solo descripciones.descripcion y los 28.660 artículos quedaban sin descripción (no se encontraban)
+const textoDe = v => {
+  if (v == null || v === false) return '';
+  if (typeof v === 'string' || typeof v === 'number') return String(v).trim();
+  if (Array.isArray(v)) return v.map(textoDe).filter(Boolean).join(' ').trim();
+  if (typeof v === 'object') return textoDe(v.descripcion ?? v.descripcionLarga ?? v.nombre ?? v.texto ?? v.detalle ?? v.valor);
+  return '';
+};
+const descripcionDe = it => [it.descripciones, it.descripcion, it.descripcionLarga, it.descripcionCorta, it.nombre,
+  it.detalle, it.titulo, it.aplicacion, it.aplicaciones].map(textoDe).find(Boolean) || '';
+
 function mapear(it) {
   const fotos = Array.isArray(it.fotos) ? it.fotos : [];
   const foto = fotos[0]?.url ?? fotos[0]?.nombre ?? fotos[0];
   return {
     codigo:       String(it.codigo ?? it.id).trim(),
-    descripcion:  String(it.descripciones?.descripcion ?? it.descripcion ?? '').trim(),
+    descripcion:  descripcionDe(it),
     marca:        it.marca || null,
     rubro:        it.rubro || it.rubroDescuento || null,
     origen:       it.origen || null,
@@ -52,6 +64,9 @@ async function scrape() {
   const primera = await pagina(1);
   if (!Array.isArray(primera?.items)) throw new Error(`Articulos/Buscar: formato inesperado ${JSON.stringify(primera).slice(0, 300)}`);
   console.log(`[pr] totalPages informado: ${primera.totalPages}`);
+  // Qué campos manda la API (solo los nombres y de qué tipo son: nada de precios ni datos de la cuenta)
+  const muestra = primera.items[0] || {};
+  console.log(`[pr] campos del artículo: ${Object.entries(muestra).map(([k, v]) => `${k}:${Array.isArray(v) ? 'lista' : typeof v}`).join(', ')}`);
 
   const filas = primera.items.map(mapear).filter(f => f.codigo);
   const vistos = new Set(filas.map(f => f.codigo));
