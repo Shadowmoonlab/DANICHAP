@@ -46,10 +46,17 @@ for (const [tabla, fila] of [['ventas', { medio_pago: 'efectivo', total: 1 }], [
 
 // Funciones internas
 for (const [fn, body] of [['libro_resumen', { p_desde: '2026-01-01', p_hasta: '2026-12-31', p_agrupar: 'month' }], ['upsert_precios', { p_rows: [], p_visto: new Date().toISOString() }],
-  ['importar_lista_precios', { p_proveedor: 'dm', p_rows: [] }]]) {
+  ['importar_lista_precios', { p_proveedor: 'dm', p_rows: [] }], ['importar_lista_lote', { p_proveedor: 'dm', p_rows: [] }],
+  ['finalizar_importacion', { p_proveedor: 'dm', p_codigos: ['x'], p_reemplazar: true, p_cambios: 0 }], ['anular_venta', { p_id: 1 }]]) {
   const r = await pedir('cliente', `rpc/${fn}`, { method: 'POST', body: JSON.stringify(body) });
   if (r.status === 404) { console.log(`·  ${fn}: no existe en esta base (se omite)`); continue; }
   revisar(!r.ok, `cliente llama ${fn} → HTTP ${r.status}`);
+}
+// La búsqueda de parecidos respeta RLS: un cliente no ve ningún precio de proveedor
+{
+  const r = await pedir('cliente', 'rpc/buscar_parecidos', { method: 'POST', body: JSON.stringify({ p_q: 'paragolpe', p_limite: 5 }) });
+  if (r.status === 404) console.log('·  buscar_parecidos: no existe en esta base (se omite)');
+  else revisar(!r.ok || (await r.json()).length === 0, `cliente busca parecidos → no ve precios (HTTP ${r.status})`);
 }
 
 // Lo público sigue andando: catálogo para todos, perfil propio para el cliente

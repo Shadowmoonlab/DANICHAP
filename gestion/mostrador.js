@@ -2,12 +2,12 @@
 import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
-  actualizarBadgeRepo, unaVez, hoyISO,
-} from './core.js?v=14';
-import { numeroAR } from './texto.js?v=14';
-import { presupuesto as textoPresupuesto } from './plantillas.js?v=14';
-import { imprimirComprobante } from './comprobante.js?v=14';
-import { editarCliente } from './clientes.js?v=14';
+  actualizarBadgeRepo, unaVez, hoyISO, gananciaDe, gananciaDePrecio, buscarParecidos,
+} from './core.js?v=21';
+import { numeroAR, palabras, normalizar } from './texto.js?v=21';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=21';
+import { imprimirComprobante } from './comprobante.js?v=21';
+import { editarCliente } from './clientes.js?v=21';
 
 let resultados = [];
 let selIdx = -1;
@@ -15,33 +15,47 @@ let venta = [];            // renglones de la venta actual
 let presupuestoId = null;  // si la venta se cargó desde un presupuesto
 let buscado = '';          // texto de la búsqueda que está en pantalla (Enter solo agrega de esa)
 let enterEnEspera = false; // Enter apretado antes de que llegaran los resultados: se agrega apenas lleguen
+let filtro = 'todos';      // 'todos' | 'stock' | slug de un proveedor (botones arriba de los resultados)
+let sonParecidos = false;  // la búsqueda exacta no encontró nada y se muestran artículos parecidos (errores de tipeo)
 
 const buscador = () => $('pos-search');
+const visibles = () => resultados.filter(r => filtro === 'todos' || (filtro === 'stock' ? r.tipo === 'stock' : r.distribuidor === filtro));
 
 /* ── Búsqueda ────────────────────────────────────────────────────────── */
 const ejecutarBusqueda = debounce(async () => {
   const q = buscador().value.trim();
   if (q.length < 2) { enterEnEspera = false; renderResultados(null); return; }
-  const [stock, dist] = await Promise.all([buscarStock(q), buscarPrecios(q)]);
+  let [stock, dist] = await Promise.all([buscarStock(q), buscarPrecios(q)]);
+  // Nada exacto: se buscan parecidos ("paragople" → "paragolpe"), como hacen los buscadores grandes
+  sonParecidos = false;
+  if (!stock.length && !dist.length && buscador().value.trim() === q) {
+    dist = await buscarParecidos(q);
+    sonParecidos = dist.length > 0;
+  }
   if (buscador().value.trim() !== q) return; // llegó tarde: el usuario siguió escribiendo
   buscado = q;
   const costoMin = Math.min(...dist.map(d => d.precio_neto ?? Infinity));
+  // Primero los precios de los proveedores (al día); después "Mi stock" (los productos cargados a mano)
   resultados = [
+    ...dist.map(d => ({
+      tipo: 'dist', key: `d-${d.id}`, precio_distribuidor_id: d.id, distribuidor: d.distribuidor,
+      codigo: d.codigo, descripcion: d.descripcion, origen: nombreProveedor(d.distribuidor),
+      precio: precioVenta(d.precio_neto, d.distribuidor), costo: d.precio_neto,
+      extra: [d.marca, d.rubro, d.moneda !== 'ARS' ? `lista en ${d.moneda === 'USD' ? 'dólares' : 'euros'}: ${d.moneda} ${d.precio_original}` : null]
+        .filter(Boolean).join(' · '),
+      masBarato: dist.length > 1 && d.precio_neto === costoMin,
+      subio: d.precio_anterior != null && d.precio_neto > d.precio_anterior,
+    })),
     ...stock.map(p => ({
       tipo: 'stock', key: `p-${p.id}`, producto_id: p.id, codigo: p.costo?.codigo_proveedor || '',
       descripcion: p.nombre, origen: 'Mi stock', precio: p.precio, costo: p.costo?.costo ?? null,
       extra: p.stock_cantidad != null ? `${p.stock_cantidad} u.` : (p.stock ? 'Con stock' : 'Sin stock'),
       sinStock: p.stock === false || p.stock_cantidad === 0,
     })),
-    ...dist.map(d => ({
-      tipo: 'dist', key: `d-${d.id}`, precio_distribuidor_id: d.id, distribuidor: d.distribuidor,
-      codigo: d.codigo, descripcion: d.descripcion, origen: nombreProveedor(d.distribuidor),
-      precio: precioVenta(d.precio_neto, d.distribuidor), costo: d.precio_neto,
-      extra: [d.marca, d.rubro].filter(Boolean).join(' · '), masBarato: dist.length > 1 && d.precio_neto === costoMin,
-      subio: d.precio_anterior != null && d.precio_neto > d.precio_anterior,
-    })),
   ];
-  selIdx = resultados.length ? 0 : -1;
+  // El filtro elegido se mantiene si el proveedor sigue apareciendo en la búsqueda nueva
+  if (filtro !== 'todos' && !visibles().length) filtro = 'todos';
+  selIdx = visibles().length ? 0 : -1;
   renderResultados(q);
   if (enterEnEspera) { enterEnEspera = false; agregarSeleccionado(); }
 }, 220);
@@ -70,22 +84,64 @@ function abrirWeb(p, q) {
   toast(buscar ? `Buscando en ${p.nombre}` : `Copiado "${q}": pegalo (Ctrl+V) en el buscador de ${p.nombre}`, 'success');
 }
 
+/* ── Filtro por proveedor: un botón por cada origen que salió en la búsqueda, con cuántos resultados tiene ── */
+function renderFiltros(q) {
+  const box = $('pos-filtros');
+  const cuenta = new Map();
+  for (const r of resultados) { const k = r.tipo === 'stock' ? 'stock' : r.distribuidor; cuenta.set(k, (cuenta.get(k) || 0) + 1); }
+  box.classList.toggle('hidden', q == null || cuenta.size < 2);
+  if (q == null || cuenta.size < 2) { box.replaceChildren(); return; }
+  const boton = (k, texto, n) => h('button', {
+    class: 'filtro' + (filtro === k ? ' on' : ''), 'aria-pressed': filtro === k ? 'true' : 'false',
+    onclick: () => { filtro = k; selIdx = 0; renderResultados(q); buscador().focus(); },
+  }, texto, h('span', { class: 'n' }, n));
+  box.replaceChildren(
+    boton('todos', 'Todos', resultados.length),
+    ...[...cuenta.entries()].sort((a, b) => (a[0] === 'stock') - (b[0] === 'stock') || b[1] - a[1])
+      .map(([k, n]) => boton(k, k === 'stock' ? 'Mi stock' : nombreProveedor(k), n)));
+}
+
+/** Marca en la descripción las palabras buscadas: el ojo va directo a lo que importa. */
+function resaltar(texto, q) {
+  const ws = palabras(normalizar(q));
+  if (!ws.length || sonParecidos) return [texto];
+  return texto.split(/(\s+)/).map(parte => {
+    const n = normalizar(parte);
+    return parte.trim() && ws.some(w => (/^\d+$/.test(w) ? n.includes(w) : n.startsWith(w))) ? h('mark', {}, parte) : parte;
+  });
+}
+
+/* ── Búsquedas recientes: con el buscador vacío, las últimas para repetirlas con un toque ── */
+const RECIENTES = 'danichap-busquedas';
+const recientes = () => { try { return JSON.parse(localStorage.getItem(RECIENTES)) || []; } catch { return []; } };
+function recordarBusqueda(q) {
+  try { localStorage.setItem(RECIENTES, JSON.stringify([q, ...recientes().filter(x => x.toLowerCase() !== q.toLowerCase())].slice(0, 8))); } catch { /* sin almacenamiento */ }
+}
+
 function renderResultados(q) {
   renderWebs(q);
+  renderFiltros(q);
   const box = $('pos-results');
   if (q == null) {
-    box.replaceChildren(vacio('manage_search', 'Escribí lo que te piden.', h('br'), 'Busca en tu stock y en todos los distribuidores a la vez.'));
+    const ultimas = recientes();
+    box.replaceChildren(vacio('manage_search', 'Escribí lo que te piden.', h('br'), 'Busca en tu stock y en todos los distribuidores a la vez.'),
+      ultimas.length ? h('div', { class: 'recientes' }, h('span', { class: 'muted' }, icon('history'), 'Buscaste hace poco:'),
+        ...ultimas.map(t => h('button', { class: 'filtro', onclick: () => { buscador().value = t; ejecutarBusqueda(); buscador().focus(); } }, t))) : null);
     return;
   }
   if (!resultados.length) {
-    box.replaceChildren(vacio('search_off', `No encontré nada con "${q}".`, h('br'), 'Probá con menos palabras o con el código.'));
+    box.replaceChildren(h('div', { class: 'empty' },
+      vacio('search_off', `No encontré nada con "${q}".`, h('br'), 'Probá con menos palabras o con el código.'),
+      h('button', { class: 'btn btn-primary', onclick: () => venderAMano(q) }, icon('edit_note'), `Vender "${q.slice(0, 40)}" a mano`)));
     return;
   }
-  box.replaceChildren(...resultados.map((r, i) => h('div', {
+  const aviso = sonParecidos ? h('div', { class: 'aviso-parecidos' }, icon('spellcheck'),
+    h('span', {}, `No encontré exacto "${q}". Estos se parecen (¿quizás está escrito distinto?):`)) : null;
+  box.replaceChildren(aviso || '', ...visibles().map((r, i) => h('div', {
     class: 'res' + (i === selIdx ? ' sel' : ''), 'data-i': i, role: 'option', 'aria-selected': i === selIdx ? 'true' : 'false',
     onclick: () => { selIdx = i; agregarSeleccionado(); },
   },
-    h('div', { class: 'desc' }, r.descripcion),
+    h('div', { class: 'desc' }, ...resaltar(r.descripcion, q)),
     h('div', { class: 'price' },
       h('div', { class: 'pv num' }, r.precio != null ? money(r.precio) : 'Sin precio'),
       r.costo != null ? h('div', { class: 'pc num' }, `costo ${money(r.costo)}`) : null),
@@ -100,8 +156,9 @@ function renderResultados(q) {
 }
 
 function moverSeleccion(delta) {
-  if (!resultados.length) return;
-  selIdx = (selIdx + delta + resultados.length) % resultados.length;
+  const lista = visibles();
+  if (!lista.length) return;
+  selIdx = (selIdx + delta + lista.length) % lista.length;
   document.querySelectorAll('#pos-results .res').forEach((el, i) => {
     el.classList.toggle('sel', i === selIdx);
     el.setAttribute('aria-selected', i === selIdx ? 'true' : 'false');
@@ -112,16 +169,17 @@ function moverSeleccion(delta) {
 function agregarSeleccionado() {
   // Mientras se tipea (o la búsqueda nueva no llegó), Enter no agrega un resultado de la búsqueda anterior
   if (buscador().value.trim() !== buscado) { enterEnEspera = buscador().value.trim().length >= 2; return; }
-  const r = resultados[selIdx];
+  const r = visibles()[selIdx];
   if (!r) return;
   const ya = venta.find(v => v.key === r.key);
   if (ya) ya.cantidad++;
   else venta.push({
     key: r.key, producto_id: r.producto_id || null, precio_distribuidor_id: r.precio_distribuidor_id || null,
-    codigo: r.codigo, descripcion: r.descripcion, origen: r.origen,
+    codigo: r.codigo, descripcion: r.descripcion, origen: r.origen, distribuidor: r.distribuidor || null,
     cantidad: 1, precio_unit: r.precio ?? 0, costo_unit: r.costo,
   });
   renderVenta();
+  recordarBusqueda(buscado);
   buscador().select();
   toast(`Agregado: ${r.descripcion.slice(0, 40)}`);
 }
@@ -137,8 +195,15 @@ function renderVenta() {
         onchange: e => { v.cantidad = Math.max(1, parseInt(e.target.value, 10) || 1); renderVenta(); } });
       const pr = h('input', { class: 'pr num', value: v.precio_unit, inputmode: 'decimal', 'aria-label': 'Precio',
         onchange: e => { v.precio_unit = Math.max(0, numeroAR(e.target.value) ?? 0); renderVenta(); } });   // "15.000" = quince mil
-      return h('div', { class: 'ti' },
-        h('div', {}, h('div', { class: 'd' }, v.descripcion), h('div', { class: 'src' }, [v.origen, v.codigo].filter(Boolean).join(' · '))),
+      // Ganancia del renglón: se ve siempre y con un toque se cambia (opciones rápidas con el precio ya calculado)
+      const gan = v.costo_unit > 0 ? gananciaDePrecio(v.precio_unit, v.costo_unit) : null;
+      const chipGanancia = gan == null ? null : h('button', {
+        class: 'gan' + (gan < 15 ? ' baja' : '') + (v.editando ? ' on' : ''), title: 'Cambiar la ganancia de este artículo',
+        'aria-expanded': v.editando ? 'true' : 'false', onclick: () => { v.editando = !v.editando; renderVenta(); },
+      }, icon('trending_up'), `ganancia ${pct(gan)} · ganás ${money(v.cantidad * (v.precio_unit - v.costo_unit))}`);
+      return h('div', { class: 'ti' + (v.editando ? ' editando' : '') },
+        h('div', {}, h('div', { class: 'd' }, v.descripcion), h('div', { class: 'src' }, [v.origen, v.codigo].filter(Boolean).join(' · ')),
+          chipGanancia),
         h('button', { class: 'btn btn-icon btn-red', title: 'Quitar', 'aria-label': 'Quitar', onclick: () => { venta = venta.filter(x => x !== v); renderVenta(); } }, icon('close')),
         h('div', { class: 'ctrl' },
           h('div', { class: 'qty' },
@@ -146,7 +211,8 @@ function renderVenta() {
             qty,
             h('button', { onclick: () => { v.cantidad++; renderVenta(); }, 'aria-label': 'Más' }, '+')),
           h('span', { class: 'muted' }, '×'), pr),
-        h('div', { class: 'sub num' + (v.precio_unit > 0 ? '' : ' sin-precio') }, v.precio_unit > 0 ? money(v.cantidad * v.precio_unit) : 'Sin precio'));
+        h('div', { class: 'sub num' + (v.precio_unit > 0 ? '' : ' sin-precio') }, v.precio_unit > 0 ? money(v.cantidad * v.precio_unit) : 'Sin precio'),
+        v.editando ? selectorGanancia(v) : null);   // fila propia, de lado a lado del renglón
     }));
   }
   const total = venta.reduce((s, v) => s + v.cantidad * v.precio_unit, 0);
@@ -157,8 +223,91 @@ function renderVenta() {
     ? `Ganancia: ${money(ganancia)}${conCosto.length < venta.length ? ' (sin contar artículos sin costo)' : ''}` : '';
   $('pos-cobrar').disabled = !venta.length;
   $('pos-presu').disabled = !venta.length;
+  document.querySelector('#pos-items .gan-selector')?.scrollIntoView({ block: 'nearest' });   // que se vea entero al abrirlo
   $('pos-presu-badge').classList.toggle('hidden', !presupuestoId);
   $('pos-presu-badge').textContent = presupuestoId ? `Presupuesto Nº ${presupuestoId}` : '';
+}
+
+const pct = g => `${Number.isInteger(g) ? g : g.toFixed(1)}%`;
+
+/**
+ * Selector de ganancia de un renglón: opciones rápidas (la de Ajustes marcada) que muestran el precio final y
+ * cuánto se gana, un % a elección, y "a toda la venta" para un precio especial (ej. a un mecánico).
+ */
+function selectorGanancia(v) {
+  const base = gananciaDe(v.distribuidor);
+  const actual = gananciaDePrecio(v.precio_unit, v.costo_unit);
+  const opciones = [...new Set([20, 30, 50, 70, base, 100].map(Number))].sort((a, b) => a - b);
+  const aplicar = p => {
+    v.precio_unit = precioVenta(v.costo_unit, v.distribuidor, p);
+    v.editando = false;
+    renderVenta();
+    buscador().focus();
+  };
+  const otro = h('input', { class: 'input input-sm num', inputmode: 'decimal', placeholder: 'otro %', 'aria-label': 'Otra ganancia en %',
+    onkeydown: e => { if (e.key === 'Enter') { const n = numeroAR(e.target.value); if (n != null && n > -100) aplicar(n); } } });
+  return h('div', { class: 'gan-selector', role: 'group', 'aria-label': 'Elegir ganancia' },
+    ...opciones.map(p => h('button', {
+      class: 'gan-op' + (Math.abs(p - actual) < 0.5 ? ' on' : '') + (p === base ? ' base' : ''),
+      title: p === base ? 'Tu ganancia de Ajustes' : '', onclick: () => aplicar(p),
+    }, h('b', {}, `${p}%`), h('span', {}, money(precioVenta(v.costo_unit, v.distribuidor, p))),
+       h('small', {}, `ganás ${money(precioVenta(v.costo_unit, v.distribuidor, p) - v.costo_unit)}`))),
+    otro,
+    venta.filter(x => x.costo_unit > 0).length > 1 ? h('button', { class: 'btn btn-sm', title: 'Misma ganancia para todos los artículos de esta venta', onclick: () => {
+      const g = gananciaDePrecio(v.precio_unit, v.costo_unit);
+      for (const x of venta) if (x.costo_unit > 0) x.precio_unit = precioVenta(x.costo_unit, x.distribuidor, g);
+      v.editando = false;
+      renderVenta();
+      toast(`Ganancia de ${pct(g)} aplicada a toda la venta`, 'success');
+    } }, icon('done_all'), `${pct(actual)} a toda la venta`) : null);
+}
+
+/* ── Vender algo que no está en ninguna lista: descripción, costo y ganancia (o precio) que se calculan solos ── */
+function venderAMano(texto = '') {
+  const desc = h('input', { class: 'input', value: texto, placeholder: 'Ej: Faro auxiliar universal', 'aria-label': 'Qué se vende' });
+  const costo = h('input', { class: 'input num', inputmode: 'decimal', placeholder: 'Opcional', 'aria-label': 'Costo' });
+  const ganancia = h('input', { class: 'input num', inputmode: 'decimal', value: estado.config.ganancia_pct, 'aria-label': 'Ganancia %' });
+  const precio = h('input', { class: 'input num', inputmode: 'decimal', placeholder: '$', 'aria-label': 'Precio de venta' });
+  const cantidad = h('input', { class: 'input num', inputmode: 'numeric', value: 1, 'aria-label': 'Cantidad' });
+  const pedir = h('input', { type: 'checkbox' });
+  const resumen = h('p', { class: 'muted' });
+  const actualizar = origen => {
+    const c = numeroAR(costo.value), g = numeroAR(ganancia.value), p = numeroAR(precio.value);
+    if (origen !== 'precio' && c > 0 && g != null) precio.value = precioVenta(c, null, g);
+    if (origen === 'precio' && c > 0 && p > 0) ganancia.value = gananciaDePrecio(p, c);
+    const pf = numeroAR(precio.value);
+    resumen.textContent = c > 0 && pf > 0 ? `Ganás ${money(pf - c)} por unidad.` : 'Sin costo cargado: la venta suma igual, pero sin ganancia calculada.';
+  };
+  costo.addEventListener('input', () => actualizar('costo'));
+  ganancia.addEventListener('input', () => actualizar('ganancia'));
+  precio.addEventListener('input', () => actualizar('precio'));
+  actualizar();
+  const agregar = () => {
+    const d = desc.value.trim(), p = numeroAR(precio.value), c = numeroAR(costo.value);
+    if (!d) { toast('Escribí qué se vende', 'error'); desc.focus(); return; }
+    if (!(p > 0)) { toast('Falta el precio de venta', 'error'); precio.focus(); return; }
+    venta.push({ key: `m-${Date.now()}`, producto_id: null, precio_distribuidor_id: null, codigo: '', descripcion: d,
+                 origen: 'A mano', distribuidor: null, cantidad: Math.max(1, parseInt(cantidad.value, 10) || 1),
+                 precio_unit: p, costo_unit: c > 0 ? c : null, reponer: pedir.checked });
+    closeModal(); renderVenta(); buscador().focus();
+    toast(`Agregado a mano: ${d.slice(0, 40)}`, 'success');
+  };
+  [desc, costo, ganancia, precio, cantidad].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') agregar(); }));
+  openModal({
+    title: 'Vender algo que no está en las listas',
+    body: h('div', {},
+      h('div', { class: 'field' }, h('label', { class: 'label' }, 'Qué se vende'), desc),
+      h('div', { class: 'grid4' },
+        h('div', { class: 'field' }, h('label', { class: 'label' }, 'Costo ($)'), costo),
+        h('div', { class: 'field' }, h('label', { class: 'label' }, 'Ganancia (%)'), ganancia),
+        h('div', { class: 'field' }, h('label', { class: 'label' }, 'Precio de venta ($)'), precio),
+        h('div', { class: 'field' }, h('label', { class: 'label' }, 'Cantidad'), cantidad)),
+      resumen,
+      h('label', { class: 'check' }, pedir, 'Anotarlo en Reposición para pedirlo')),
+    foot: [h('button', { class: 'btn', onclick: closeModal }, 'Cancelar'),
+           h('button', { class: 'btn btn-primary', onclick: agregar }, icon('add_shopping_cart'), 'Agregar a la venta')],
+  });
+  setTimeout(() => (texto ? costo : desc).focus(), 0);
 }
 
 function clienteElegido() {
@@ -170,6 +319,7 @@ function itemsParaGuardar() {
   return venta.map(v => ({
     producto_id: v.producto_id, precio_distribuidor_id: v.precio_distribuidor_id, codigo: v.codigo,
     descripcion: v.descripcion, origen: v.origen, cantidad: v.cantidad, precio_unit: v.precio_unit, costo_unit: v.costo_unit,
+    reponer: v.reponer ?? true,   // lo vendido a mano solo va a Reposición si se tildó
   }));
 }
 
@@ -311,6 +461,7 @@ export function iniciarMostrador() {
   $('pos-presu').addEventListener('click', presupuestoWhatsApp);
   $('pos-presus').addEventListener('click', verPresupuestos);
   $('pos-clear').addEventListener('click', () => { limpiarVenta(); buscador().focus(); });
+  $('pos-manual').addEventListener('click', () => venderAMano());
   $('pos-cliente-nuevo').addEventListener('click', () => editarCliente(null, c => { $('pos-cliente').value = c.nombre; }));
   $('pos-pago').addEventListener('change', () => {
     $('pos-cc-aviso').classList.toggle('hidden', $('pos-pago').value !== 'cuenta_corriente');

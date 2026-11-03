@@ -33,7 +33,8 @@ test('aNumero: formatos argentinos y con $', () => {
 });
 
 test('detecta columnas aunque la descripción no tenga encabezado', () => {
-  assert.deepEqual(detectarColumnas(PLANILLA), { encabezado: 4, codigo: 1, precio: 4, descripcion: 3 });
+  const { encabezado, codigo, precio, descripcion } = detectarColumnas(PLANILLA);
+  assert.deepEqual({ encabezado, codigo, precio, descripcion }, { encabezado: 4, codigo: 1, precio: 4, descripcion: 3 });
 });
 
 test('parsea productos, secciones como rubro y la leyenda sin IVA', () => {

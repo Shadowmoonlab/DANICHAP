@@ -1,6 +1,6 @@
 // gestion/core.js — Base compartida del panel: DOM, formato, modal, configuración, proveedores, búsqueda
 // Usa los globales de supabase.js (_supabase) y toast.js (showToast), que cargan antes como scripts clásicos.
-import { normalizar, palabras } from './texto.js?v=14';
+import { normalizar, palabras, relevancia } from './texto.js?v=21';
 
 export const db = window._supabase ?? _supabase;
 export const toast = (msg, tipo) => window.showToast(msg, tipo);
@@ -115,16 +115,35 @@ export async function cargarProveedores() {
 export const proveedor = slug => estado.proveedores.find(p => p.slug === slug);
 export const nombreProveedor = slug => proveedor(slug)?.nombre || slug;
 
-export function precioVenta(costo, distribuidor) {
-  if (costo == null) return null;
+/** Ganancia (%) que se aplica a un proveedor: la suya si tiene, si no la general de Ajustes. */
+export function gananciaDe(distribuidor) {
   const { config } = estado;
-  const pct = Number(config.ganancias_distribuidor?.[distribuidor] ?? config.ganancia_pct);
-  const r = Number(config.redondeo) || 1;
+  return Number(config.ganancias_distribuidor?.[distribuidor] ?? config.ganancia_pct);
+}
+
+/** Precio de venta para un costo; con `pct` se usa esa ganancia (la que Daniel elige en el ticket). */
+export function precioVenta(costo, distribuidor, pct = gananciaDe(distribuidor)) {
+  if (costo == null) return null;
+  const r = Number(estado.config.redondeo) || 1;
   return Math.round((costo * (1 + pct / 100)) / r) * r;
 }
 
+/** Ganancia (%) que deja un precio sobre su costo (para mostrarla cuando el precio se cambia a mano). */
+export const gananciaDePrecio = (precio, costo) => (costo > 0 ? Math.round(((precio / costo) - 1) * 1000) / 10 : null);
+
+// Listas en otra moneda (La Primera Alternativa en dólares): se guardan como vienen y se pasan a pesos acá,
+// con la cotización de Ajustes. Así, cambiar la cotización actualiza todos los precios al instante.
+const COTIZACION = { USD: 'cotizacion_usd', EUR: 'cotizacion_eur' };
+export const monedaDe = slug => proveedor(slug)?.moneda || 'ARS';
+export function aPesos(precio, slug) {
+  if (precio == null) return null;
+  const campo = COTIZACION[monedaDe(slug)];
+  const cotizacion = campo ? Number(estado.config[campo]) : 1;
+  return campo && cotizacion > 0 ? Math.round(precio * cotizacion * 100) / 100 : precio;
+}
+
 /* ── WhatsApp ────────────────────────────────────────────────────────── */
-export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=14';
+export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=21';
 export async function copiar(texto, aviso = 'Copiado') {
   try { await navigator.clipboard.writeText(texto); toast(aviso, 'success'); return true; }
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }
@@ -151,17 +170,82 @@ export function cargarSheetJS() {
   });
 }
 
+// pdf.js 4.10 (Mozilla) servido desde el propio sitio, para leer listas en PDF; también se carga recién al usarlo
+const PDFJS = new URL('../vendor/pdfjs-4.10.38/', import.meta.url);
+let pdfjs = null;
+export async function cargarPdfJs() {
+  if (!pdfjs) {
+    pdfjs = await import(new URL('pdf.min.mjs', PDFJS).href);
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdf.worker.min.mjs', PDFJS).href;
+  }
+  return pdfjs;
+}
+
+/** Texto de un PDF como pedazos con su posición (lo que necesita filasDePdf de listas.js). */
+export async function leerTextoPdf(archivo) {
+  const lib = await cargarPdfJs();
+  const doc = await lib.getDocument({ data: new Uint8Array(await archivo.arrayBuffer()) }).promise;
+  const paginas = [];
+  for (let n = 1; n <= doc.numPages; n++) {
+    const { items } = await (await doc.getPage(n)).getTextContent();
+    paginas.push(items.map(it => ({ x: it.transform[4], y: it.transform[5], s: it.str })));
+  }
+  return paginas;
+}
+
 /* ── Búsqueda en precios de distribuidores y stock propio ────────────── */
+// Cada palabra tiene que coincidir con el COMIENZO de una palabra (\m en Postgres): "gol" encuentra "GOL TREND"
+// pero no "paraGOLpe". Usa el mismo índice trigram de la columna busqueda.
+// Solo números ("400", "128", "1500": modelos y medidas) van en cualquier parte: "p/400" queda "p400" en la búsqueda.
+const escaparRegex = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const esNumero = w => /^\d+$/.test(w);
+/** La misma regla que la base, hecha acá con los acentos bien tratados (no depende del idioma de la base). */
+export function coincidePalabras(textoNormalizado, ws) {
+  return ws.every(w => (esNumero(w) ? textoNormalizado.includes(w) : new RegExp(`(^|[^a-z0-9])${escaparRegex(w)}`).test(textoNormalizado)));
+}
+
 export async function buscarPrecios(q, limite = 40) {
   const ws = palabras(normalizar(q));
   if (!ws.length) return [];
   let query = db.from('precios_distribuidor')
     .select('id, distribuidor, codigo, descripcion, marca, rubro, precio_neto, precio_anterior, precio_cambio_at')
     .eq('activo', true);
-  for (const w of ws) query = query.ilike('busqueda', `%${w}%`);
-  const { data, error } = await query.order('precio_neto', { ascending: true, nullsFirst: false }).limit(limite);
+  for (const w of ws) query = esNumero(w) ? query.ilike('busqueda', `%${w}%`) : query.filter('busqueda', 'imatch', `\\m${escaparRegex(w)}`);
+  // Se traen más de los que se muestran y se ordenan por relevancia (lo que empieza con la primera palabra, primero);
+  // antes eran los 40 más baratos y lo buscado quedaba afuera detrás de soportes y vidrios
+  const { data, error } = await query.order('precio_neto', { ascending: true, nullsFirst: false }).limit(250);
   if (error) { console.warn('[gestion] buscarPrecios:', error.message); return []; }
-  return data;
+  // Código exacto (o su comienzo) primero de todo: "CHECOR-001" → ese artículo arriba
+  const qCodigo = normalizar(q).replace(/\s+/g, '');
+  const escritas = normalizar(q).split(/\s+/).filter(w => w.length > 1);   // las palabras tal como se escribieron
+  const puntaje = d => {
+    const c = normalizar(d.codigo ?? '');
+    return c === qCodigo ? -2000 : qCodigo.length >= 3 && c.startsWith(qCodigo) ? -1000 : relevancia(d.descripcion, ws, escritas);
+  };
+  return data
+    .filter(d => coincidePalabras(normalizar([d.codigo, d.descripcion, d.marca, d.rubro].join(' ')).replace(/,/g, ''), ws))
+    .map((d, i) => ({ d, puntaje: puntaje(d), i }))
+    .sort((a, b) => a.puntaje - b.puntaje || a.i - b.i)
+    .slice(0, limite)
+    .map(({ d }) => ({
+      ...d, moneda: monedaDe(d.distribuidor), precio_original: d.precio_neto,
+      precio_neto: aPesos(d.precio_neto, d.distribuidor), precio_anterior: aPesos(d.precio_anterior, d.distribuidor),
+    }));
+}
+
+/**
+ * Cuando la búsqueda exacta no encontró nada: artículos PARECIDOS, tolerando errores de tipeo
+ * ("paragople" → "paragolpe"). Sin docs/gestion-v5.sql todavía, devuelve [] y listo.
+ */
+export async function buscarParecidos(q, limite = 30) {
+  const texto = normalizar(q).trim();
+  if (texto.length < 3) return [];
+  const { data, error } = await db.rpc('buscar_parecidos', { p_q: texto, p_limite: limite });
+  if (error) { console.warn('[gestion] buscarParecidos:', error.message); return []; }
+  return (data || []).map(d => ({
+    ...d, moneda: monedaDe(d.distribuidor), precio_original: d.precio_neto,
+    precio_neto: aPesos(d.precio_neto, d.distribuidor), precio_anterior: aPesos(d.precio_anterior, d.distribuidor),
+  }));
 }
 
 export async function buscarStock(q, limite = 15) {
@@ -176,8 +260,10 @@ export async function buscarStock(q, limite = 15) {
     .limit(200);
   if (error) { console.warn('[gestion] buscarStock:', error.message); return []; }
   const claves = ws.map(normalizar);
+  const escritasStock = normalizar(q).split(/\s+/).filter(w => w.length > 1);
   return data
-    .filter(p => { const t = normalizar([p.nombre, p.modelo, p.marca_rep].join(' ')); return claves.every(w => t.includes(w)); })
+    .filter(p => coincidePalabras(normalizar([p.nombre, p.modelo, p.marca_rep].join(' ')), claves))
+    .sort((a, b) => relevancia(a.nombre, ws.map(normalizar), escritasStock) - relevancia(b.nombre, ws.map(normalizar), escritasStock))
     .slice(0, limite);
 }
 

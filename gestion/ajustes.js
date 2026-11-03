@@ -1,5 +1,6 @@
 // gestion/ajustes.js — Ganancia, redondeo, datos del comprobante y lectura con IA (límite y consumo).
-import { $, h, db, toast, money, estado, registrarVista, confirmar, cargarSheetJS, hoyISO, unaVez } from './core.js?v=14';
+import { $, h, db, toast, money, estado, registrarVista, confirmar, cargarSheetJS, hoyISO, unaVez } from './core.js?v=21';
+import { numeroAR } from './texto.js?v=21';
 
 // USD por millón de tokens (entrada / salida). Misma tabla que MODELOS en supabase/functions/_shared/leer-factura.js
 const PRECIOS_IA = {
@@ -20,6 +21,11 @@ function render() {
   const { config } = estado;
   $('cfg-ganancia').value = config.ganancia_pct;
   $('cfg-redondeo').value = String(config.redondeo || 1);
+  // Sin docs/gestion-v5.sql todavía no existen las cotizaciones: se esconden
+  $('cfg-cotizaciones').classList.toggle('hidden', !('cotizacion_usd' in config));
+  $('cfg-cotizaciones').nextElementSibling.classList.toggle('hidden', !('cotizacion_usd' in config));
+  $('cfg-usd').value = config.cotizacion_usd ?? '';
+  $('cfg-eur').value = config.cotizacion_eur ?? '';
   $('cfg-nombre').value = config.nombre_negocio || '';
   $('cfg-dir').value = config.direccion || '';
   $('cfg-tel').value = config.telefono || '';
@@ -63,10 +69,14 @@ async function guardar() {
   if (Number(pctTexto) <= 0 && !(await confirmar('Ganancia en 0 %', 'Con 0 % se vende todo al precio de costo. ¿Guardar igual?', { ok: 'Guardar igual', peligro: true }))) return;
   const porDist = {};
   document.querySelectorAll('#cfg-dist input[data-dist]').forEach(i => { if (i.value !== '') porDist[i.dataset.dist] = Number(i.value); });
+  if ('cotizacion_usd' in estado.config && !(numeroAR($('cfg-usd').value) > 0 && numeroAR($('cfg-eur').value) > 0)) {
+    toast('Poné la cotización del dólar y del euro (ej: 1.400)', 'error'); $('cfg-usd').focus(); return;
+  }
   const datos = {
     ganancia_pct: Number($('cfg-ganancia').value) || 0,
     ganancias_distribuidor: porDist,
     redondeo: Number($('cfg-redondeo').value) || 1,
+    ...('cotizacion_usd' in estado.config ? { cotizacion_usd: numeroAR($('cfg-usd').value), cotizacion_eur: numeroAR($('cfg-eur').value) } : {}),
     nombre_negocio: $('cfg-nombre').value.trim() || 'DANICHAP',
     direccion: $('cfg-dir').value.trim() || null,
     telefono: $('cfg-tel').value.trim() || null,

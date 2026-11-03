@@ -3,9 +3,9 @@
 // comprobante, cruzar con lo pedido (precio y cantidad) y no tocar nada sin una confirmación explícita.
 import {
   $, h, icon, vacio, db, toast, money, fechaCorta, estado, nombreProveedor, precioVenta, debounce,
-  buscarStock, confirmar, registrarVista, actualizarBadgeRepo, hoyISO, unaVez,
-} from './core.js?v=14';
-import { normalizar, numeroAR } from './texto.js?v=14';
+  buscarStock, confirmar, registrarVista, actualizarBadgeRepo, hoyISO, unaVez, aPesos,
+} from './core.js?v=21';
+import { normalizar, numeroAR } from './texto.js?v=21';
 
 const CATEGORIAS = [
   ['mecanica', 'Mecánica'], ['iluminacion', 'Iluminación'], ['faros', 'Faros'], ['opticas', 'Ópticas'],
@@ -165,7 +165,7 @@ async function cruzarConPedidos() {
     const cod = normalizar(f.codigo || '');
     const desc = normalizar(f.descripcion || '');
     const p = (pedidos || []).find(x => !usados.has(x.id) && ((cod && normalizar(x.precio.codigo) === cod) || (desc && normalizar(x.precio.descripcion) === desc)));
-    if (p) { usados.add(p.id); f.repo = { id: p.id, cantidad: p.cantidad, costo: p.precio.precio_neto, estado: p.estado }; }
+    if (p) { usados.add(p.id); f.repo = { id: p.id, cantidad: p.cantidad, costo: aPesos(p.precio.precio_neto, p.precio.distribuidor), estado: p.estado }; }
     const c = cod && (costos || []).find(x => normalizar(x.codigo_proveedor || '') === cod);
     if (c && f.accion === 'solo') { f.accion = 'stock'; f.producto_id = c.producto_id; f.producto_nombre = c.producto?.nombre || ''; f.costo_anterior = c.costo; }
   }

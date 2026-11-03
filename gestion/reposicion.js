@@ -3,10 +3,10 @@
 import {
   $, h, icon, vacio, db, toast, money, fecha, estado, proveedor, nombreProveedor, DIAS_LARGO, debounce,
   buscarPrecios, openModal, closeModal, copiar, linkWhatsApp, pedirNumero, registrarVista, actualizarBadgeRepo,
-  mostrarVista,
-} from './core.js?v=14';
-import { palabras } from './texto.js?v=14';
-import { pedidoProveedor } from './plantillas.js?v=14';
+  mostrarVista, aPesos,
+} from './core.js?v=21';
+import { palabras } from './texto.js?v=21';
+import { pedidoProveedor } from './plantillas.js?v=21';
 
 let repoEstado = 'pendiente';
 
@@ -60,7 +60,7 @@ async function cargar() {
 function tarjetaProveedor(slug, items) {
   const sin = slug === '_sin';
   const prov = proveedor(slug);
-  const total = items.reduce((s, it) => s + it.cantidad * (it.precio?.precio_neto || 0), 0);
+  const total = items.reduce((s, it) => s + it.cantidad * (aPesos(it.precio?.precio_neto, it.precio?.distribuidor) || 0), 0);
   const minimo = Number(prov?.pedido_minimo) || 0;
 
   return h('div', { class: 'card' },
@@ -79,7 +79,7 @@ function tarjetaProveedor(slug, items) {
       h('div', {},
         h('div', { class: 'd' }, it.precio?.descripcion || it.descripcion),
         h('div', { class: 'm' },
-          it.precio ? `${it.precio.codigo} · ${money(it.precio.precio_neto)} c/u` : (it.codigo || 'Elegí dónde comprarlo con "Comparar"'),
+          it.precio ? `${it.precio.codigo} · ${money(aPesos(it.precio.precio_neto, it.precio.distribuidor))} c/u` : (it.codigo || 'Elegí dónde comprarlo con "Comparar"'),
           it.precio && !it.precio.activo ? ' · ⚠ ya no figura en el distribuidor' : '',
           repoEstado === 'pedido' && it.pedido_at ? ` · pedido ${fecha(it.pedido_at)}` : '')),
       h('div', { class: 'acts' },
@@ -143,7 +143,7 @@ export async function compararPrecios(it, alElegir) {
         h('td', {}, h('span', { class: 'chip' }, nombreProveedor(r.distribuidor)), h('div', { style: 'margin-top:3px' }, etiquetaVisita(proveedor(r.distribuidor)))),
         h('td', { class: 'muted' }, r.codigo),
         h('td', {}, r.descripcion, i === 0 && res.length > 1 ? h('span', { class: 'best', style: 'margin-left:6px' }, '★ más barato') : null),
-        h('td', { class: 'right num' }, h('b', {}, money(r.precio_neto))),
+        h('td', { class: 'right num' }, h('b', {}, money(r.precio_neto))),   // buscarPrecios ya lo devuelve en pesos
         h('td', {}, h('button', { class: 'btn btn-sm btn-primary', onclick: () => elegir(r) },
           r.id === it.precio_distribuidor_id ? 'Elegido' : 'Elegir'))))))));
   };

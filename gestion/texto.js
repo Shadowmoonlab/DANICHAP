@@ -1,12 +1,41 @@
 // gestion/texto.js — Funciones puras de texto (sin DOM ni base): búsqueda, teléfonos, WhatsApp.
 // Se testean con node --test (tests/gestion-texto.test.mjs).
 
+// Palabras que no ayudan a encontrar ("paragolpe DE gol"): se ignoran
+const VACIAS = new Set(['de', 'del', 'la', 'las', 'el', 'los', 'para', 'p', 'con', 'c', 'y', 'en', 'un', 'una']);
+// Cómo abrevian los proveedores: se busca por la raíz común, así "paragolpe" también encuentra "PARAG." o "PARAGOL"
+const RAICES = [
+  [/^paragol/, 'parag'], [/^optica/, 'opt'], [/^delanter/, 'del'], [/^traser/, 'tras'], [/^izquierd/, 'izq'],
+  [/^derech/, 'der'], [/^guardabarr/, 'guardab'], [/^amortiguad/, 'amort'], [/^parabris/, 'parabr'],
+  [/^cerradur/, 'cerrad'], [/^levantavidri/, 'levantav'], [/^radiador/, 'radiad'], [/^espejo/, 'espej'],
+];
+
 /** Palabras de búsqueda seguras para filtros de PostgREST.
- *  Sin la "s" final (búsqueda por substring): "paragolpes" también encuentra "PARAGOLPE". */
+ *  Sin la "s" final (búsqueda por substring): "paragolpes" también encuentra "PARAGOLPE".
+ *  Sin palabras vacías ("de", "del") y con la raíz de las abreviaturas comunes ("paragolpe" → "parag"). */
 export const palabras = q => String(q).toLowerCase().replace(/[,()*%\\:"']/g, ' ').split(/\s+/)
-  .filter(w => w.length > 1)
+  .filter(w => w.length > 1 && !VACIAS.has(w))
   .map(w => (w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w))
+  .map(w => RAICES.find(([re]) => re.test(w))?.[1] ?? w)
   .slice(0, 6);
+
+/**
+ * Qué tan bien coincide una descripción con lo buscado (menor = mejor). Lo que EMPIEZA con la primera palabra
+ * va primero ("óptica de corsa" → "ÓPTICA CORSA…" antes que "SOPORTE ÓPTICA CORSA"); después, cuanto antes
+ * aparezca esa palabra y más cerca estén las demás, mejor.
+ */
+export function relevancia(descripcion, ws, escritas = []) {
+  if (!ws.length) return 0;
+  const t = normalizar(descripcion).replace(/\s+/g, ' ').trim();
+  const partes = t.split(' ');
+  const lugar = partes.findIndex(p => p.startsWith(ws[0]));   // en qué palabra de la descripción aparece
+  if (lugar === -1) return t.includes(ws[0]) ? 500 : 1000;
+  // Palabra entera ("gol" = "GOL") antes que parcial ("GOLF"); y la palabra TAL COMO SE ESCRIBIÓ ("delantera")
+  // antes que su abreviatura ("DEL"): lo más parecido a lo que está en el buscador, primero
+  const enteras = ws.filter(w => partes.includes(w)).length;
+  const comoSeEscribio = escritas.filter(w => partes.some(p => p.replace(/s$/, '') === w.replace(/s$/, ''))).length;
+  return (lugar === 0 ? 0 : 100) + lugar * 10 - enteras * 3 - comoSeEscribio * 5 + Math.min(t.length, 200) / 100;
+}
 
 /** Igual que la columna precios_distribuidor.busqueda: sin acentos ni - / . → "f100" encuentra "F-100". */
 export const normalizar = q => String(q).toLowerCase().normalize('NFD')
