@@ -4,8 +4,8 @@
 import {
   $, h, icon, vacio, db, toast, money, fechaCorta, estado, nombreProveedor, precioVenta, debounce,
   buscarStock, confirmar, registrarVista, actualizarBadgeRepo, hoyISO, unaVez, aPesos,
-} from './core.js?v=40';
-import { normalizar, numeroAR } from './texto.js?v=40';
+} from './core.js?v=41';
+import { normalizar, numeroAR } from './texto.js?v=41';
 
 const CATEGORIAS = [
   ['mecanica', 'Mecánica'], ['iluminacion', 'Iluminación'], ['faros', 'Faros'], ['opticas', 'Ópticas'],
@@ -349,7 +349,11 @@ async function cargarLista() {
   $('recepcion-trabajo').replaceChildren(h('div', { class: 'recep-cta card card-pad' },
     h('div', {}, h('h3', { style: 'margin:0 0 4px' }, '¿Llegó mercadería?'),
       h('p', { class: 'muted', style: 'margin:0' }, 'Sacale una foto a la factura o remito (o cargala a mano): revisás los renglones y, al confirmar, se suma al stock y queda anotado como compra en el Libro diario.')),
-    h('button', { class: 'btn btn-primary btn-lg', onclick: pasoArchivo }, icon('photo_camera'), 'Cargar factura o remito')));
+    h('div', { class: 'acciones' },
+      h('button', { class: 'btn btn-primary btn-lg', onclick: pasoArchivo }, icon('photo_camera'), 'Cargar factura o remito'),
+      // A mano, sin foto: siempre a la vista (antes solo aparecía después de elegir "Cargar factura")
+      h('button', { class: 'btn btn-lg', onclick: () => abrirEditor({ proveedor: '', origen: 'manual', filas: [filaVacia()] }) },
+        icon('edit_note'), 'Cargar a mano'))));
   if (sessionStorage.getItem('danichap-recepcion-prov') !== null) pasoArchivo();
 
   const { data, error } = await db.from('recepciones')
