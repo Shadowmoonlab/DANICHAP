@@ -3,11 +3,11 @@ import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, mesListaDe, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
   actualizarBadgeRepo, unaVez, hoyISO, gananciaDe, gananciaDePrecio, buscarParecidos, errorAmigable,
-} from './core.js?v=31';
-import { numeroAR, palabras, normalizar } from './texto.js?v=31';
-import { presupuesto as textoPresupuesto } from './plantillas.js?v=31';
-import { imprimirComprobante } from './comprobante.js?v=31';
-import { editarCliente } from './clientes.js?v=31';
+} from './core.js?v=32';
+import { numeroAR, palabras, normalizar } from './texto.js?v=32';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=32';
+import { imprimirComprobante } from './comprobante.js?v=32';
+import { editarCliente } from './clientes.js?v=32';
 
 let resultados = [];
 let selIdx = -1;
@@ -343,15 +343,20 @@ function venderAMano(texto = '') {
     const c = numeroAR(costo.value), g = numeroAR(ganancia.value), p = numeroAR(precio.value);
     if (!precioEscrito && origen !== 'precio' && c > 0 && g != null) precio.value = precioVenta(c, null, g);
     if (precioEscrito && c > 0 && p > 0) ganancia.value = gananciaDePrecio(p, c);
-    const pf = numeroAR(precio.value);
-    resumen.textContent = c > 0 && pf > 0 ? `Ganás ${money(pf - c)} por unidad.` : 'Sin costo cargado: la venta suma igual, pero sin ganancia calculada.';
+    const pf = numeroAR(precio.value), gf = numeroAR(ganancia.value);
+    // Sin costo: se calcula con la ganancia en % (a la vista, para que la cambie si no es así). Nunca queda "$0 de ganancia"
+    resumen.textContent = c > 0 && pf > 0 ? `Ganás ${money(pf - c)} por unidad.`
+      : pf > 0 && gf != null && gf > -100 ? `Sin costo: se calcula con ${gf}% de ganancia → costo ${money(Math.round(pf / (1 + gf / 100)))}, ganás ${money(pf - Math.round(pf / (1 + gf / 100)))}. Si no es así, cambiá el costo o el %.`
+      : 'Poné el costo o la ganancia en %, así sabés cuánto ganaste.';
   };
   costo.addEventListener('input', () => actualizar('costo'));
   ganancia.addEventListener('input', () => actualizar('ganancia'));
   precio.addEventListener('input', () => actualizar('precio'));
   actualizar();
   const agregar = () => {
-    const d = desc.value.trim(), p = numeroAR(precio.value), c = numeroAR(costo.value);
+    const d = desc.value.trim(), p = numeroAR(precio.value), g = numeroAR(ganancia.value);
+    let c = numeroAR(costo.value);
+    if (!(c > 0) && p > 0 && g != null && g > -100) c = Math.round(p / (1 + g / 100));   // costo a partir de la ganancia
     if (!d) { toast('Escribí qué se vende', 'error'); desc.focus(); return; }
     if (!(p > 0)) { toast('Falta el precio de venta', 'error'); precio.focus(); return; }
     venta.push({ key: `m-${Date.now()}`, producto_id: null, precio_distribuidor_id: null, codigo: '', descripcion: d,

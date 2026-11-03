@@ -2,12 +2,12 @@
 // Los totales los calcula la base (libro_resumen / libro_movimientos, docs/add-libro-diario.sql).
 import {
   $, h, icon, vacio, db, toast, money, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, cargarSheetJS, unaVez,
-} from './core.js?v=31';
+} from './core.js?v=32';
 import {
   rangoPeriodo, moverPeriodo, periodoDeHoy, conResultados, totales, etiquetaFila, margen, etiquetaMovimiento,
   hojasExcel, TIPOS_MOV, CATEGORIAS,
-} from './libro-calc.js?v=31';
-import { verVenta } from './ventas.js?v=31';
+} from './libro-calc.js?v=32';
+import { verVenta } from './ventas.js?v=32';
 
 const MEDIOS_MOV = { efectivo: 'Efectivo', transferencia: 'Transferencia', debito: 'Débito', credito: 'Crédito', otro: 'Otro' };
 const hora = iso => new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
@@ -22,7 +22,11 @@ async function cargar() {
 
   const pedidos = [db.rpc('libro_resumen', { p_desde: p.desde, p_hasta: p.hasta, p_agrupar: p.agrupar })];
   if (modo === 'dia') pedidos.push(db.rpc('libro_movimientos', { p_desde: p.desde, p_hasta: p.hasta }));
-  const [res, mov] = await Promise.all(pedidos);
+  // Ventas del período con algún artículo sin costo: su ganancia no se conoce (se avisa, no se esconde)
+  const sinCosto = db.from('venta_items').select('venta_id, ventas!inner(created_at, anulada)').is('costo_unit', null)
+    .eq('ventas.anulada', false).gte('ventas.created_at', `${p.desde}T00:00:00-03:00`).lte('ventas.created_at', `${p.hasta}T23:59:59.999-03:00`);
+  const [[res, mov], faltan] = await Promise.all([Promise.all(pedidos), sinCosto]);
+  estadoLibro.ventasSinCosto = new Set((faltan.data || []).map(i => i.venta_id)).size;
   const error = res.error || mov?.error;
   if (error) {
     const falta = /libro_resumen|libro_movimientos|movimientos/.test(error.message) && /find|exist/i.test(error.message);
@@ -65,6 +69,8 @@ function pintarTotales(t) {
     h('div', { class: 'caja-item' }, h('span', {}, 'Entró a caja'), h('b', { class: 'num' }, money(t.caja_entro))),
     h('div', { class: 'caja-item' }, h('span', {}, 'Salió de caja'), h('b', { class: 'num' }, money(t.caja_salio))),
     h('div', { class: 'caja-item ' + (t.caja_neto >= 0 ? 'caja-pos' : 'caja-neg') }, h('span', {}, 'Neto de caja'), h('b', { class: 'num' }, money(t.caja_neto))),
+    estadoLibro.ventasSinCosto ? h('button', { class: 'caja-item fiado', title: 'Abrí Ventas, tocá la venta y cargá el costo', onclick: () => document.querySelector(".tab[data-view='ventas']")?.click() },
+      h('span', {}, `${estadoLibro.ventasSinCosto === 1 ? '1 venta' : `${estadoLibro.ventasSinCosto} ventas`} sin costo`), h('b', {}, 'la ganancia real es mayor: cargalo en Ventas')) : null,
     t.fiado ? h('div', { class: 'caja-item fiado' }, h('span', {}, 'Vendido fiado'), h('b', { class: 'num' }, money(t.fiado))) : null,
     t.cobros ? h('div', { class: 'caja-item' }, h('span', {}, 'Cobrado de cta. cte.'), h('b', { class: 'num' }, money(t.cobros))) : null,
   ].filter(Boolean));

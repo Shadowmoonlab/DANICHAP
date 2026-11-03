@@ -1,7 +1,8 @@
 // gestion/ventas.js — Historial de ventas con ganancia real y cierre de caja por forma de pago.
-import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=31';
-import { imprimirComprobante } from './comprobante.js?v=31';
-import { calcularCierre, leerDiferencia } from './caja-calc.js?v=31';
+import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=32';
+import { imprimirComprobante } from './comprobante.js?v=32';
+import { calcularCierre, leerDiferencia } from './caja-calc.js?v=32';
+import { numeroAR } from './texto.js?v=32';
 
 let pedidoVentas = 0;   // si se cambia el filtro rápido, la respuesta vieja no pisa a la nueva
 async function cargar() {
@@ -20,10 +21,19 @@ async function cargar() {
   if (error) { body.replaceChildren(h('tr', {}, h('td', { colspan: 6 }, error.message))); return; }
 
   const validas = data.filter(v => !v.anulada);
+  // Ventas con algún artículo sin costo (ej. "A mano" sin costo): su ganancia no es $0, es desconocida
+  const ids = validas.map(v => v.id);
+  const { data: sinCostoItems } = ids.length
+    ? await db.from('venta_items').select('venta_id').in('venta_id', ids).is('costo_unit', null)
+    : { data: [] };
+  if (yo !== pedidoVentas) return;
+  const sinCosto = new Set((sinCostoItems || []).map(i => i.venta_id));
   const vendido = validas.reduce((s, v) => s + Number(v.total), 0);
   const ganancia = validas.reduce((s, v) => s + Number(v.ganancia), 0);
   $('st-vendido').textContent = money(vendido);
   $('st-ganancia').textContent = money(ganancia);
+  const nSin = validas.filter(v => sinCosto.has(v.id)).length;
+  $('st-ganancia-nota').textContent = nSin ? `${nSin === 1 ? '1 venta' : `${nSin} ventas`} sin costo: tocala y cargá el costo` : 'Ganancia';
   $('st-cant').textContent = validas.length;
   $('st-ticket').textContent = money(validas.length ? vendido / validas.length : 0);
 
@@ -41,11 +51,12 @@ async function cargar() {
     h('td', {}, v.cliente_nombre || h('span', { class: 'muted' }, 'Consumidor final')),
     h('td', {}, PAGOS[v.medio_pago] || v.medio_pago),
     h('td', { class: 'right num' }, h('b', {}, money(v.total))),
-    h('td', { class: 'right num ganancia' }, money(v.ganancia)))));
+    h('td', { class: 'right num ganancia' }, money(v.ganancia),
+      !v.anulada && sinCosto.has(v.id) ? h('span', { class: 'chip chip-amber', style: 'margin-left:6px', title: 'Tocá la venta y cargá el costo para saber cuánto ganaste' }, 'sin costo') : null))));
 }
 
 export async function verVenta(v) {
-  const { data: items, error: errItems } = await db.from('venta_items').select('codigo, descripcion, cantidad, precio_unit, costo_unit').eq('venta_id', v.id);
+  const { data: items, error: errItems } = await db.from('venta_items').select('id, codigo, descripcion, cantidad, precio_unit, costo_unit').eq('venta_id', v.id);
   // Sin los renglones no se muestra la venta: se imprimiría un comprobante vacío en $0
   if (errItems) { toast('No se pudieron leer los artículos de la venta: ' + errItems.message, 'error'); return; }
   openModal({
@@ -57,7 +68,9 @@ export async function verVenta(v) {
         h('thead', {}, h('tr', {}, h('th', {}, 'Cant.'), h('th', {}, 'Descripción'), h('th', { class: 'right' }, 'Precio'), h('th', { class: 'right' }, 'Subtotal'), h('th', { class: 'right' }, 'Ganancia'))),
         h('tbody', {}, ...(items || []).map(i => h('tr', {}, h('td', {}, i.cantidad), h('td', {}, i.descripcion),
           h('td', { class: 'right num' }, money(i.precio_unit)), h('td', { class: 'right num' }, money(i.cantidad * i.precio_unit)),
-          h('td', { class: 'right num ganancia' }, i.costo_unit != null ? money(i.cantidad * (i.precio_unit - i.costo_unit)) : h('span', { class: 'muted' }, 'sin costo')))))))),
+          h('td', { class: 'right num ganancia' }, i.costo_unit != null ? money(i.cantidad * (i.precio_unit - i.costo_unit))
+            : !v.anulada ? h('button', { class: 'btn btn-sm', onclick: () => cargarCosto(v, i) }, icon('edit'), 'Cargar costo')
+            : h('span', { class: 'muted' }, 'sin costo')))))))),
     foot: [
       !v.anulada ? h('button', { class: 'btn btn-red', onclick: async () => {
         closeModal();
@@ -74,6 +87,50 @@ export async function verVenta(v) {
       h('button', { class: 'btn btn-primary', onclick: () => imprimirComprobante({ ...v, items: items || [] }) }, icon('print'), 'Imprimir comprobante'),
     ],
   });
+}
+
+/* ── Costo de un artículo ya vendido (ej. "A mano" sin costo): con el costo o con la ganancia en % ── */
+function cargarCosto(v, i) {
+  const costo = h('input', { class: 'input num', inputmode: 'decimal', placeholder: '$', 'aria-label': 'Costo por unidad' });
+  const pct = h('input', { class: 'input num', inputmode: 'decimal', placeholder: '%', 'aria-label': 'Ganancia en %' });
+  const resumen = h('p', { class: 'muted' }, ' ');
+  const leer = origen => {
+    const c = numeroAR(costo.value), g = numeroAR(pct.value);
+    // Si sabe el costo, la ganancia sale sola; si solo sabe cuánto le ganó (%), el costo sale del precio
+    if (origen === 'pct' && g != null && g > -100) costo.value = Math.round(i.precio_unit / (1 + g / 100));
+    if (origen === 'costo' && c > 0) pct.value = Math.round((i.precio_unit / c - 1) * 1000) / 10;
+    const cf = numeroAR(costo.value);
+    resumen.textContent = cf > 0 ? `Ganás ${money(i.cantidad * (i.precio_unit - cf))} en este artículo.` : ' ';
+    return cf;
+  };
+  costo.addEventListener('input', () => leer('costo'));
+  pct.addEventListener('input', () => leer('pct'));
+  const guardar = unaVez(async () => {
+    const c = leer();
+    if (!(c > 0)) { toast('Poné el costo o la ganancia en %', 'error'); costo.focus(); return; }
+    if (c > i.precio_unit && !(await confirmar('Costo mayor al precio', `El costo (${money(c)}) es más que lo que lo vendiste (${money(i.precio_unit)}). ¿Es correcto?`, { ok: 'Sí, es correcto', peligro: true }))) { cargarCosto(v, i); return; }
+    const { error } = await db.rpc('cargar_costo_item', { p_item: i.id, p_costo: c });
+    if (error) {
+      toast(/cargar_costo_item/.test(error.message) ? 'Falta activar esto en la base (docs/gestion-v11.sql)' : error.message, 'error');
+      return;
+    }
+    toast(`Costo cargado: ${i.descripcion.slice(0, 40)}`, 'success');
+    await cargar();
+    const { data } = await db.from('ventas').select('id, created_at, cliente_nombre, medio_pago, total, costo_total, ganancia, impreso, anulada').eq('id', v.id).single();
+    verVenta(data || v);
+  });
+  [costo, pct].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') guardar(); }));
+  openModal({
+    title: `Costo de "${i.descripcion.slice(0, 40)}"`,
+    body: h('div', {},
+      h('p', { class: 'muted', style: 'margin-top:0' }, `Lo vendiste a ${money(i.precio_unit)}${i.cantidad > 1 ? ` (x${i.cantidad})` : ''}. Poné lo que te costó, o cuánto le ganaste en %.`),
+      h('div', { class: 'grid2' },
+        h('div', { class: 'field' }, h('label', { class: 'label' }, 'Costo por unidad ($)'), costo),
+        h('div', { class: 'field' }, h('label', { class: 'label' }, 'o Ganancia (%)'), pct)),
+      resumen),
+    foot: [h('button', { class: 'btn', onclick: () => verVenta(v) }, 'Volver'), h('button', { class: 'btn btn-primary', onclick: guardar }, icon('save'), 'Guardar costo')],
+  });
+  setTimeout(() => costo.focus(), 50);
 }
 
 /* ── Cierre de caja con arqueo: lo que hay que tener en efectivo vs. lo que se contó ── */
