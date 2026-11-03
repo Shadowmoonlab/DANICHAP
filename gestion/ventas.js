@@ -1,8 +1,8 @@
 // gestion/ventas.js — Historial de ventas con ganancia real y cierre de caja por forma de pago.
-import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=32';
-import { imprimirComprobante } from './comprobante.js?v=32';
-import { calcularCierre, leerDiferencia } from './caja-calc.js?v=32';
-import { numeroAR } from './texto.js?v=32';
+import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=33';
+import { imprimirComprobante } from './comprobante.js?v=33';
+import { calcularCierre, leerDiferencia } from './caja-calc.js?v=33';
+import { numeroAR } from './texto.js?v=33';
 
 let pedidoVentas = 0;   // si se cambia el filtro rápido, la respuesta vieja no pisa a la nueva
 async function cargar() {
@@ -68,9 +68,11 @@ export async function verVenta(v) {
         h('thead', {}, h('tr', {}, h('th', {}, 'Cant.'), h('th', {}, 'Descripción'), h('th', { class: 'right' }, 'Precio'), h('th', { class: 'right' }, 'Subtotal'), h('th', { class: 'right' }, 'Ganancia'))),
         h('tbody', {}, ...(items || []).map(i => h('tr', {}, h('td', {}, i.cantidad), h('td', {}, i.descripcion),
           h('td', { class: 'right num' }, money(i.precio_unit)), h('td', { class: 'right num' }, money(i.cantidad * i.precio_unit)),
-          h('td', { class: 'right num ganancia' }, i.costo_unit != null ? money(i.cantidad * (i.precio_unit - i.costo_unit))
-            : !v.anulada ? h('button', { class: 'btn btn-sm', onclick: () => cargarCosto(v, i) }, icon('edit'), 'Cargar costo')
-            : h('span', { class: 'muted' }, 'sin costo')))))))),
+          // La ganancia de cada artículo se puede cambiar siempre (costo en $ o ganancia en %), no solo si faltaba
+          h('td', { class: 'right num ganancia', style: 'white-space:nowrap' },
+            i.costo_unit != null ? money(i.cantidad * (i.precio_unit - i.costo_unit)) : (v.anulada ? h('span', { class: 'muted' }, 'sin costo') : null),
+            !v.anulada ? h('button', { class: 'btn btn-sm', style: 'margin-left:6px', title: 'Cambiar el costo o la ganancia de este artículo', onclick: () => cargarCosto(v, i) },
+              icon('edit'), i.costo_unit != null ? 'Cambiar' : 'Cargar costo') : null))))))),
     foot: [
       !v.anulada ? h('button', { class: 'btn btn-red', onclick: async () => {
         closeModal();
@@ -91,8 +93,10 @@ export async function verVenta(v) {
 
 /* ── Costo de un artículo ya vendido (ej. "A mano" sin costo): con el costo o con la ganancia en % ── */
 function cargarCosto(v, i) {
-  const costo = h('input', { class: 'input num', inputmode: 'decimal', placeholder: '$', 'aria-label': 'Costo por unidad' });
-  const pct = h('input', { class: 'input num', inputmode: 'decimal', placeholder: '%', 'aria-label': 'Ganancia en %' });
+  const tiene = i.costo_unit != null && Number(i.costo_unit) > 0;
+  const costo = h('input', { class: 'input num', inputmode: 'decimal', placeholder: '$', 'aria-label': 'Costo por unidad', value: tiene ? Math.round(i.costo_unit) : '' });
+  const pct = h('input', { class: 'input num', inputmode: 'decimal', placeholder: '%', 'aria-label': 'Ganancia en %',
+    value: tiene ? Math.round((i.precio_unit / i.costo_unit - 1) * 1000) / 10 : '' });
   const resumen = h('p', { class: 'muted' }, ' ');
   const leer = origen => {
     const c = numeroAR(costo.value), g = numeroAR(pct.value);
@@ -105,6 +109,7 @@ function cargarCosto(v, i) {
   };
   costo.addEventListener('input', () => leer('costo'));
   pct.addEventListener('input', () => leer('pct'));
+  leer();   // si ya tenía costo, se ve cuánto gana ahora
   const guardar = unaVez(async () => {
     const c = leer();
     if (!(c > 0)) { toast('Poné el costo o la ganancia en %', 'error'); costo.focus(); return; }
@@ -114,14 +119,14 @@ function cargarCosto(v, i) {
       toast(/cargar_costo_item/.test(error.message) ? 'Falta activar esto en la base (docs/gestion-v11.sql)' : error.message, 'error');
       return;
     }
-    toast(`Costo cargado: ${i.descripcion.slice(0, 40)}`, 'success');
+    toast(`Ganancia actualizada: ${i.descripcion.slice(0, 40)}`, 'success');
     await cargar();
     const { data } = await db.from('ventas').select('id, created_at, cliente_nombre, medio_pago, total, costo_total, ganancia, impreso, anulada').eq('id', v.id).single();
     verVenta(data || v);
   });
   [costo, pct].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') guardar(); }));
   openModal({
-    title: `Costo de "${i.descripcion.slice(0, 40)}"`,
+    title: `Ganancia de "${i.descripcion.slice(0, 40)}"`,
     body: h('div', {},
       h('p', { class: 'muted', style: 'margin-top:0' }, `Lo vendiste a ${money(i.precio_unit)}${i.cantidad > 1 ? ` (x${i.cantidad})` : ''}. Poné lo que te costó, o cuánto le ganaste en %.`),
       h('div', { class: 'grid2' },
