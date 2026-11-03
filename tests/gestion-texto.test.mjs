@@ -99,3 +99,14 @@ test('palabras: abreviaturas con . / - escritas en el buscador ("OPT.DEL.IZQ", "
   assert.ok(coincidePalabras(normalizarAmbos('AMORT. FIAT 400'), palabras('amortiguador p/400')));
   assert.ok(coincidePalabras(normalizarAmbos('ARO FARO FORD F-100'), palabras('aro F-100')));
 });
+
+test('buscador: los 2 mejores de cada proveedor siempre entran (las listas chicas no quedan tapadas)', async () => {
+  const { conTodosLosProveedores } = await import('../gestion/texto.js');
+  const fila = (prov, n) => ({ d: { distribuidor: prov, id: `${prov}-${n}` } });
+  const orden = [...Array(50)].map((_, n) => fila(n % 2 ? 'dm' : 'otero', n)).concat([fila('francar', 1), fila('francar', 2), fila('francar', 3), fila('chriva', 1)]);
+  const quedan = orden.filter(conTodosLosProveedores(40));
+  assert.equal(quedan.filter(x => x.d.distribuidor === 'francar').length, 2);
+  assert.equal(quedan.filter(x => x.d.distribuidor === 'chriva').length, 1);
+  assert.equal(quedan.length, 43);
+  assert.deepEqual(quedan.slice(0, 40), orden.slice(0, 40));   // el orden se mantiene
+});

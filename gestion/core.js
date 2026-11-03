@@ -1,6 +1,6 @@
 // gestion/core.js — Base compartida del panel: DOM, formato, modal, configuración, proveedores, búsqueda
 // Usa los globales de supabase.js (_supabase) y toast.js (showToast), que cargan antes como scripts clásicos.
-import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero, sinPalabrasVacias } from './texto.js?v=30';
+import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero, sinPalabrasVacias, conTodosLosProveedores } from './texto.js?v=31';
 
 export const db = window._supabase ?? _supabase;
 // Avisos del panel: los de éxito duran 4 s (se alcanzan a leer) y los errores quedan hasta cerrarlos
@@ -188,7 +188,7 @@ export function aPesos(precio, slug) {
 }
 
 /* ── WhatsApp ────────────────────────────────────────────────────────── */
-export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=30';
+export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=31';
 export async function copiar(texto, aviso = 'Copiado') {
   try { await navigator.clipboard.writeText(texto); toast(aviso, 'success'); return true; }
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }
@@ -303,7 +303,7 @@ export async function buscarPrecios(q, limite = 40) {
     })
     .map((d, i) => ({ d, puntaje: puntaje(d), i }))
     .sort((a, b) => a.puntaje - b.puntaje || a.i - b.i)
-    .slice(0, limite)
+    .filter(conTodosLosProveedores(limite))
     .map(({ d }) => ({
       ...d, moneda: monedaDe(d.distribuidor), precio_original: d.precio_neto,
       precio_neto: aPesos(d.precio_neto, d.distribuidor), precio_anterior: aPesos(d.precio_anterior, d.distribuidor),

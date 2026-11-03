@@ -82,6 +82,26 @@ export const normalizarAmbos = q => {
   return `${base.replace(/[-/.,]/g, '')} ${base.replace(/[-/.,]/g, ' ')}`;
 };
 
+/**
+ * De los resultados ya ordenados, se queda con los `limite` mejores PERO siempre con los 2 mejores de cada proveedor:
+ * si no, los robots (cientos de "PARAGOLPE GOL…") tapan a las listas cargadas a mano (Francar, Chriva…) y esos
+ * proveedores ni aparecen en los botones de filtro. Mantiene el orden original.
+ */
+export function conTodosLosProveedores(limite, porProveedor = 2) {
+  let elegidos = null;
+  return (x, i, todos) => {
+    if (!elegidos) {
+      elegidos = new Set(todos.slice(0, limite));
+      const cuenta = new Map();
+      for (const y of todos) {
+        const k = y.d.distribuidor, n = cuenta.get(k) || 0;
+        if (n < porProveedor) { elegidos.add(y); cuenta.set(k, n + 1); }
+      }
+    }
+    return elegidos.has(x);
+  };
+}
+
 /** Teléfono argentino → formato internacional de WhatsApp (549 + área + número), o null. */
 export function telefonoWhatsApp(tel) {
   let d = String(tel ?? '').replace(/\D/g, '');
