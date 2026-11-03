@@ -28,6 +28,7 @@ export function presupuesto({ cliente, items, negocio, validezHoras = 48 }) {
     '',
     `Precios válidos por ${validezHoras} hs, sujetos a stock.`,
     '¿Te lo separo? Respondé "dale" y queda reservado a tu nombre 🔧',
+    ...(negocio?.alias_transferencia ? ['', `Si querés pagar por transferencia: alias *${negocio.alias_transferencia}*`] : []),
     '',
     firma(negocio),
   ].join('\n');

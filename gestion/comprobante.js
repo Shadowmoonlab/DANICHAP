@@ -1,5 +1,5 @@
 // gestion/comprobante.js — Comprobante interno imprimible (no fiscal)
-import { $, h, money, estado, PAGOS } from './core.js?v=27';
+import { $, h, money, estado, PAGOS } from './core.js?v=28';
 
 export function imprimirComprobante(v) {
   const { config } = estado;

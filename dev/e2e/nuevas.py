@@ -27,6 +27,7 @@ def paso(nombre):
                     page.screenshot(path=str(cap), full_page=True)
                 except Exception:  # noqa: BLE001
                     pass
+                import traceback; traceback.print_exc()
                 resultados.append((nombre, False, f"{type(e).__name__}: {str(e).splitlines()[0][:230]} ({cap.name})"))
         return correr
     return envolver
@@ -49,17 +50,26 @@ def importar(page, slug, archivos, moneda=None, reemplazar=False):
     tarjeta.locator("button", has_text="Lista").click()
     expect(page.locator("#modal-title")).to_contain_text("Lista de precios", timeout=5000)
     page.locator("#modal-body input[type=file]").set_input_files([str(a) for a in archivos])
-    expect(page.locator("#modal-body .aviso")).to_be_visible(timeout=60000)
-    aviso = page.inner_text("#modal-body .aviso")
+    expect(page.locator("#modal-body .aviso").first).to_be_visible(timeout=60000)
+    aviso = page.locator("#modal-body .aviso").first.inner_text()
     if moneda:
         page.locator("#modal-body select").first.select_option(moneda)
-    casilla = page.locator("#modal-body label.check", has_text="Reemplaza").locator("input")
-    if casilla.is_checked() != reemplazar:
+    casilla = page.locator("#modal-body label.check", has_text="Borrar de").locator("input")
+    assert not casilla.is_checked(), "'Borrar lo que no venga' tiene que arrancar destildado"
+    if reemplazar:
         casilla.click()
+    # Si la lista no dice de qué mes es, el panel lo pide (no inventa el mes actual)
+    mes = page.locator("#modal-body input[type=month]")
+    if not mes.input_value():
+        page.click("#modal-foot button:has-text('Importar')")
+        expect(page.locator("#toast-container *").filter(has_text="Elegí de qué mes").first).to_be_visible(timeout=5000)
+        mes.fill("2026-10")
+    expect(page.locator("#modal-foot button.btn-primary")).to_contain_text(re.compile(r"Importar [\d.]+ productos"))
     page.click("#modal-foot button:has-text('Importar')")
-    # Al cambiar la moneda (o si se pidió reemplazar) el panel pide confirmar el reemplazo de la lista
+    # Al cambiar la moneda (o si se pidió reemplazar) se confirma en la misma ventana, sin perder la lista elegida
     if reemplazar or moneda:
-        page.click("#modal-foot button:has-text('Sí, reemplazar')")
+        expect(page.locator("#modal-body .aviso[role=alert]")).to_be_visible(timeout=5000)
+        page.click("#modal-foot button:has-text('Sí, importar y borrar')")
     expect(page.locator("#toast-container *").filter(has_text=re.compile(rf"Lista de {re.escape(slug)}.*productos")).first).to_be_visible(timeout=180000)
     return aviso
 

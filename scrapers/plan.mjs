@@ -20,6 +20,20 @@ if (SUPABASE_URL && KEY) {
     .catch(() => {});
 }
 
+// Cuentas con la clave rechazada (o bloqueadas) hoy: ni el reintento ni una corrida manual vuelven a probar
+// (cada intento fallido acerca el bloqueo de la cuenta)
+if (SUPABASE_URL && KEY) {
+  const desde = `${new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)}T03:00:00.000Z`;
+  const res = await api(`scraper_runs?select=distribuidor,ok,error&fin=gte.${desde}&order=inicio.desc`).catch(() => null);
+  if (res?.ok) {
+    const ultima = new Map();
+    for (const r of await res.json()) if (!ultima.has(r.distribuidor)) ultima.set(r.distribuidor, r);
+    const bloqueados = [...ultima.values()].filter(r => !r.ok && /^Login rechazado/.test(r.error ?? '')).map(r => r.distribuidor);
+    if (bloqueados.length) console.log(`Sin intentar hoy (clave rechazada o cuenta desactivada): ${bloqueados.join(', ')}`);
+    activos = activos.filter(d => !bloqueados.includes(d.slug));
+  }
+}
+
 if (process.env.SOLO_PENDIENTES === 'true') {
   // Desde las 00:00 de hoy en Argentina (UTC-3): la corrida de ayer a la tarde no cuenta como "ya cargó hoy"
   const desde = `${new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)}T03:00:00.000Z`;

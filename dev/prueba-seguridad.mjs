@@ -48,9 +48,16 @@ for (const [tabla, fila] of [['ventas', { medio_pago: 'efectivo', total: 1 }], [
 for (const [fn, body] of [['libro_resumen', { p_desde: '2026-01-01', p_hasta: '2026-12-31', p_agrupar: 'month' }], ['upsert_precios', { p_rows: [], p_visto: new Date().toISOString() }],
   ['importar_lista_precios', { p_proveedor: 'dm', p_rows: [] }], ['importar_lista_lote', { p_proveedor: 'dm', p_rows: [] }],
   ['finalizar_importacion', { p_proveedor: 'dm', p_codigos: ['x'], p_reemplazar: true, p_cambios: 0 }], ['anular_venta', { p_id: 1 }]]) {
-  const r = await pedir('cliente', `rpc/${fn}`, { method: 'POST', body: JSON.stringify(body) });
-  if (r.status === 404) { console.log(`·  ${fn}: no existe en esta base (se omite)`); continue; }
-  revisar(!r.ok, `cliente llama ${fn} → HTTP ${r.status}`);
+  for (const rol of ['cliente', 'anonimo']) {
+    const r = await pedir(rol, `rpc/${fn}`, { method: 'POST', body: JSON.stringify(body) });
+    if (r.status === 404) { console.log(`·  ${fn}: no existe en esta base (se omite)`); break; }
+    revisar(!r.ok, `${rol} llama ${fn} → HTTP ${r.status}`);
+  }
+}
+// El buscador tampoco responde sin sesión
+{
+  const r = await pedir('anonimo', 'rpc/buscar_precios', { method: 'POST', body: JSON.stringify({ p_palabras: ['faro'] }) });
+  if (r.status !== 404) revisar(!r.ok || (await r.json()).length === 0, `anónimo usa el buscador → no ve precios (HTTP ${r.status})`);
 }
 // La búsqueda de parecidos respeta RLS: un cliente no ve ningún precio de proveedor
 {

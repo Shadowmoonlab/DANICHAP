@@ -13,11 +13,29 @@ const RAICES = [
 /** Palabras de búsqueda seguras para filtros de PostgREST.
  *  Sin la "s" final (búsqueda por substring): "paragolpes" también encuentra "PARAGOLPE".
  *  Sin palabras vacías ("de", "del") y con la raíz de las abreviaturas comunes ("paragolpe" → "parag"). */
-export const palabras = q => String(q).toLowerCase().replace(/[,()*%\\:"']/g, ' ').split(/\s+/)
-  .filter(w => w.length > 1 && !VACIAS.has(w))
-  .map(w => (w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w))
+export const palabras = q => String(q).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/[,()*%\\:"']/g, ' ').split(/\s+/)
+  .flatMap(partesDe)
+  .filter(w => (w.length > 1 || /^\d$/.test(w)) && !VACIAS.has(w))
+  .map(singular)
   .map(w => RAICES.find(([re]) => re.test(w))?.[1] ?? w)
   .slice(0, 6);
+
+// "OPT.DEL.IZQ" → opt, del, izq y "p/400" → p, 400 (cada pedazo se busca por separado, como en la base);
+// pero "F-100" queda "f100": una letra suelta que no es palabra vacía no sirve para buscar
+function partesDe(token) {
+  if (!/[-/.]/.test(token)) return [token];
+  const partes = token.split(/[-/.]+/).filter(Boolean);
+  return partes.some(p => p.length === 1 && !/\d/.test(p) && !VACIAS.has(p)) ? [token.replace(/[-/.]/g, '')] : partes;
+}
+
+// Plural → singular: "paragolpes" → "paragolpe", "rulemanes" → "ruleman", "luces" → "luz" (la búsqueda es por
+// comienzo de palabra, así que quedarse corto nunca deja afuera el artículo)
+function singular(w) {
+  if (w.length > 4 && w.endsWith('ces')) return w.slice(0, -3) + 'z';
+  if (w.length > 5 && /[rnldj]es$/.test(w)) return w.slice(0, -2);
+  return w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w;
+}
 
 /**
  * Qué tan bien coincide una descripción con lo buscado (menor = mejor). Lo que EMPIEZA con la primera palabra
@@ -47,6 +65,9 @@ export function relevancia(descripcion, ws, escritas = []) {
   const comoSeEscribio = escritas.filter(w => partes.some(p => p.replace(/s$/, '') === w.replace(/s$/, ''))).length;
   return (lugar === 0 ? 0 : 100) + lugar * 10 - enteras * 3 - comoSeEscribio * 5 + Math.min(t.length, 200) / 100;
 }
+
+/** Lo escrito sin palabras vacías ("de", "para"…), para la búsqueda de parecidos. */
+export const sinPalabrasVacias = q => normalizar(q).split(/\s+/).filter(w => w && !VACIAS.has(w)).join(' ');
 
 /** Sin acentos ni - / . → "f100" encuentra "F-100". */
 export const normalizar = q => String(q).toLowerCase().normalize('NFD')

@@ -1,7 +1,7 @@
 // tests/gestion-texto.test.mjs — búsqueda normalizada y teléfonos para WhatsApp
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { palabras, normalizar, telefonoWhatsApp, linkWhatsApp } from '../gestion/texto.js';
+import { palabras, normalizar, normalizarAmbos, coincidePalabras, telefonoWhatsApp, linkWhatsApp } from '../gestion/texto.js';
 
 test('normalizar: F-100 y F100 quedan iguales, sin acentos', () => {
   assert.equal(normalizar('Aro Faro F-100'), 'aro faro f100');
@@ -79,4 +79,23 @@ test('búsqueda: encuentra palabras pegadas con "/" o "." (FARO P/GOL, OPT.DEL.I
   assert.equal(encuentra('gol', 'PARAGOLPE CORSA'), false);         // "gol" no es "paraGOLpe"
   assert.equal(encuentra('aro', 'FARO TRASERO'), false);
   assert.equal(encuentra('malacate 400', 'Malacate p/400 kg'), true);
+});
+
+test('palabras: plurales en -es y -ces ("rulemanes", "luces")', () => {
+  assert.deepEqual(palabras('rulemanes'), ['ruleman']);
+  assert.deepEqual(palabras('sensores oxigeno'), ['sensor', 'oxigeno']);
+  assert.deepEqual(palabras('luces'), ['luz']);
+  assert.deepEqual(palabras('radiadores'), ['radiad']);
+  assert.ok(coincidePalabras(normalizarAmbos('RULEMAN RUEDA DEL. GOL'), palabras('rulemanes gol')));
+  assert.ok(coincidePalabras(normalizarAmbos('SENSOR OXIGENO CORSA'), palabras('sensores corsa')));
+});
+
+test('palabras: abreviaturas con . / - escritas en el buscador ("OPT.DEL.IZQ", "p/400", "F-100")', () => {
+  assert.deepEqual(palabras('OPT.DEL.IZQ'), ['opt', 'izq']);
+  assert.deepEqual(palabras('malacate p/400'), ['malacate', '400']);
+  assert.deepEqual(palabras('aro faro F-100'), ['aro', 'faro', 'f100']);   // la "f" sola no sirve: queda pegado
+  assert.deepEqual(palabras('faro renault 9'), ['faro', 'renault', '9']);   // un número de un dígito es un modelo
+  assert.ok(coincidePalabras(normalizarAmbos('OPTICA DELANTERA IZQUIERDA CORSA'), palabras('OPT.DEL.IZQ corsa')));
+  assert.ok(coincidePalabras(normalizarAmbos('AMORT. FIAT 400'), palabras('amortiguador p/400')));
+  assert.ok(coincidePalabras(normalizarAmbos('ARO FARO FORD F-100'), palabras('aro F-100')));
 });

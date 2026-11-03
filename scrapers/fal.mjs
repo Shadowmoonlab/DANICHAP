@@ -41,7 +41,7 @@ async function scrape() {
   let ultimoError;
   for (const url of [...new Set([link, LISTA_RESPALDO].filter(Boolean).flatMap(linksDeDescarga))]) {
     try {
-      const res = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } });
+      const res = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }, signal: AbortSignal.timeout(120_000) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { filas, hoja, descartadas } = leerPlanilla(Buffer.from(await res.arrayBuffer()));
       console.log(`[fal] ${url.split('?')[0].split('/').pop()} — hoja "${hoja}": ${filas.length} artículos (${descartadas} filas descartadas)`);

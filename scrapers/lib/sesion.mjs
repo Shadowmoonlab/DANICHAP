@@ -3,6 +3,9 @@
 
 export const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 const esperar = ms => new Promise(ok => setTimeout(ok, ms));
+// Un sitio colgado no puede trabar el robot: cada pedido tiene 60 s como máximo (sin esto Node espera 5 min,
+// y con los reintentos GitHub corta el trabajo a mitad de la carga)
+export const TIEMPO_MAX_MS = 60_000;
 
 export function crearSesion(base, { headers: fijos = {} } = {}) {
   const cookies = new Map();
@@ -27,13 +30,13 @@ export function crearSesion(base, { headers: fijos = {} } = {}) {
     if (json) { body = JSON.stringify(json); h['Content-Type'] = 'application/json'; }
     for (let i = 1; ; i++) {
       try {
-        let res = await fetch(url, { method, headers: conCookies(h), body, redirect: 'manual' });
+        let res = await fetch(url, { method, headers: conCookies(h), body, redirect: 'manual', signal: AbortSignal.timeout(TIEMPO_MAX_MS) });
         guardarCookies(res);
         // Sigue las redirecciones a mano: fetch descarta el Set-Cookie de los 302 (PHP suele renovar la sesión ahí)
         for (let saltos = 0; redirect === 'follow' && res.status >= 300 && res.status < 400 && res.headers.get('location') && saltos < 10; saltos++) {
           const destino = new URL(res.headers.get('location'), res.url || url).toString();
           const { 'Content-Type': _, ...sinCuerpo } = h;
-          res = await fetch(destino, { headers: conCookies(sinCuerpo), redirect: 'manual' });
+          res = await fetch(destino, { headers: conCookies(sinCuerpo), redirect: 'manual', signal: AbortSignal.timeout(TIEMPO_MAX_MS) });
           guardarCookies(res);
         }
         if (res.status === 429) {
@@ -72,11 +75,12 @@ export function crearSesion(base, { headers: fijos = {} } = {}) {
 /** Corre `fn` sobre cada elemento con como máximo `n` a la vez (para paginar sin saturar el sitio). */
 export async function enParalelo(items, n, fn) {
   const resultados = new Array(items.length);
-  let siguiente = 0;
+  let siguiente = 0, fallo = false;
   await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
-    while (siguiente < items.length) {
+    // Si uno falla, los demás dejan de pedir (si no, el reintento arranca con el recorrido viejo todavía andando)
+    while (siguiente < items.length && !fallo) {
       const i = siguiente++;
-      resultados[i] = await fn(items[i], i);
+      try { resultados[i] = await fn(items[i], i); } catch (err) { fallo = true; throw err; }
     }
   }));
   return resultados;

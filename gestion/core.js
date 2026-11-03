@@ -1,9 +1,22 @@
 // gestion/core.js — Base compartida del panel: DOM, formato, modal, configuración, proveedores, búsqueda
 // Usa los globales de supabase.js (_supabase) y toast.js (showToast), que cargan antes como scripts clásicos.
-import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero } from './texto.js?v=27';
+import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero, sinPalabrasVacias } from './texto.js?v=28';
 
 export const db = window._supabase ?? _supabase;
-export const toast = (msg, tipo) => window.showToast(msg, tipo);
+// Avisos del panel: los de éxito duran 4 s (se alcanzan a leer) y los errores quedan hasta cerrarlos
+export const toast = (msg, tipo = 'success', duracion) => {
+  const t = tipo === 'error' ? 'error' : 'success';
+  if (!window.toast?.[t]) return window.showToast(msg, tipo);
+  return window.toast[t](msg, { duration: duracion ?? (t === 'error' ? 0 : 4000) });
+};
+
+/** Error de la base en palabras de Daniel: qué pasó y qué hacer (el detalle técnico va al final, por las dudas). */
+export function errorAmigable(error, queNoSeHizo, queHacer = 'probá de nuevo') {
+  const m = String(error?.message ?? error ?? '');
+  if (/failed to fetch|network|load failed|conexi/i.test(m)) return `${queNoSeHizo}: no hay internet. Revisá la conexión y ${queHacer}.`;
+  if (/jwt|token|sesi[oó]n/i.test(m)) return `${queNoSeHizo}: se venció la sesión. Volvé a entrar y ${queHacer}.`;
+  return `${queNoSeHizo}. ${queHacer[0].toUpperCase()}${queHacer.slice(1)}; si sigue pasando, avisá (detalle: ${m.slice(0, 120)})`;
+}
 export const $ = id => document.getElementById(id);
 
 /* ── DOM sin innerHTML (los datos vienen de distribuidores y usuarios: nunca HTML) ── */
@@ -47,7 +60,14 @@ export function debounce(fn, ms) {
 // Si el diálogo se cierra con Esc, la X o tocando afuera, el que esperaba una respuesta recibe "cancelar"
 // (si no, la promesa no terminaba nunca y un botón con unaVez quedaba trabado hasta recargar).
 let alCerrar = null;
+// Mientras se importa una lista la ventana no se cierra (Esc, la X o tocar afuera): se vería que se cortó y no
+let modalBloqueado = false;
+export function bloquearModal(si) {
+  modalBloqueado = si;
+  $('modal-close').disabled = si;
+}
 export function openModal({ title, body, foot = [], wide = false, onClose = null }) {
+  bloquearModal(false);
   const anterior = alCerrar; alCerrar = onClose;
   anterior?.();   // un diálogo que reemplaza a otro cancela al anterior
   $('modal-title').textContent = title;
@@ -57,7 +77,8 @@ export function openModal({ title, body, foot = [], wide = false, onClose = null
   $('modal').classList.toggle('wide', wide);
   $('modal-bg').classList.remove('hidden');
 }
-export function closeModal() {
+export function closeModal(forzar) {
+  if (modalBloqueado && forzar !== true) return;
   $('modal-bg').classList.add('hidden');
   const f = alCerrar; alCerrar = null; f?.();
 }
@@ -119,14 +140,23 @@ export async function cargarProveedores() {
 }
 export const proveedor = slug => estado.proveedores.find(p => p.slug === slug);
 export const nombreProveedor = slug => proveedor(slug)?.nombre || slug;
-const hoyLocalMes = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-/** Mes de la lista del proveedor ("2026-08", docs/gestion-v7.sql) y si tiene 2 meses o más (puede estar vieja). */
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+/**
+ * De cuándo son los precios de un proveedor, para verlo en cada resultado:
+ * - lista cargada a mano (lista_mes, docs/gestion-v7.sql): "lista ago 2026", vieja con 2 meses o más;
+ * - robot diario (sin lista_mes): "precios del 29/10" según la última corrida buena, viejo con más de 2 días
+ *   (si el robot falla, Daniel lo ve en el buscador, no solo en Proveedores).
+ */
 export function mesListaDe(slug, hoy = new Date()) {
+  const m = /^(\d{4})-(\d{2})$/.exec(proveedor(slug)?.lista_mes ?? '');
+  if (m) {
+    const atras = hoy.getFullYear() * 12 + hoy.getMonth() + 1 - (+m[1] * 12 + +m[2]);
+    return { mes: m[0], texto: `lista ${MESES_CORTOS[+m[2] - 1]} ${m[1]}`, vieja: atras >= 2 };
+  }
   const carga = estado.ultimaCarga?.[slug];
-  const m = /^(\d{4})-(\d{2})$/.exec(proveedor(slug)?.lista_mes ?? (carga ? hoyLocalMes(new Date(carga)) : ''));
-  if (!m) return null;
-  const atras = hoy.getFullYear() * 12 + hoy.getMonth() + 1 - (+m[1] * 12 + +m[2]);
-  return { mes: m[0], vieja: atras >= 2 };
+  if (!carga) return null;
+  const d = new Date(carga), dias = (hoy - d) / 864e5;
+  return { mes: null, texto: dias < 1 && d.getDate() === hoy.getDate() ? 'precios de hoy' : `precios del ${d.getDate()}/${d.getMonth() + 1}`, vieja: dias > 2 };
 }
 
 /** Ganancia (%) que se aplica a un proveedor: la suya si tiene, si no la general de Ajustes. */
@@ -157,7 +187,7 @@ export function aPesos(precio, slug) {
 }
 
 /* ── WhatsApp ────────────────────────────────────────────────────────── */
-export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=27';
+export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=28';
 export async function copiar(texto, aviso = 'Copiado') {
   try { await navigator.clipboard.writeText(texto); toast(aviso, 'success'); return true; }
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }
@@ -243,7 +273,7 @@ async function buscarEnBase(ws, codigo) {
 }
 
 export async function buscarPrecios(q, limite = 40) {
-  const ws = palabras(normalizar(q));
+  const ws = palabras(q);
   if (!ws.length) return [];
   // Una sola "palabra" puede ser un código ("128", "CHECOR-001"): se busca aparte por código, así nunca queda afuera
   // de los 250 que trae la búsqueda general aunque haya muchas coincidencias
@@ -252,14 +282,17 @@ export async function buscarPrecios(q, limite = 40) {
   // Se traen más de los que se muestran y se ordenan por relevancia (lo que empieza con la primera palabra, primero);
   // antes eran los 40 más baratos y lo buscado quedaba afuera detrás de soportes y vidrios
   const filas = await buscarEnBase(ws, codigo);
-  if (!filas) return [];
+  // Un error (sin internet, sesión vencida) NO es "no lo tengo": el mostrador avisa y deja reintentar
+  if (!filas) throw new Error('No se pudo buscar');
   const vistos = new Set();
   const data = filas.filter(d => !vistos.has(d.id) && vistos.add(d.id));
   // Código exacto (o su comienzo) primero de todo: "CHECOR-001" → ese artículo arriba
   const escritas = normalizar(q).split(/\s+/).filter(w => w.length > 1);   // las palabras tal como se escribieron
   const puntaje = d => {
     const c = normalizar(d.codigo ?? '');
-    return c === qCodigo ? -2000 : qCodigo.length >= 3 && c.startsWith(qCodigo) ? -1000 : relevancia(d.descripcion, ws, escritas);
+    // Comienzo de código arriba solo si parece un código (con letras o largo): "206" o "128" son modelos de auto
+    const pareceCodigo = /[a-z]/.test(qCodigo) || qCodigo.length >= 5;
+    return c === qCodigo ? -2000 : pareceCodigo && c.startsWith(qCodigo) ? -1000 : relevancia(d.descripcion, ws, escritas);
   };
   return data
     .filter(d => {
@@ -281,7 +314,7 @@ export async function buscarPrecios(q, limite = 40) {
  * ("paragople" → "paragolpe"). Sin docs/gestion-v5.sql todavía, devuelve [] y listo.
  */
 export async function buscarParecidos(q, limite = 30) {
-  const texto = normalizar(q).trim();
+  const texto = sinPalabrasVacias(q);   // "fraro para corsa": el "para" no tiene que parecerse a nada
   if (texto.length < 3) return [];
   const { data, error } = await db.rpc('buscar_parecidos', { p_q: texto, p_limite: limite });
   if (error) { console.warn('[gestion] buscarParecidos:', error.message); return []; }
@@ -301,7 +334,7 @@ export async function buscarStock(q, limite = 15) {
     .select('id, nombre, precio, stock, stock_cantidad, marca_rep, modelo, categoria, costo:productos_costos(costo, proveedor, codigo_proveedor)')
     .or(`nombre.ilike.*${patron}*,modelo.ilike.*${patron}*,marca_rep.ilike.*${patron}*`)
     .limit(200);
-  if (error) { console.warn('[gestion] buscarStock:', error.message); return []; }
+  if (error) { console.warn('[gestion] buscarStock:', error.message); throw new Error('No se pudo buscar'); }
   const claves = ws.map(normalizar);
   const escritasStock = normalizar(q).split(/\s+/).filter(w => w.length > 1);
   return data

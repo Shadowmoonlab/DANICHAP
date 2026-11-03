@@ -2,20 +2,19 @@
 import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, mesListaDe, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
-  actualizarBadgeRepo, unaVez, hoyISO, gananciaDe, gananciaDePrecio, buscarParecidos,
-} from './core.js?v=27';
-import { numeroAR, palabras, normalizar } from './texto.js?v=27';
-import { mesCorto } from './listas.js?v=27';
-import { presupuesto as textoPresupuesto } from './plantillas.js?v=27';
-import { imprimirComprobante } from './comprobante.js?v=27';
-import { editarCliente } from './clientes.js?v=27';
+  actualizarBadgeRepo, unaVez, hoyISO, gananciaDe, gananciaDePrecio, buscarParecidos, errorAmigable,
+} from './core.js?v=28';
+import { numeroAR, palabras, normalizar } from './texto.js?v=28';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=28';
+import { imprimirComprobante } from './comprobante.js?v=28';
+import { editarCliente } from './clientes.js?v=28';
 
 let resultados = [];
 let selIdx = -1;
 let venta = [];            // renglones de la venta actual
 let presupuestoId = null;  // si la venta se cargó desde un presupuesto
 let buscado = '';          // texto de la búsqueda que está en pantalla (Enter solo agrega de esa)
-let enterEnEspera = false; // Enter apretado antes de que llegaran los resultados: se agrega apenas lleguen
+let enterEnEspera = null;  // texto para el que se apretó Enter antes de que llegaran sus resultados: se agrega apenas lleguen
 let filtro = 'todos';      // 'todos' | 'stock' | slug de un proveedor (botones arriba de los resultados)
 let sonParecidos = false;  // la búsqueda exacta no encontró nada y se muestran artículos parecidos (errores de tipeo)
 
@@ -23,24 +22,33 @@ const buscador = () => $('pos-search');
 const visibles = () => resultados.filter(r => filtro === 'todos' || (filtro === 'stock' ? r.tipo === 'stock' : r.distribuidor === filtro));
 
 /* ── Búsqueda ────────────────────────────────────────────────────────── */
+let pedido = 0;   // cada búsqueda tiene su número: la respuesta de una búsqueda vieja nunca pisa a la nueva
+const dejarDeBuscar = () => { const caja = $('pos-results'); caja.classList.remove('buscando'); delete caja.dataset.estado; };
+
 const ejecutarBusqueda = debounce(async () => {
   const q = buscador().value.trim();
-  if (q.length < 2) { enterEnEspera = false; renderResultados(null); return; }
+  const este = ++pedido;
+  if (q.length < 2) { enterEnEspera = null; dejarDeBuscar(); renderResultados(null); return; }
   const caja = $('pos-results');
   caja.classList.add('buscando');   // se nota que está buscando: nunca parece que se trabó
+  let stock, dist, parecidos = false;
   try {
-    var [stock, dist] = await Promise.all([buscarStock(q), buscarPrecios(q)]);
+    [stock, dist] = await Promise.all([buscarStock(q), buscarPrecios(q)]);
     // Nada exacto: se buscan parecidos ("paragople" → "paragolpe"), como hacen los buscadores grandes
-    sonParecidos = false;
-    if (!stock.length && !dist.length && buscador().value.trim() === q) {
+    if (!stock.length && !dist.length && este === pedido) {
       caja.dataset.estado = 'Buscando parecidos…';
       dist = await buscarParecidos(q);
-      sonParecidos = dist.length > 0;
+      parecidos = dist.length > 0;
     }
-  } finally {
-    if (buscador().value.trim() === q) { caja.classList.remove('buscando'); delete caja.dataset.estado; }
+  } catch {
+    if (este !== pedido) return;
+    dejarDeBuscar();
+    errorDeBusqueda(q);
+    return;
   }
-  if (buscador().value.trim() !== q) return; // llegó tarde: el usuario siguió escribiendo
+  if (este !== pedido) return; // llegó tarde: el usuario siguió escribiendo (la nueva búsqueda maneja la pantalla)
+  dejarDeBuscar();
+  sonParecidos = parecidos;
   buscado = q;
   const costoMin = Math.min(...dist.map(d => d.precio_neto ?? Infinity));
   // Primero los precios de los proveedores (al día); después "Mi stock" (los productos cargados a mano)
@@ -52,7 +60,8 @@ const ejecutarBusqueda = debounce(async () => {
       extra: [d.marca, d.rubro, d.moneda !== 'ARS' ? `lista en ${d.moneda === 'USD' ? 'dólares' : 'euros'}: ${d.moneda} ${d.precio_original}` : null]
         .filter(Boolean).join(' · '),
       masBarato: dist.length > 1 && d.precio_neto === costoMin,
-      subio: d.precio_anterior != null && d.precio_neto > d.precio_anterior,
+      subio: d.precio_anterior > 0 && d.precio_neto > d.precio_anterior
+        ? { pct: Math.max(1, Math.round((d.precio_neto / d.precio_anterior - 1) * 100)), antes: d.precio_anterior } : null,
     })),
     ...stock.map(p => ({
       tipo: 'stock', key: `p-${p.id}`, producto_id: p.id, codigo: p.costo?.codigo_proveedor || '',
@@ -65,9 +74,20 @@ const ejecutarBusqueda = debounce(async () => {
   if (filtro !== 'todos' && !visibles().length) filtro = 'todos';
   selIdx = visibles().length ? 0 : -1;
   renderResultados(q);
-  // Un Enter apurado nunca agrega un artículo "parecido": eso lo elige Daniel mirando la lista
-  if (enterEnEspera) { enterEnEspera = false; if (!sonParecidos) agregarSeleccionado(); }
+  // Un Enter apurado (para ESTE mismo texto) agrega el primero; nunca un "parecido": eso lo elige Daniel mirando
+  if (enterEnEspera === q && !sonParecidos) agregarSeleccionado();
+  enterEnEspera = null;
 }, 220);
+
+/** Sin internet o sesión vencida: se dice claro (nunca "no lo tengo") y se puede reintentar. */
+function errorDeBusqueda(q) {
+  enterEnEspera = null;
+  resultados = []; selIdx = -1; buscado = null;
+  renderWebs(null); renderFiltros(null);
+  $('pos-results').replaceChildren(h('div', { class: 'empty' },
+    vacio('wifi_off', `No se pudo buscar "${q}".`, h('br'), 'Revisá que haya internet y tocá Reintentar.'),
+    h('button', { class: 'btn btn-primary', onclick: () => { ejecutarBusqueda(); buscador().focus(); } }, icon('refresh'), 'Reintentar')));
+}
 
 /* ── Buscar en las webs: proveedores que no salieron en esta búsqueda (los que el robot no lee, o sin coincidencias) ── */
 function renderWebs(q) {
@@ -113,7 +133,7 @@ function renderFiltros(q) {
 
 /** Marca en la descripción las palabras buscadas: el ojo va directo a lo que importa. */
 function resaltar(texto, q) {
-  const ws = palabras(normalizar(q));
+  const ws = palabras(q);
   if (!ws.length || sonParecidos) return [texto];
   return texto.split(/(\s+)/).map(parte => {
     const n = normalizar(parte);
@@ -138,7 +158,7 @@ function renderResultados(q) {
     const ultimas = recientes();
     box.replaceChildren(vacio('manage_search', 'Escribí lo que te piden.', h('br'), 'Busca en tu stock y en todos los distribuidores a la vez.'),
       ultimas.length ? h('div', { class: 'recientes' }, h('span', { class: 'muted' }, icon('history'), 'Buscaste hace poco:'),
-        ...ultimas.map(t => h('button', { class: 'filtro', onclick: () => { buscador().value = t; ejecutarBusqueda(); buscador().focus(); } }, t))) : '');
+        ...ultimas.map(t => h('button', { class: 'filtro', onclick: () => { buscador().value = t; buscado = null; ejecutarBusqueda(); buscador().focus(); } }, t))) : '');
     return;
   }
   if (!resultados.length) {
@@ -151,21 +171,22 @@ function renderResultados(q) {
     h('span', {}, `No encontré exacto "${q}". Estos se parecen (¿quizás está escrito distinto?):`)) : null;
   box.replaceChildren(aviso || '', ...visibles().map((r, i) => h('div', {
     class: 'res' + (i === selIdx ? ' sel' : ''), 'data-i': i, role: 'option', 'aria-selected': i === selIdx ? 'true' : 'false',
-    onclick: () => { selIdx = i; agregarSeleccionado(); },
+    // Un clic en la lista vieja (mientras llega la nueva) no hace nada: nunca agrega otra cosa que la tocada
+    onclick: () => { if (buscador().value.trim() !== buscado) return; selIdx = i; agregarSeleccionado(); },
   },
     h('div', { class: 'desc' }, ...resaltar(r.descripcion, q)),
     h('div', { class: 'price' },
       h('div', { class: 'pv num' }, r.precio != null ? money(r.precio) : 'Sin precio'),
-      r.costo != null ? h('div', { class: 'pc num' }, `costo ${money(r.costo)}`) : null),
+      r.costo != null ? h('div', { class: 'pc num' }, `costo ${money(r.costo)}`) : null,
+      r.masBarato ? h('span', { class: 'best' }, '★ más barato') : null),
     h('div', { class: 'meta' },
       h('span', { class: 'chip' + (r.tipo === 'stock' ? ' chip-stock' : '') }, r.origen),
       r.listaMes ? h('span', { class: 'chip' + (r.listaMes.vieja ? ' chip-amber' : ' chip-gray'),
-        title: r.listaMes.vieja ? 'Lista de hace 2 meses o más: puede estar desactualizada' : 'Mes de la lista' }, `lista ${mesCorto(r.listaMes.mes)}`) : null,
+        title: r.listaMes.vieja ? 'Precios viejos: pueden estar desactualizados' : 'De cuándo son los precios' }, r.listaMes.texto + (r.listaMes.vieja ? ' · vieja' : '')) : null,
       r.codigo ? h('span', {}, r.codigo) : null,
       r.extra ? h('span', {}, r.extra) : null,
       r.sinStock ? h('span', { class: 'chip chip-gray' }, 'sin stock') : null,
-      r.masBarato ? h('span', { class: 'best' }, '★ más barato') : null,
-      r.subio ? h('span', { class: 'chip chip-amber' }, 'subió') : null),
+      r.subio ? h('span', { class: 'chip chip-amber', title: `Antes ${money(r.subio.antes)}` }, `subió ${r.subio.pct}%`) : null),
   )));
 }
 
@@ -182,7 +203,8 @@ function moverSeleccion(delta) {
 
 function agregarSeleccionado() {
   // Mientras se tipea (o la búsqueda nueva no llegó), Enter no agrega un resultado de la búsqueda anterior
-  if (buscador().value.trim() !== buscado) { enterEnEspera = buscador().value.trim().length >= 2; return; }
+  const texto = buscador().value.trim();
+  if (texto !== buscado) { enterEnEspera = texto.length >= 2 ? texto : null; return; }
   const r = visibles()[selIdx];
   if (!r) return;
   const ya = venta.find(v => v.key === r.key);
@@ -192,11 +214,12 @@ function agregarSeleccionado() {
     codigo: r.codigo, descripcion: r.descripcion, origen: r.origen, distribuidor: r.distribuidor || null,
     cantidad: 1, precio_unit: r.precio ?? 0, costo_unit: r.costo,
   });
+  ultimoAgregado = r.key;
   renderVenta();
   recordarBusqueda(buscado);
   buscador().select();
-  toast(`Agregado: ${r.descripcion.slice(0, 40)}`);
 }
+let ultimoAgregado = null;   // el renglón recién sumado se ilumina un momento (en vez de un cartel que tapa Cobrar)
 
 /* ── Venta actual ────────────────────────────────────────────────────── */
 function renderVenta() {
@@ -207,15 +230,25 @@ function renderVenta() {
     box.replaceChildren(...venta.map(v => {
       const qty = h('input', { value: v.cantidad, inputmode: 'numeric', 'aria-label': 'Cantidad',
         onchange: e => { v.cantidad = Math.max(1, parseInt(e.target.value, 10) || 1); renderVenta(); } });
-      const pr = h('input', { class: 'pr num', value: v.precio_unit, inputmode: 'decimal', 'aria-label': 'Precio',
-        onchange: e => { v.precio_unit = Math.max(0, numeroAR(e.target.value) ?? 0); renderVenta(); } });   // "15.000" = quince mil
+      const pr = h('input', { class: 'pr num', value: v.precio_unit.toLocaleString('es-AR'), inputmode: 'decimal', 'aria-label': 'Precio',
+        onchange: e => {   // "15.000" = quince mil
+          const n = Math.max(0, numeroAR(e.target.value) ?? 0), antes = v.precio_unit;
+          // Un precio muy por debajo (un punto o una coma de más) se pregunta: nunca se cobra mal por un error de tipeo.
+          // Mientras se pregunta, Cobrar y Presupuesto esperan la respuesta (F9 justo después de tipear)
+          if (n > 0 && ((v.costo_unit > 0 && n < v.costo_unit) || (antes > 0 && n < antes / 2))) {
+            precioPendiente = confirmar('¿Precio correcto?', `Pusiste ${money(n)} y antes era ${money(antes)}${v.costo_unit > 0 ? ` (te cuesta ${money(v.costo_unit)})` : ''}. ¿Lo dejo así?`, { ok: 'Sí, dejar ese precio', peligro: true })
+              .then(ok => { if (ok) v.precio_unit = n; precioPendiente = null; renderVenta(); return ok; });
+            return;
+          }
+          v.precio_unit = n; renderVenta();
+        } });
       // Ganancia del renglón: se ve siempre y con un toque se cambia (opciones rápidas con el precio ya calculado)
       const gan = v.costo_unit > 0 ? gananciaDePrecio(v.precio_unit, v.costo_unit) : null;
       const chipGanancia = gan == null ? null : h('button', {
         class: 'gan' + (gan < 15 ? ' baja' : '') + (v.editando ? ' on' : ''), title: 'Cambiar la ganancia de este artículo',
         'aria-expanded': v.editando ? 'true' : 'false', onclick: () => { v.editando = !v.editando; renderVenta(); },
       }, icon('trending_up'), `ganancia ${pct(gan)} · ganás ${money(v.cantidad * (v.precio_unit - v.costo_unit))}`);
-      return h('div', { class: 'ti' + (v.editando ? ' editando' : '') },
+      return h('div', { class: 'ti' + (v.editando ? ' editando' : '') + (v.key === ultimoAgregado ? ' recien' : '') },
         h('div', {}, h('div', { class: 'd' }, v.descripcion), h('div', { class: 'src' }, [v.origen, v.codigo].filter(Boolean).join(' · ')),
           chipGanancia),
         h('button', { class: 'btn btn-icon btn-red', title: 'Quitar', 'aria-label': 'Quitar', onclick: () => { venta = venta.filter(x => x !== v); renderVenta(); } }, icon('close')),
@@ -232,10 +265,21 @@ function renderVenta() {
   const total = venta.reduce((s, v) => s + v.cantidad * v.precio_unit, 0);
   const conCosto = venta.filter(v => v.costo_unit != null);
   const ganancia = conCosto.reduce((s, v) => s + v.cantidad * (v.precio_unit - v.costo_unit), 0);
+  ultimoAgregado = null;
+  // En la compu se muestra el renglón nuevo; en el celular no (la venta está abajo y se perdería la búsqueda:
+  // para eso está la barra con el total)
+  if (window.innerWidth > 1000) document.querySelector('#pos-items .ti.recien')?.scrollIntoView({ block: 'nearest' });
+  // Celular: barra fija con cuántos artículos y el total (la venta queda debajo de la búsqueda)
+  const unidades = venta.reduce((s, v) => s + v.cantidad, 0);
+  $('pos-barra').classList.toggle('hidden', !venta.length);
+  document.body.classList.toggle('con-venta', venta.length > 0);
+  $('pos-barra-txt').textContent = `${unidades === 1 ? '1 artículo' : `${unidades} artículos`} · ${money(total)}`;
   $('pos-total').textContent = money(total);
   $('pos-gain').textContent = conCosto.length
     ? `Ganancia: ${money(ganancia)}${conCosto.length < venta.length ? ' (sin contar artículos sin costo)' : ''}` : '';
+  const medio = $('pos-pago').value;
   $('pos-cobrar').disabled = !venta.length;
+  $('pos-cobrar-txt').textContent = venta.length ? `Cobrar ${money(total)} · ${PAGOS[medio]}` : 'Cobrar';
   $('pos-presu').disabled = !venta.length;
   document.querySelector('#pos-items .gan-selector')?.scrollIntoView({ block: 'nearest' });   // que se vea entero al abrirlo
   $('pos-presu-badge').classList.toggle('hidden', !presupuestoId);
@@ -352,12 +396,13 @@ function limpiarVenta() {
   $('pos-cliente').value = '';
   $('pos-print').checked = false;
   $('pos-pago').value = 'efectivo';
-  $('pos-cc-aviso')?.classList.add('hidden');   // el cartel de fiado no queda puesto para la venta siguiente
   renderVenta();
 }
 
 // unaVez: mientras se registra, tocar +/− rehabilita el botón; igual no se puede cobrar dos veces
+let precioPendiente = null;   // pregunta "¿Precio correcto?" abierta: cobrar espera la respuesta (y no cobra si fue No)
 const cobrar = unaVez(async () => {
+  if (precioPendiente && !(await precioPendiente)) return;
   if (!venta.length) return;
   const gratis = venta.filter(v => !(v.precio_unit > 0));
   if (gratis.length && !(await confirmar('Artículos sin precio',
@@ -365,11 +410,6 @@ const cobrar = unaVez(async () => {
     { ok: 'Cobrar igual' }))) return;
   const { nombre, cliente } = clienteElegido();
   const medio = $('pos-pago').value;
-  if (medio === 'cuenta_corriente' && !cliente) {
-    toast('Para fiar, elegí un cliente cargado (o creálo con el botón +)', 'error');
-    $('pos-cliente').focus();
-    return;
-  }
   const btn = $('pos-cobrar');
   btn.disabled = true;
   const imprimir = $('pos-print').checked;
@@ -378,20 +418,19 @@ const cobrar = unaVez(async () => {
     medio_pago: medio, impreso: imprimir, presupuesto_id: presupuestoId, items: itemsParaGuardar(),
   };
   const { data: ventaId, error } = await db.rpc('registrar_venta', { p_venta: payload });
-  if (error) { btn.disabled = false; toast('No se pudo registrar la venta: ' + error.message, 'error'); return; }
+  if (error) { btn.disabled = false; toast(errorAmigable(error, 'La venta NO se guardó', 'tocá Cobrar de nuevo'), 'error', 0); return; }
   if (imprimir) imprimirComprobante({ id: ventaId, created_at: new Date().toISOString(), cliente_nombre: payload.cliente_nombre, medio_pago: medio, items: payload.items });
-  toast(`Venta Nº ${ventaId} registrada${medio === 'cuenta_corriente' ? ' en cuenta corriente' : ''}`, 'success');
+  toast(`Venta Nº ${ventaId}: ${money(payload.items.reduce((s, i) => s + i.cantidad * i.precio_unit, 0))} · ${PAGOS[medio]}`, 'success', 6000);
   limpiarVenta();
   actualizarBadgeRepo();
   if (payload.presupuesto_id) actualizarBadgePresupuestos();
-  buscador().value = '';
   filtro = 'todos';   // el próximo cliente arranca viendo todos los proveedores
-  renderResultados(null);
-  buscador().focus();
+  limpiarBusqueda();
 });
 
 /* ── Presupuestos ────────────────────────────────────────────────────── */
 async function presupuestoWhatsApp() {
+  if (precioPendiente && !(await precioPendiente)) return;
   if (!venta.length) return;
   const { nombre, cliente } = clienteElegido();
   const texto = textoPresupuesto({ cliente: cliente?.nombre || nombre, items: venta, negocio: estado.config });
@@ -449,6 +488,7 @@ async function verPresupuestos() {
         h('td', { style: 'white-space:nowrap' },
           h('button', { class: 'btn btn-sm btn-primary', onclick: () => cargarPresupuesto(p) }, 'Cargar'),
           h('button', { class: 'btn btn-sm btn-icon btn-red', title: 'Descartar', 'aria-label': 'Descartar', style: 'margin-left:4px', onclick: async () => {
+            if (!(await confirmar('Descartar presupuesto', `¿Descartar el presupuesto Nº ${p.id}${p.cliente_nombre ? ` de ${p.cliente_nombre}` : ''}?`, { ok: 'Sí, descartar', peligro: true }))) { verPresupuestos(); return; }
             const { error: e } = await db.from('presupuestos').update({ estado: 'descartado' }).eq('id', p.id);
             if (e) { toast('No se pudo descartar: ' + e.message, 'error'); return; }
             closeModal(); actualizarBadgePresupuestos(); verPresupuestos();
@@ -467,10 +507,12 @@ async function cargarPresupuesto(p) {
 
 /** Esc: borra la búsqueda y deja el cursor listo para la próxima (la venta en curso no se toca). */
 export function limpiarBusqueda() {
-  enterEnEspera = false;
+  enterEnEspera = null;
+  pedido++;   // lo que estaba buscando ya no importa
+  dejarDeBuscar();
   filtro = 'todos';
   buscador().value = '';
-  resultados = []; selIdx = -1;
+  resultados = []; selIdx = -1; buscado = null;
   renderResultados(null);
   buscador().focus();
 }
@@ -484,14 +526,26 @@ export function iniciarMostrador() {
     else if (e.key === 'Enter') { e.preventDefault(); agregarSeleccionado(); }
   });
   $('pos-cobrar').addEventListener('click', cobrar);
+  $('pos-barra-ver').addEventListener('click', () => document.querySelector('.ticket').scrollIntoView({ behavior: 'smooth', block: 'start' }));
   $('pos-presu').addEventListener('click', presupuestoWhatsApp);
   $('pos-presus').addEventListener('click', verPresupuestos);
-  $('pos-clear').addEventListener('click', () => { limpiarVenta(); buscador().focus(); });
+  $('pos-clear').addEventListener('click', async () => {
+    const total = venta.reduce((s, v) => s + v.cantidad * v.precio_unit, 0);
+    if (venta.length && !(await confirmar('Vaciar la venta', `Se sacan ${venta.length === 1 ? '1 artículo' : `${venta.length} artículos`} (${money(total)}). ¿Seguro?`, { ok: 'Sí, vaciar', peligro: true }))) return;
+    limpiarVenta(); buscador().focus();
+  });
+  // Ojo: oculta costos y ganancia de la pantalla (el cliente la ve del otro lado del mostrador). Se recuerda.
+  const ojo = oculto => {
+    document.body.classList.toggle('ocultar-costos', oculto);
+    $('pos-ojo').setAttribute('aria-pressed', oculto ? 'true' : 'false');
+    $('pos-ojo').querySelector('.ms').textContent = oculto ? 'visibility_off' : 'visibility';
+    try { localStorage.setItem('danichap-ocultar-costos', oculto ? '1' : ''); } catch { /* sin almacenamiento */ }
+  };
+  try { ojo(localStorage.getItem('danichap-ocultar-costos') === '1'); } catch { /* sin almacenamiento */ }
+  $('pos-ojo').addEventListener('click', () => { ojo(!document.body.classList.contains('ocultar-costos')); buscador().focus(); });
   $('pos-manual').addEventListener('click', () => venderAMano());
   $('pos-cliente-nuevo').addEventListener('click', () => editarCliente(null, c => { $('pos-cliente').value = c.nombre; }));
-  $('pos-pago').addEventListener('change', () => {
-    $('pos-cc-aviso').classList.toggle('hidden', $('pos-pago').value !== 'cuenta_corriente');
-  });
+  $('pos-pago').addEventListener('change', () => renderVenta());
   renderVenta();
   actualizarBadgePresupuestos();
   registrarVista('mostrador', () => setTimeout(() => buscador().focus(), 0));

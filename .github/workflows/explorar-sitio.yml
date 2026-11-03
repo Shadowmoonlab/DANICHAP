@@ -79,4 +79,5 @@ jobs:
         with:
           name: exploracion-${{ inputs.sitio }}
           path: exploracion
-          retention-days: 7
+          # Trae páginas con sesión iniciada (precios de cliente): el repo es público, así que dura lo mínimo
+          retention-days: 1

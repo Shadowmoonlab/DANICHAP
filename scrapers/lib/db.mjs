@@ -1,12 +1,13 @@
 // db.mjs — Escritura en Supabase para los scrapers (service_role, solo en GitHub Actions)
 // Habla directo con la API REST de Supabase (sin @supabase/supabase-js): los robots no necesitan npm install.
 import fs from 'node:fs';
-import { enParalelo } from './sesion.mjs';
+import { enParalelo, TIEMPO_MAX_MS } from './sesion.mjs';
 import { aNumero } from '../../gestion/listas.js';
 
 const LOTE = 500;
 const LOTES_SIMULTANEOS = 2;   // con 7 robots a la vez, más guardados en paralelo traban la base (plan gratis)
-const MINIMO_LEIDO = 0.7;   // si se lee menos del 70 % de lo que había, no se da de baja nada (lectura cortada)
+const MINIMO_LEIDO = 0.85;   // si se lee menos del 85 % de lo que había, no se da de baja nada (lectura cortada)
+const MAXIMO_SIN_PRECIO = 0.05;   // más del 5 % sin precio = el sitio no mostró precios (sesión a medias): no se guarda nada
 const PRECIO_MAX = 1e9;   // la columna es numeric(12,2): un precio absurdo del sitio no debe tirar abajo toda la corrida
 
 // Un precio en 0 es "sin precio" (artículo sin cotizar), no un precio válido: no debe pisar el anterior
@@ -28,6 +29,7 @@ async function rest(ruta, { method = 'POST', body, prefer } = {}) {
     method,
     headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json', ...(prefer ? { Prefer: prefer } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
+    signal: AbortSignal.timeout(5 * TIEMPO_MAX_MS),   // la base puede tardar con lotes grandes, pero nunca colgarse
   });
   const texto = await res.text();
   if (!res.ok) {
@@ -78,7 +80,7 @@ const esFuncionInexistente = err => /Could not find the function/i.test(err.mess
 // Guarda todas las filas y da de baja lo que el distribuidor ya no lista.
 // Con docs/robots-sincronizar.sql solo se escriben las filas que cambiaron; sin ese SQL todavía aplicado,
 // usa las funciones anteriores (reescribe todo): los robots funcionan igual en los dos casos.
-async function sincronizar(distribuidor, filas, visto) {
+async function sincronizar(distribuidor, filas, visto, codigosLeidos = filas.map(f => f.codigo)) {
   const lotes = Array.from({ length: Math.ceil(filas.length / LOTE) }, (_, i) => filas.slice(i * LOTE, (i + 1) * LOTE));
   let rpc = 'sincronizar_precios';
   let cambios;
@@ -95,13 +97,13 @@ async function sincronizar(distribuidor, filas, visto) {
 
   // Freno: si el sitio devolvió solo una parte (página que falló, API cortada), no se da de baja el resto del catálogo
   const activos = await contarActivos(distribuidor);
-  if (activos == null || filas.length < activos * MINIMO_LEIDO) {
-    const motivo = activos == null ? 'no pude contar los activos' : `leí ${filas.length} de ${activos} activos`;
+  if (activos == null || codigosLeidos.length < activos * MINIMO_LEIDO) {
+    const motivo = activos == null ? 'no pude contar los activos' : `leí ${codigosLeidos.length} de ${activos} activos`;
     console.warn(`[${distribuidor}] ${motivo}: esta vez no doy de baja ninguno`);
     return { cambios, bajas: 0, sinBajas: motivo };
   }
   const bajas = rpc === 'sincronizar_precios'
-    ? await rest('rpc/desactivar_ausentes', { body: { p_distribuidor: distribuidor, p_codigos: filas.map(f => f.codigo) } })
+    ? await rest('rpc/desactivar_ausentes', { body: { p_distribuidor: distribuidor, p_codigos: codigosLeidos } })
     : await rest('rpc/desactivar_no_vistos', { body: { p_distribuidor: distribuidor, p_visto: visto } });
   return { cambios, bajas };
 }
@@ -132,14 +134,29 @@ export async function correrScraper(distribuidor, scrape) {
     })).filter(f => f.codigo);
     const filas = [...new Map(leidas.map(f => [f.codigo, f])).values()];   // un código repetido rompe el upsert
     if (filas.length === 0) throw new Error('El distribuidor no devolvió productos');
-    const raros = filas.filter(f => f.precio_lista == null && f.precio_neto == null).length;
-    if (raros) console.warn(`[${distribuidor}] ${raros} artículos sin precio válido (se guardan sin precio)`);
+    // Un artículo sin precio (0 o vacío) NO se guarda: pisaría el precio bueno que ya tenía. Sigue contando como
+    // "visto" (no se da de baja). Si son muchos, el sitio no mostró precios (sesión a medias): no se toca nada.
+    const sinPrecio = filas.filter(f => f.precio_lista == null && f.precio_neto == null);
+    if (sinPrecio.length > filas.length * MAXIMO_SIN_PRECIO) {
+      throw new Error(`El sitio devolvió ${sinPrecio.length} de ${filas.length} artículos sin precio (¿sesión sin precios?): no se guardó nada`);
+    }
+    const conPrecio = filas.filter(f => f.precio_lista != null || f.precio_neto != null);
+    if (sinPrecio.length) console.warn(`[${distribuidor}] ${sinPrecio.length} artículos sin precio: quedan con el precio anterior`);
 
-    const { cambios, bajas, sinBajas } = await sincronizar(distribuidor, filas, visto);
+    const { cambios, bajas, sinBajas } = await sincronizar(distribuidor, conPrecio, visto, filas.map(f => f.codigo));
 
+    // Lectura incompleta (menos del 85 % de lo que había): los precios leídos se guardan, pero la corrida queda
+    // como fallida para que se reintente en el día y el panel lo muestre (antes quedaba "OK" y el resto, viejo)
+    if (sinBajas) {
+      await terminarRun(run?.id, { ok: false, productos: filas.length, error: `Lista incompleta: ${sinBajas}. Se guardaron los leídos; se reintenta.` });
+      console.warn(`[${distribuidor}] INCOMPLETO — ${filas.length} productos (${cambios} con cambios), ${sinBajas}`);
+      resumen(`⚠️ **${distribuidor}**: incompleto (${sinBajas}); ${cambios} nuevos o con cambios`);
+      process.exitCode = 1;
+      return;
+    }
     await terminarRun(run?.id, { ok: true, productos: filas.length });
     console.log(`[${distribuidor}] OK — ${filas.length} productos (${cambios} nuevos o con cambios), ${bajas} dados de baja`);
-    resumen(`✅ **${distribuidor}**: ${filas.length} productos (${cambios} nuevos o con cambios), ${sinBajas ? `sin bajas (${sinBajas})` : `${bajas} dados de baja`}`);
+    resumen(`✅ **${distribuidor}**: ${filas.length} productos (${cambios} nuevos o con cambios), ${bajas} dados de baja`);
   } catch (err) {
     await terminarRun(run?.id, { ok: false, error: [err.message || String(err), err.detalle].filter(Boolean).join('\n').slice(0, 4000) });
     console.error(`[${distribuidor}] ERROR — ${err.message || err}`);

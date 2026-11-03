@@ -68,7 +68,8 @@ const secretos = [...new Set([usuario, clave].filter(v => v && v.length > 2).fla
   .sort((a, b) => b.length - a.length);
 // Además, cualquier campo JSON con forma de clave o token (algunos sitios devuelven la clave hasheada)
 const CAMPOS_SECRETOS = /("(?:clave[a-z_]*|password|pass|token|access_token|refresh_token|user_token)"\s*:\s*)"[^"]*"/gi;
-const tapar = txt => secretos.reduce((t, v) => t.split(v).join('[OCULTO]'), txt).replace(CAMPOS_SECRETOS, '$1"[OCULTO]"');
+const tapar = txt => secretos.reduce((t, v) => t.split(v).join('[OCULTO]'), txt).replace(CAMPOS_SECRETOS, '$1"[OCULTO]"')
+  .replace(/https?:\/\/(www\.)?dropbox\.com\/[^"'\s<>]+/gi, '[LINK DROPBOX OCULTO]');   // la lista de Fal da precios sin login
 
 const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
 const page = await browser.newPage();

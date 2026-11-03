@@ -20,7 +20,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
 <script src="toast.js?v=3" defer></script>
 <script src="supabase.js?v=2" defer></script>
-<script type="module" src="gestion/main.js?v=27"></script>
+<script type="module" src="gestion/main.js?v=28"></script>
 </head>
 <body>
 
@@ -89,6 +89,7 @@
           <div class="ticket-head-acts">
             <button class="btn btn-sm" id="pos-manual" title="Vender algo que no está en las listas"><span class="ms">edit_note</span>A mano</button>
             <button class="btn btn-sm" id="pos-presus" title="Presupuestos guardados"><span class="ms">request_quote</span>Presupuestos <span id="pos-presus-n"></span></button>
+            <button class="btn btn-sm" id="pos-ojo" title="Ocultar costos y ganancia (para que no los vea el cliente)" aria-pressed="false"><span class="ms">visibility</span><span class="ojo-txt">Costos</span></button>
             <button class="btn btn-sm btn-red" id="pos-clear" title="Vaciar venta"><span class="ms">delete_sweep</span>Vaciar</button>
           </div>
         </div>
@@ -109,20 +110,19 @@
               <option value="transferencia">Transferencia</option>
               <option value="debito">Débito</option>
               <option value="credito">Crédito</option>
-              <option value="cuenta_corriente">Cuenta corriente (fiado)</option>
             </select>
-            <p id="pos-cc-aviso" class="hint hidden">Se suma al saldo del cliente. Elegí un cliente cargado.</p>
           </div>
           <div class="total-row"><span class="label">Total</span><span class="t num" id="pos-total">$ 0</span></div>
           <div class="gain" id="pos-gain"></div>
           <label class="check" title="Comprobante de venta para el cliente (no es factura fiscal de ARCA)"><input type="checkbox" id="pos-print"/> Imprimir comprobante</label>
           <div class="ticket-btns">
             <button class="btn btn-lg" id="pos-presu" disabled title="Mandar presupuesto por WhatsApp (F4)"><span class="ms">chat</span>Presupuesto</button>
-            <button class="btn btn-green btn-xl" id="pos-cobrar" disabled><span class="ms">payments</span>Cobrar <span class="kbd">F9</span></button>
+            <button class="btn btn-green btn-xl" id="pos-cobrar" disabled><span class="ms">payments</span><span id="pos-cobrar-txt">Cobrar</span> <span class="kbd">F9</span></button>
           </div>
         </div>
       </aside>
     </div>
+    <div class="barra-venta hidden" id="pos-barra" aria-live="polite"><span id="pos-barra-txt"></span><button class="btn btn-sm" id="pos-barra-ver"><span class="ms">shopping_cart</span>Ver venta</button></div>
   </section>
 
   <!-- ═══ REPOSICIÓN ═══ -->
@@ -235,10 +235,10 @@
         <button class="btn btn-primary" id="cli-nuevo"><span class="ms">person_add</span>Nuevo cliente</button>
       </div>
     </div>
-    <p class="view-hint">Para vender fiado el cliente tiene que estar cargado acá. Tocá uno para ver cuánto debe, anotar un pago o mandarle el recordatorio por WhatsApp. <span id="cli-deuda" class="cli-deuda"></span></p>
+    <p class="view-hint">Tus clientes y talleres: con el teléfono cargado, el presupuesto les llega directo por WhatsApp. Tocá uno para ver qué compró.</p>
     <div class="card tbl-wrap">
       <table class="tbl">
-        <thead><tr><th>Cliente</th><th>Teléfono</th><th>Última compra</th><th class="right">Total comprado</th><th class="right">Saldo</th></tr></thead>
+        <thead><tr><th>Cliente</th><th>Teléfono</th><th>Última compra</th><th class="right">Total comprado</th></tr></thead>
         <tbody id="cli-body"></tbody>
       </table>
     </div>
@@ -299,7 +299,7 @@
             <div class="field"><label class="label" for="cfg-tel">Teléfono</label><input id="cfg-tel" class="input"/></div>
           </div>
           <div class="field"><label class="label" for="cfg-alias">Alias para transferencias</label><input id="cfg-alias" class="input" placeholder="Ej: DANICHAP.REPUESTOS"/></div>
-          <p class="hint">Se usa en los recordatorios de saldo por WhatsApp.</p>
+          <p class="hint">Va al pie de los presupuestos por WhatsApp, para pagar por transferencia.</p>
           <div class="field"><label class="label" for="cfg-leyenda">Leyenda al pie del comprobante</label><input id="cfg-leyenda" class="input"/></div>
           <button class="btn btn-primary" id="cfg-guardar"><span class="ms">save</span>Guardar ajustes</button>
         </div>

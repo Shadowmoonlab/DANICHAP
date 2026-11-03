@@ -20,6 +20,11 @@ test('saludo usa la razón social completa para talleres y omite nombre vacío',
   assert.match(presupuesto({ cliente: '', items, negocio }), /^Hola! 👋/);
 });
 
+test('presupuesto: alias para transferir si está cargado', () => {
+  assert.match(presupuesto({ cliente: 'Juan', items, negocio: { ...negocio, alias_transferencia: 'DANICHAP.REPUESTOS' } }), /alias \*DANICHAP\.REPUESTOS\*/);
+  assert.doesNotMatch(presupuesto({ cliente: 'Juan', items, negocio }), /alias/);
+});
+
 test('recordatorio de saldo: monto y alias si existe', () => {
   const t = recordatorioSaldo({ cliente: 'Taller Gómez', saldo: 127000, negocio, alias: 'DANICHAP.REPUESTOS' });
   assert.match(t, /\*\$127\.000\*/);

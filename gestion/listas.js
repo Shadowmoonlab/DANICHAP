@@ -24,7 +24,7 @@ const NO_ES_SECCION = new RegExp([
 /** Convierte "24.824,67", "$ 58.300", "15 500", "153,639 €-", 58300 → número, o null. */
 export function aNumero(v) {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
-  let s = String(v ?? '').replace(/[$€\s]/g, '').replace(/^[-–]+|[-–]+$/g, '');
+  let s = String(v ?? '').replace(/u\$s|us\$|usd|ars|eur/gi, '').replace(/[$€\s]/g, '').replace(/^[-–]+|[-–]+$/g, '');
   if (!s || !/\d/.test(s)) return null;
   if (s.includes(',') && s.includes('.')) {
     s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
@@ -55,7 +55,7 @@ export function arreglarAcentos(t) {
 }
 const texto = v => arreglarAcentos(String(v ?? '').trim());
 // Celda que es solo un monto (no una descripción con números como "TOP TEC 4200")
-const esMonto = v => typeof v === 'number' || /^[\d\s.,$€–-]+$/.test(texto(v));
+const esMonto = v => typeof v === 'number' || /^(u\$s|us\$|usd|ars|eur)?[\d\s.,$€–-]+$/i.test(texto(v));
 const mediana = xs => { const o = [...xs].sort((a, b) => a - b); return o.length ? o[o.length >> 1] : 0; };
 
 function esEncabezado(fila) {
@@ -147,6 +147,11 @@ export function detectarColumnas(filas, opciones = {}) {
                 lado: enc.findIndex(c => c === 'lado'), codigoEnDesc: false, extras: [] };
   // Precio: la última columna de precio (suele ser el precio final de la fila)
   enc.forEach((c, i) => { if (ES_PRECIO.test(c)) col.precio = i; });
+  // "Precio lista | Precio c/dto 20%": la de lista (el descuento de Daniel se aplica aparte, si no se descontaría dos veces)
+  if (/dto|desc|bonif/.test(enc[col.precio] ?? '')) {
+    const sinDto = enc.map((c, i) => (ES_PRECIO.test(c) && !/dto|desc|bonif/.test(c) ? i : -1)).filter(i => i >= 0).at(-1);
+    if (sinDto != null) col.precio = sinDto;
+  }
   // "Precio" ocupando dos celdas ("$" | 12.345): si la de al lado no tiene encabezado y trae más números, es esa
   if (col.precio >= 0 && !enc[col.precio + 1]) {
     const numeros = i => filas.slice(iEnc + 1, iEnc + 200).filter(f => aNumero(f[i]) != null).length;
@@ -193,11 +198,16 @@ export function parsearLista(filas, opciones = {}) {
   // "Sin IVA" / "con IVA" escrito en el encabezado de la lista; si dice las dos cosas (dos columnas), no se adivina
   let dicenSin = false, dicenCon = false;
   for (const fila of filas.slice(0, 60)) {
-    const todo = sinAcentos(fila.join(' '));
-    if (/(sin|no incluyen?|s ?\/ ?) ?iva|\+ ?iva|mas iva/.test(todo) || (/neto/.test(todo) && /precio/.test(todo) && !esEncabezado(fila))) dicenSin = true;
-    if (/con iva|iva incluido/.test(todo)) dicenCon = true;
+    const todo = sinAcentos(fila.join(' ')).replace(/i\.? ?v\.? ?a\.?/g, 'iva');   // "I.V.A." = "iva"
+    const noIncluye = /no incluyen? (el |los )?iva/.test(todo);
+    if (noIncluye || /(sin|s ?\/ ?) ?iva|\+ ?iva|mas iva/.test(todo) || (/neto/.test(todo) && /precio/.test(todo) && !esEncabezado(fila))) dicenSin = true;
+    if (/con iva|c ?\/ ?iva|iva incluido/.test(todo) || (!noIncluye && /incluyen? (el )?iva/.test(todo))) dicenCon = true;
   }
-  const preciosSinIva = dicenSin !== dicenCon ? dicenSin : null;
+  let preciosSinIva = dicenSin !== dicenCon ? dicenSin : null;
+  // "Precio s/IVA | Precio c/IVA": lo que dice la columna de la que se toma el precio es lo que vale
+  const tituloPrecio = columnas.encabezado >= 0 ? sinAcentos(filas[columnas.encabezado][columnas.precio]).replace(/i\.? ?v\.? ?a\.?/g, 'iva') : '';
+  if (/con iva|c ?\/ ?iva|iva incl/.test(tituloPrecio)) preciosSinIva = false;
+  else if (/sin iva|s ?\/ ?iva|\+ ?iva|neto/.test(tituloPrecio)) preciosSinIva = true;
 
   const leerCodigo = (fila, descripcion) => {
     if (columnas.codigo >= 0) return { codigo: texto(fila[columnas.codigo]), descripcion };
@@ -253,8 +263,7 @@ export function parsearLista(filas, opciones = {}) {
  * @param {{nombre: string, filas: any[][]}[]} hojas
  */
 export function parsearLibro(hojas, opciones = {}) {
-  const productos = [], secciones = [], porHoja = [];
-  const vistos = new Set();
+  const todos = [], secciones = [], porHoja = [];
   let descartadas = 0, sinIva = false, conIva = false;
   for (const { nombre, filas } of hojas) {
     if (!filas || filas.length < 2) continue;
@@ -262,18 +271,46 @@ export function parsearLibro(hojas, opciones = {}) {
     porHoja.push({ nombre, productos: r.productos.length, descartadas: r.descartadas });
     if (!r.productos.length) continue;
     const rubroHoja = /^(hoja|sheet|pagina)\s*\d*$/i.test(String(nombre).trim()) ? null : String(nombre).trim();
-    for (const p of r.productos) {
-      if (vistos.has(p.codigo)) continue;
-      vistos.add(p.codigo);
-      productos.push({ ...p, rubro: p.rubro ?? rubroHoja });
-    }
+    for (const p of r.productos) todos.push({ ...p, rubro: p.rubro ?? rubroHoja });
     for (const s of r.secciones.length ? r.secciones : rubroHoja ? [rubroHoja] : []) if (!secciones.includes(s)) secciones.push(s);
     descartadas += r.descartadas;
     if (r.preciosSinIva === true) sinIva = true;
     if (r.preciosSinIva === false) conIva = true;
   }
-  return { columnas: productos.length ? true : null, productos, secciones, descartadas, porHoja,
+  const { productos, repetidos } = sinCodigosRepetidos(todos);
+  return { columnas: productos.length ? true : null, productos, secciones, descartadas, porHoja, repetidos,
            preciosSinIva: sinIva !== conIva ? sinIva : null };
+}
+
+/**
+ * Un mismo código para productos distintos (Reposiciones usa "103" en 4 marcas; Chriva "1128" para dos
+ * modelos): antes quedaba uno solo y el resto se perdía. Ahora:
+ * - el mismo renglón repetido (mismo código, descripción y precio) cuenta una vez;
+ * - si el código se repite con otra descripción o precio, cada uno pasa a "código · descripción" (y si hace
+ *   falta, también la sección), así ninguno se pisa en la base y se encuentran todos.
+ */
+export function sinCodigosRepetidos(lista) {
+  const porCodigo = new Map();
+  for (const p of lista) {
+    const grupo = porCodigo.get(p.codigo) ?? [];
+    if (!grupo.some(o => o.descripcion === p.descripcion && o.precio === p.precio)) grupo.push(p);
+    porCodigo.set(p.codigo, grupo);
+  }
+  const productos = [];
+  let repetidos = 0;
+  for (const [codigo, grupo] of porCodigo) {
+    if (grupo.length === 1) { productos.push(grupo[0]); continue; }
+    repetidos++;
+    const usados = new Set();
+    for (const p of grupo) {
+      let nuevo = `${codigo} · ${p.descripcion}`;
+      if (usados.has(nuevo) && p.rubro) nuevo += ` · ${p.rubro}`;
+      for (let n = 2; usados.has(nuevo); n++) nuevo = `${codigo} · ${p.descripcion} · ${n}`;
+      usados.add(nuevo);
+      productos.push({ ...p, codigo: nuevo });
+    }
+  }
+  return { productos, repetidos };
 }
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -290,7 +327,12 @@ function mesesEnTexto(texto, hoy, { sinAnio = false } = {}) {
     encontrados.push(`${anio}-${String(mes).padStart(2, '0')}`);
   };
   for (const m of t.matchAll(/\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4}|\d{2})\b/g)) if (+m[1] >= 1 && +m[1] <= 31) sumar(+m[3], +m[2]);
-  for (const m of t.matchAll(new RegExp(`(${MESES.join('|')})(?:\\s+(?:de|del)?\\s*(\\d{4}))?`, 'g'))) {
+  for (const m of t.matchAll(/(?:^|[^\d/.-])(\d{1,2})[/-](\d{4})\b/g)) sumar(+m[2], +m[1]);   // "04/2026"
+  for (const m of t.matchAll(/\b(ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)[-/](\d{2}|\d{4})\b/g)) {   // "ABR-26"
+    sumar(+m[2], ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'].indexOf(m[1] === 'set' ? 'sep' : m[1]) + 1);
+  }
+  // "Septiembre 2026", "agosto de 2026", "abril/2026", "abril. 01 2026"; "mayorista" no es mayo
+  for (const m of t.matchAll(new RegExp(`\\b(${MESES.join('|')})\\b(?:[\\s./,-]*(?:de|del)?[\\s./,-]*(?:\\d{1,2}[\\s./,-]+)?(\\d{4}))?`, 'g'))) {
     const mes = MESES.indexOf(m[1]) + 1;
     if (m[2]) sumar(+m[2], mes);
     // Solo el mes ("chriva agosto"): el último que pasó (agosto en noviembre → este año; diciembre en marzo → el anterior)
@@ -312,8 +354,19 @@ export function mesDeLista({ nombres = [], hojas = [] }, hoy = new Date()) {
   if (porNombre) return porNombre;
   return masNuevo(hojas.flatMap(({ nombre, filas }) => [
     ...mesesEnTexto(nombre, hoy),
-    ...(filas || []).slice(0, 12).flatMap(f => mesesEnTexto((f || []).filter(c => c != null).join(' '), hoy)),
+    ...(filas || []).slice(0, 12).flatMap(f => mesesDeRenglon(f || [], hoy)),
   ]));
+}
+
+// Un renglón de encabezado: celdas de fecha de Excel o fechas escritas. Un renglón de producto (con precio) no
+// cuenta: un código "10.11.24" no es una fecha.
+function mesesDeRenglon(fila, hoy) {
+  const celdas = fila.filter(c => c != null && c !== '');
+  if (celdas.length >= 3 && celdas.some(c => typeof c === 'number' && c >= 100)) return [];
+  const fechas = celdas.filter(c => c instanceof Date && !Number.isNaN(c.getTime()))
+    .map(d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+    .filter(m => m <= `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}` && +m.slice(0, 4) >= hoy.getFullYear() - 3);
+  return [...fechas, ...mesesEnTexto(celdas.filter(c => !(c instanceof Date)).join(' '), hoy)];
 }
 
 /** "2026-08" → "ago 2026". */

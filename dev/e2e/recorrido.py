@@ -145,6 +145,13 @@ def venta(page):
     precio.press("Control+a")
     page.keyboard.type("12.000")
     page.keyboard.press("F9")
+    # Precio por debajo del costo: el panel pregunta y el cobro espera la respuesta (no cobra el precio viejo)
+    pregunta = page.locator("#modal-title", has_text="¿Precio correcto?")
+    try:
+        pregunta.wait_for(timeout=3000)
+        page.click("#modal-foot button:has-text('Sí, dejar ese precio')")
+    except Exception:  # noqa: BLE001 — el costo de prueba puede ser menor y entonces no pregunta
+        pass
     toast_con(page, r"Venta N")
     v = ultima_venta(page)
     assert v["id"] != antes, "no se registró la venta"
@@ -173,11 +180,12 @@ def presupuesto(page):
     page.click("#modal-foot button:has-text('Solo guardar')")
     toast_con(page, "Presupuesto guardado")
     page.click("#pos-clear")
+    page.click("#modal-foot button:has-text('Sí, vaciar')")   # vaciar con artículos pide confirmación
     return "presupuesto guardado"
 
 
-@paso("6. Fiado a un cliente y saldo en Clientes")
-def fiado(page):
+@paso("6. Venta a un cliente cargado y aparece en Clientes (sin fiado)")
+def cliente(page):
     vista(page, "clientes")
     ya = page.evaluate(f"async () => (await _supabase.from('clientes').select('id').eq('nombre', '{CLIENTE}')).data.length")
     if not ya:
@@ -186,21 +194,21 @@ def fiado(page):
         page.click("#modal-foot button:has-text('Guardar')")
         page.wait_for_timeout(1000)
     vista(page, "mostrador")
+    assert page.locator("#pos-pago option[value=cuenta_corriente]").count() == 0, "sigue la opción de fiado"
     agregar(page, "G12348")
     page.fill("#pos-cliente", CLIENTE)
-    page.select_option("#pos-pago", "cuenta_corriente")
+    page.select_option("#pos-pago", "transferencia")
+    expect(page.locator("#pos-cobrar")).to_contain_text("Transferencia")
     page.keyboard.press("F9")
-    toast_con(page, "cuenta corriente")
-    aviso_oculto = page.locator("#pos-cc-aviso").is_hidden()
+    toast_con(page, "Transferencia")
     vista(page, "clientes")
     page.fill("#cli-search", CLIENTE)
     page.wait_for_timeout(800)
     fila = page.locator("#cli-body tr", has_text=CLIENTE).first
     expect(fila).to_be_visible()
     texto = fila.inner_text()
-    assert "$" in texto, f"no muestra saldo: {texto}"
-    assert aviso_oculto, "el cartel de fiado quedó visible después de cobrar"
-    return "saldo visible: " + re.sub(r"\s+", " ", texto)[:80]
+    assert "$" in texto, f"no muestra lo comprado: {texto}"
+    return "cliente con compras: " + re.sub(r"\s+", " ", texto)[:80]
 
 
 @paso("7. Recepción: carga a mano disponible")
@@ -315,7 +323,7 @@ def main():
         panel = browser.new_context(viewport={"width": 1366, "height": 900}, accept_downloads=True)
         page = panel.new_page()
         escuchar_errores(page, "panel")
-        for f in (entrar_y_buscar, webs, venta, doble_cobro, presupuesto, fiado, recepcion,
+        for f in (entrar_y_buscar, webs, venta, doble_cobro, presupuesto, cliente, recepcion,
                   reposicion, anular, cerrar_caja, libro, proveedores, copia, admin):
             f(page)
         browser.close()
