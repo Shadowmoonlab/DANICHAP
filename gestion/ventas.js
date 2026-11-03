@@ -1,7 +1,7 @@
 // gestion/ventas.js — Historial de ventas con ganancia real y cierre de caja por forma de pago.
-import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=29';
-import { imprimirComprobante } from './comprobante.js?v=29';
-import { calcularCierre, leerDiferencia } from './caja-calc.js?v=29';
+import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=30';
+import { imprimirComprobante } from './comprobante.js?v=30';
+import { calcularCierre, leerDiferencia } from './caja-calc.js?v=30';
 
 let pedidoVentas = 0;   // si se cambia el filtro rápido, la respuesta vieja no pisa a la nueva
 async function cargar() {
@@ -61,7 +61,7 @@ export async function verVenta(v) {
     foot: [
       !v.anulada ? h('button', { class: 'btn btn-red', onclick: async () => {
         closeModal();
-        if (!(await confirmar('Anular venta', `¿Anular la venta Nº ${v.id}? No se borra: queda tachada, deja de sumar en caja y cuenta corriente, y lo vendido vuelve al stock.`, { ok: 'Anular', peligro: true }))) return;
+        if (!(await confirmar('Anular venta', `¿Anular la venta Nº ${v.id}? No se borra: queda tachada, deja de sumar en la caja y lo vendido vuelve al stock.`, { ok: 'Anular', peligro: true }))) return;
         // anular_venta (docs/gestion-v4.sql) devuelve el stock, saca lo pendiente de Reposición y reabre el presupuesto.
         // Sin ese SQL todavía aplicado, se anula como antes (solo la marca).
         let { error } = await db.rpc('anular_venta', { p_id: v.id });
@@ -103,7 +103,7 @@ async function cerrarCaja() {
     const c = calcularCierre(mov.data || [], Number(inicial.value) || 0);
     cuentas.replaceChildren(...[
       h('div', {}, h('span', {}, 'Cambio con el que abriste'), h('b', { class: 'num' }, money(Number(inicial.value) || 0))),
-      h('div', {}, h('span', {}, '+ Entró en efectivo (ventas, cobros, otros ingresos)'), h('b', { class: 'num ganancia' }, money(c.entra))),
+      h('div', {}, h('span', {}, '+ Entró en efectivo (ventas y otros ingresos)'), h('b', { class: 'num ganancia' }, money(c.entra))),
       h('div', {}, h('span', {}, '− Salió en efectivo (gastos y retiros)'), h('b', { class: 'num egreso' }, money(c.sale))),
       h('div', { class: 'arqueo-total' }, h('span', {}, 'Tendría que haber en la caja'), h('b', { class: 'num' }, money(c.esperado))),
       Object.keys(c.otros).length ? h('p', { class: 'hint' }, 'No van a la caja (quedan en el banco): ',

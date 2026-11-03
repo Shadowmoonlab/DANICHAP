@@ -82,10 +82,10 @@ export function hojasExcel({ titulo, agrupar, resumen, movimientos, pagos = {} }
     ['Ventas', t.ventas], ['Costo de lo vendido', t.costo], ['Ganancia bruta', t.ganancia], ['Gastos', t.gastos],
     ['Resultado (ganancia − gastos)', t.resultado], [],
     ['Caja: entró', t.caja_entro], ['Caja: salió (compras + gastos + retiros)', t.caja_salio], ['Caja: neto', t.caja_neto],
-    ['Vendido en cuenta corriente (fiado)', t.fiado], ['Cobros de cuenta corriente', t.cobros], ['Compras a proveedores', t.compras], [],
-    [agrupar === 'month' ? 'Mes' : 'Día', 'Ventas', 'Cant.', 'Costo', 'Ganancia', 'Fiado', 'Cobros', 'Compras', 'Gastos', 'Otros ingresos', 'Retiros', 'Resultado', 'Caja neto'],
-    ...resumen.map(r => { const x = conResultados(r); return [r.periodo, n(r.ventas), n(r.cant_ventas), n(r.costo), n(r.ganancia), n(r.fiado), n(r.cobros), n(r.compras), n(r.gastos), n(r.otros_ingresos), n(r.retiros), x.resultado, x.caja_neto]; }),
-    ['TOTAL', t.ventas, t.cant_ventas, t.costo, t.ganancia, t.fiado, t.cobros, t.compras, t.gastos, t.otros_ingresos, t.retiros, t.resultado, t.caja_neto],
+    ['Compras a proveedores', t.compras], [],
+    [agrupar === 'month' ? 'Mes' : 'Día', 'Ventas', 'Cant.', 'Costo', 'Ganancia', 'Compras', 'Gastos', 'Otros ingresos', 'Retiros', 'Resultado', 'Caja neto'],
+    ...resumen.map(r => { const x = conResultados(r); return [r.periodo, n(r.ventas), n(r.cant_ventas), n(r.costo), n(r.ganancia), n(r.compras), n(r.gastos), n(r.otros_ingresos), n(r.retiros), x.resultado, x.caja_neto]; }),
+    ['TOTAL', t.ventas, t.cant_ventas, t.costo, t.ganancia, t.compras, t.gastos, t.otros_ingresos, t.retiros, t.resultado, t.caja_neto],
   ];
   const hojas = [['Resumen', hoja1]];
   if (movimientos?.length) {
