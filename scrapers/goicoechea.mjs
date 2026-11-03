@@ -27,7 +27,9 @@ async function scrape() {
     let texto = archivo.toString('utf8');
     if (texto.includes('�')) texto = archivo.toString('latin1');
     if (/^\s*<(!doctype|html)/i.test(texto)) throw new Error('el sitio devolvió una página en vez de la lista CSV');
-    const filas = leerCsv(texto);   // sin fotos: upsert_precios conserva las que ya había
+    // El CSV de Goicoechea mezcla codificaciones viejas (DOS): "CIGUE¥AL" = CIGÜEÑAL, "Ca±o" = Caño, "N¦ 1" = Nº 1
+    const arreglar = d => String(d ?? '').replace(/¥/g, 'Ñ').replace(/[¤±]/g, 'ñ').replace(/¦/g, 'º');
+    const filas = leerCsv(texto).map(f => ({ ...f, descripcion: arreglar(f.descripcion) }));   // sin fotos: upsert_precios conserva las que ya había
     if (filas.length < MINIMO_CSV) throw new Error(`la lista CSV trajo solo ${filas.length} artículos`);
     console.log(`[goicoechea] CSV: ${filas.length} artículos`);
     return [...new Map(filas.map(f => [f.codigo, f])).values()];
