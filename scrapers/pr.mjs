@@ -29,7 +29,11 @@ const textoDe = v => {
   if (v == null || v === false) return '';
   if (typeof v === 'string' || typeof v === 'number') return String(v).trim();
   if (Array.isArray(v)) return v.map(textoDe).filter(Boolean).join(' ').trim();
-  if (typeof v === 'object') return textoDe(v.descripcion ?? v.descripcionLarga ?? v.nombre ?? v.texto ?? v.detalle ?? v.valor);
+  if (typeof v === 'object') {
+    const conocido = textoDe(v.descripcion ?? v.descripcionLarga ?? v.nombre ?? v.texto ?? v.detalle ?? v.valor);
+    // Campo con otro nombre: todos sus textos (no números ni códigos sueltos)
+    return conocido || Object.values(v).filter(x => typeof x === 'string' && /[a-z]{3}/i.test(x)).map(x => x.trim()).join(' ');
+  }
   return '';
 };
 const descripcionDe = it => [it.descripciones, it.descripcion, it.descripcionLarga, it.descripcionCorta, it.nombre,
@@ -67,6 +71,10 @@ async function scrape() {
   // Qué campos manda la API (solo los nombres y de qué tipo son: nada de precios ni datos de la cuenta)
   const muestra = primera.items[0] || {};
   console.log(`[pr] campos del artículo: ${Object.entries(muestra).map(([k, v]) => `${k}:${Array.isArray(v) ? 'lista' : typeof v}`).join(', ')}`);
+  // Cómo viene la lista "descripciones" y otros textos (nombres de productos, nada de la cuenta ni precios)
+  console.log(`[pr] descripciones[0]: ${JSON.stringify(muestra.descripciones?.[0] ?? null).slice(0, 300)}`);
+  console.log(`[pr] artprov: ${JSON.stringify(muestra.artprov ?? null).slice(0, 120)} · posicion: ${JSON.stringify(muestra.posicion ?? null)} · equivalencia: ${JSON.stringify(muestra.equivalencia ?? null).slice(0, 120)}`);
+  console.log(`[pr] descripción leída del primero: ${JSON.stringify(descripcionDe(muestra)).slice(0, 200)}`);
 
   const filas = primera.items.map(mapear).filter(f => f.codigo);
   const vistos = new Set(filas.map(f => f.codigo));

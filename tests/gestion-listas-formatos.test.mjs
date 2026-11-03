@@ -124,3 +124,10 @@ test('lista en dólares sin encabezado: precios chicos (12,5) se leen si se avis
   const filas = [['A-1', 'FILTRO ACEITE', '12,5'], ['A-2', 'FILTRO AIRE', '18,9'], ['A-3', 'BUJIA', '4,2'], ['A-4', 'CORREA', '45']];
   assert.equal(parsearLista(filas, { minimoPrecio: 1 }).productos.length, 4);
 });
+
+test('títulos de sección con letras separadas se juntan ("R E N A U L T" → "RENAULT")', async () => {
+  const { tituloDeSeccion } = await import('../gestion/listas.js');
+  assert.equal(tituloDeSeccion('R E N A U L T'), 'RENAULT');
+  assert.equal(tituloDeSeccion('P E U G E O T 504'), 'PEUGEOT 504');
+  assert.equal(tituloDeSeccion('FIAT 128'), 'FIAT 128');
+});

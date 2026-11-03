@@ -54,6 +54,9 @@ export function arreglarAcentos(t) {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(new Uint8Array(bytes)); } catch { return t; }
 }
 const texto = v => arreglarAcentos(String(v ?? '').trim());
+// Título de sección escrito con letras separadas ("R E N A U L T", Espíndola): se junta para que se pueda buscar
+export const tituloDeSeccion = t => String(t ?? '').replace(/\s+/g, ' ').trim()
+  .replace(/(?<![\p{L}\d])(?:\p{L} ){2,}\p{L}(?![\p{L}\d])/gu, m => m.replace(/ /g, ''));
 // Celda que es solo un monto (no una descripción con números como "TOP TEC 4200")
 const esMonto = v => typeof v === 'number' || /^(u\$s|us\$|usd|ars|eur)?[\d\s.,$€–-]+$/i.test(texto(v));
 const mediana = xs => { const o = [...xs].sort((a, b) => a - b); return o.length ? o[o.length >> 1] : 0; };
@@ -188,7 +191,7 @@ export function parsearLista(filas, opciones = {}) {
   for (let i = columnas.encabezado - 1; i >= Math.max(0, columnas.encabezado - 3); i--) {
     const celdas = filas[i].map(texto).filter(Boolean);
     if (celdas.length === 1 && celdas[0].length <= 60 && !/lista|precio|tel|mail|@/i.test(celdas[0])) {
-      rubro = celdas[0];
+      rubro = tituloDeSeccion(celdas[0]);
       secciones.push(rubro);
       break;
     }
@@ -221,7 +224,7 @@ export function parsearLista(filas, opciones = {}) {
       // Encabezado repetido por modelo ("NÚMERO DE ARTÍCULO | CHEVROLET CLASSIC 94/2009 | PRECIO"): el modelo es el rubro
       const titulo = texto(fila[columnas.descripcion]).replace(/\s+/g, ' ');
       if (titulo && !ES_DESC.test(sinAcentos(titulo)) && titulo.length <= 60) {
-        rubro = titulo;
+        rubro = tituloDeSeccion(titulo);
         if (!secciones.includes(rubro)) secciones.push(rubro);
       }
       continue;
@@ -248,7 +251,7 @@ export function parsearLista(filas, opciones = {}) {
     if (codigo && descripcion && precio != null && precio > 0) {
       productos.push({ codigo, descripcion, rubro, precio });
     } else if (precio == null && celdas.length === 1 && celdas[0].length <= 60 && !esMonto(celdas[0]) && !NO_ES_SECCION.test(celdas[0])) {
-      rubro = celdas[0].replace(/\s+/g, ' ');   // título de sección (en cualquier columna: Chriva lo pone en otra)
+      rubro = tituloDeSeccion(celdas[0]);   // título de sección (en cualquier columna: Chriva lo pone en otra)
       if (!secciones.includes(rubro)) secciones.push(rubro);
     } else if (codigo && descripcion) {
       descartadas++;                             // fila con datos incompletos (ej. sin precio): se informa, no se inventa
