@@ -9,7 +9,7 @@ export const DISTRIBUIDORES = [
   { slug: 'otero',              archivo: 'otero',              activo: true,  nota: 'baja lista-excel.php' },
   { slug: 'fal',                archivo: 'fal',                activo: true,  nota: 'lista Excel de Dropbox (~1.600)' },
   { slug: 'delviso',            archivo: 'delviso',            activo: true,  nota: 'planilla de exelconphp.php (formulario EXCEL)' },
-  { slug: 'distriferr',         archivo: 'distriferr',         activo: false, nota: 'el sitio rechaza usuario/clave: confirmar con Daniel' },
+  { slug: 'distriferr',         archivo: 'distriferr',         activo: true,  nota: 'portal de clientes: /panel/csv/ si coincide con el panel, si no buscador por rubro y marca (~2.700), neto con descuento del cliente' },
   { slug: 'primeraalternativa', archivo: 'primeraalternativa', activo: false, nota: 'el sitio rechaza usuario/clave: confirmar con Daniel' },
   { slug: 'tytsa',              archivo: 'tytsa',              activo: false, nota: 'login con reCAPTCHA: no se automatiza; pedir lista Excel e importarla' },
   { slug: 'cromosol',           archivo: 'cromosol',           activo: false, nota: 'no responde desde GitHub (solo http): runner en una PC del local' },

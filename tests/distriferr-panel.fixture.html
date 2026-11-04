@@ -1,0 +1,24 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="utf-8">
+    <title>Distriferr Hnos.</title>
+</head><body>
+<!-- Recorte de /panel/ del portal de clientes (entrega/exploracion-distriferr, 01-despues-login.html y 06-_panel_.html),
+     sin datos de la cuenta. El test cambia cada Ñ por el byte 0xD1 suelto, como lo manda el sitio (latin1 en página UTF-8). -->
+<form action="/panel/" style="margin-bottom:0.5rem;">
+	<input type="text" name="q" id="q" value="" placeholder="¿Que estas buscando?">
+	<select name="r" id="r"><option>Rubros (todos)</option><option value="ABRAZADERAS">ABRAZADERAS</option><option value="ANCLAJES Y CAÑOS D PORTA EQUIPAJE">ANCLAJES Y CAÑOS D PORTA EQUIPAJE</option><option value="DEFLECTOR DE PUERTAS/CAPOT">DEFLECTOR DE PUERTAS/CAPOT</option><option value="MANGUERA  CRISTAL">MANGUERA  CRISTAL</option></select>
+	<select name="m" id="m"><option>Marcas (todas)</option><option value="FIAT">FIAT</option><option value="FOTON">FOTON</option><option value="FOTON">FOTON</option><option value="VOLKSWAGEN">VOLKSWAGEN</option></select>
+</form>
+<small id="cant-result">3 Resultado/s</small>
+<small>C&oacute;digo: <b class="tag">127/50</b></small>
+<script type="text/javascript">
+var cuenta="distriferr";
+var carrito=[];
+var results=[{"articulo":"300/69","comp_descri":"ANCLAJE Y CAÑOS D P/EQUIPAJE ANCLAJES Y CAÑOS D PORTA EQUIPAJE 300/69 ANCLAJE KIT N 1 PARA CAÑO TUBULAR JUEGO ","descri":"ANCLAJE KIT N 1 PARA CAÑO TUBULAR JUEGO","descri_marca":"ANCLAJE Y CAÑOS D P/EQUIPAJE","descri_rubro":"ANCLAJES Y CAÑOS D PORTA EQUIPAJE","estado":"*","foto":"","inicial":"","interno":"4927","obs":"","precio":"67782","result":"2","stock":"50"},{"articulo":"127/50","comp_descri":"FIAT DEFLECTOR DE PUERTAS/CAPOT 127/50 DEFLECTOR FIAT SIENA 97/2007  DEL O1014 ADHES ","descri":"DEFLECTOR FIAT SIENA 97/2007  DEL O1014 ADHES","descri_marca":"FIAT","descri_rubro":"DEFLECTOR DE PUERTAS/CAPOT","estado":"","foto":"0fb7d8fcd324fe869b202b020152a5a2.jpg","inicial":"0","interno":"3032","obs":"","precio":"58242","result":"2","stock":"226"},{"articulo":"182/65","comp_descri":"VOLKSWAGEN PORTAEQUIPAJE TUBULAR 182/65 PORTAEQUIPAJE TUBULAR VW POLO 2016/ JUEGO ANCLAJE KIT N 7\r\nBARRA TUBULAR N 111","descri":"PORTAEQUIPAJE TUBULAR VW POLO 2016/ JUEGO","descri_marca":"VOLKSWAGEN","descri_rubro":"PORTAEQUIPAJE TUBULAR","estado":"*","foto":"","inicial":"","interno":"4925","obs":"ANCLAJE KIT N 7\r\nBARRA TUBULAR N 111 [kit]; ver","precio":"136422","result":"2","stock":"50"}];
+var pRecargo= 57 ;
+var pDescuento= 55 ;
+var rubros="ABRAZADERAS,DEFLECTOR DE PUERTAS\/CAPOT,PORTAEQUIPAJE TUBULAR";
+var marcas="FIAT,VOLKSWAGEN";
+var params={q:"",r:"",m:""};
+</script>
+</body></html>
