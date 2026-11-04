@@ -80,6 +80,8 @@ jobs:
           DELVISO_PASSWORD: ${{ secrets.DELVISO_PASSWORD }}
           DISTRIFERR_USER: ${{ secrets.DISTRIFERR_USER }}
           DISTRIFERR_PASSWORD: ${{ secrets.DISTRIFERR_PASSWORD }}
+          CROMOSOL_USER: ${{ secrets.CROMOSOL_USER }}
+          CROMOSOL_PASSWORD: ${{ secrets.CROMOSOL_PASSWORD }}
           PRIMERAALT_USER: ${{ secrets.PRIMERAALT_USER }}
           PRIMERAALT_PASSWORD: ${{ secrets.PRIMERAALT_PASSWORD }}
 
