@@ -42,7 +42,7 @@ if (process.env.SOLO_PENDIENTES === 'true') {
   if (res?.ok) {
     const corridas = await res.json();
     const listos = new Set(corridas.filter(r => r.ok).map(r => r.distribuidor));
-    const bloqueados = new Set(corridas.filter(r => !r.ok && /^Login rechazado|HTTP (401|403|429)/.test(r.error ?? '')).map(r => r.distribuidor));
+    const bloqueados = new Set(corridas.filter(r => !r.ok && /^Login rechazado|HTTP (401|403|429)\b/.test(r.error ?? '')).map(r => r.distribuidor));
     if (bloqueados.size) console.log(`Sin reintento hoy (clave o cuenta): ${[...bloqueados].join(', ')}`);
     activos = activos.filter(d => !listos.has(d.slug) && !bloqueados.has(d.slug));
   } else {

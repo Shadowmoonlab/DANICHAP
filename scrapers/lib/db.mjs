@@ -42,7 +42,7 @@ async function rest(ruta, { method = 'POST', body, prefer } = {}) {
 
 // Errores que no se arreglan reintentando: clave mal, cuenta bloqueada o el sitio pidiendo que bajemos el ritmo.
 // Reintentar justo eso es lo que hace que un distribuidor bloquee la cuenta.
-export const esErrorDefinitivo = err => /^Login rechazado|HTTP (401|403|429)/.test(err?.message ?? '');
+export const esErrorDefinitivo = err => /^Login rechazado|HTTP (401|403|429)\b/.test(err?.message ?? '');
 
 // Reintenta ante caídas momentáneas del sitio del distribuidor (espera 30 s y 90 s)
 export async function conReintentos(fn, { intentos = 3, esperasMs = [30_000, 90_000], etiqueta = '' } = {}) {

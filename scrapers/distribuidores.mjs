@@ -12,5 +12,5 @@ export const DISTRIBUIDORES = [
   { slug: 'distriferr',         archivo: 'distriferr',         activo: true,  nota: 'portal de clientes: /panel/csv/ si coincide con el panel, si no buscador por rubro y marca (~2.700), neto con descuento del cliente' },
   { slug: 'primeraalternativa', archivo: 'primeraalternativa', activo: false, nota: 'el sitio rechaza usuario/clave: confirmar con Daniel' },
   { slug: 'tytsa',              archivo: 'tytsa',              activo: false, nota: 'login con reCAPTCHA: no se automatiza; pedir lista Excel e importarla' },
-  { slug: 'cromosol',           archivo: 'cromosol',           activo: false, nota: 'no responde desde GitHub (solo http): runner en una PC del local' },
+  { slug: 'cromosol',           archivo: 'cromosol',           activo: true,  nota: 'solo http (fetch común, sin navegador): login Spring + /api/products paginada (~187.000 aplicaciones → una fila por código), neto = priceNet' },
 ];

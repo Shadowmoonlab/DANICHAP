@@ -42,7 +42,7 @@ jobs:
     if: needs.plan.outputs.lista != '[]'
     name: ${{ matrix.d.slug }}
     runs-on: ubuntu-latest   # Plan B si un sitio bloquea IPs de fuera de Argentina: runs-on: self-hosted (PC del local)
-    timeout-minutes: 20   # cada robot tarda 1-2 min; si uno se cuelga no frena a los demás ni al reintento
+    timeout-minutes: 45   # Cromosol (~130.000 códigos por API) puede tardar; cada robot tarda 1-2 min; si uno se cuelga no frena a los demás ni al reintento
     strategy:
       fail-fast: false     # si un distribuidor falla, los demás siguen
       matrix:

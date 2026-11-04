@@ -1,0 +1,409 @@
+{
+ "total": 187236,
+ "max_score": "null",
+ "hits": [
+  {
+   "sort": [
+    "000010000"
+   ],
+   "_source": {
+    "code": "000010000",
+    "description": "Casco de optica P.UP D-100 Sweptline 56/61 Base",
+    "line": "Casco de optica",
+    "vehicleBrand": "Dodge",
+    "model": "P.UP D-100 Sweptline",
+    "version": "P.UP D-100 Sweptline 56/61",
+    "additionalDescription": "Base",
+    "side": "",
+    "position": "Delantero",
+    "providerBrand": "IND.ARG.",
+    "unitPerPackage": "1",
+    "company": "Cromosol",
+    "productId": "72218",
+    "productDetailId": "840378",
+    "priceNet": "7393.55",
+    "priceListOne": "7393.55",
+    "priceLists": "{\"51\":\"7763.23\"}",
+    "formatPriceList": "$7.393,55",
+    "formatPriceNet": "$7.393,55",
+    "formatClientFinalPrice": "$11.090,33",
+    "avellanedaAvailable": "S",
+    "role": [
+     "Rguest"
+    ]
+   }
+  },
+  {
+   "sort": [
+    "000010000"
+   ],
+   "_source": {
+    "code": "000010000",
+    "description": "Casco de optica P.UP D-100 61/65 Base",
+    "line": "Casco de optica",
+    "vehicleBrand": "Dodge",
+    "model": "P.UP D-100",
+    "version": "P.UP D-100 61/65",
+    "additionalDescription": "Base",
+    "side": "",
+    "position": "Delantero",
+    "providerBrand": "IND.ARG.",
+    "unitPerPackage": "1",
+    "company": "Cromosol",
+    "productId": "72218",
+    "productDetailId": "840377",
+    "priceNet": "7393.55",
+    "priceListOne": "7393.55",
+    "priceLists": "{\"51\":\"7763.23\"}",
+    "formatPriceList": "$7.393,55",
+    "formatPriceNet": "$7.393,55",
+    "formatClientFinalPrice": "$11.090,33",
+    "avellanedaAvailable": "S",
+    "role": [
+     "Rguest"
+    ]
+   }
+  },
+  {
+   "sort": [
+    "000010000"
+   ],
+   "_source": {
+    "code": "000010000",
+    "description": "Casco de optica P.UP D-200 Slant Six 67/79 Base",
+    "line": "Casco de optica",
+    "vehicleBrand": "Dodge",
+    "model": "P.UP D-200 Slant Six",
+    "version": "P.UP D-200 Slant Six 67/79",
+    "additionalDescription": "Base",
+    "side": "",
+    "position": "Delantero",
+    "providerBrand": "IND.ARG.",
+    "unitPerPackage": "1",
+    "company": "Cromosol",
+    "productId": "72218",
+    "productDetailId": "840379",
+    "priceNet": "7393.55",
+    "priceListOne": "7393.55",
+    "priceLists": "{\"51\":\"7763.23\"}",
+    "formatPriceList": "$7.393,55",
+    "formatPriceNet": "$7.393,55",
+    "formatClientFinalPrice": "$11.090,33",
+    "avellanedaAvailable": "S",
+    "role": [
+     "Rguest"
+    ]
+   }
+  },
+  {
+   "sort": [
+    "00003000d"
+   ],
+   "_source": {
+    "code": "00003000D",
+    "description": "Reten de optica Super Europa 83/91 ",
+    "line": "Reten de optica",
+    "vehicleBrand": "Fiat",
+    "model": "Super Europa",
+    "version": "Super Europa 83/91",
+    "additionalDescription": "",
+    "side": "Acompañante",
+    "position": "Delantero",
+    "providerBrand": "IND.ARG.",
+    "unitPerPackage": "1",
+    "company": "Cromosol",
+    "productId": "72219",
+    "productDetailId": "840381",
+    "priceNet": "8872.27",
+    "priceListOne": "8872.27",
+    "priceLists": "{\"51\":\"9315.88\"}",
+    "formatPriceList": "$8.872,27",
+    "formatPriceNet": "$8.872,27",
+    "formatClientFinalPrice": "$13.308,41",
+    "avellanedaAvailable": "S",
+    "role": [
+     "Rguest"
+    ]
+   }
+  },
+  {
+   "sort": [
+    "00003000d"
+   ],
+   "_source": {
+    "code": "00003000D",
+    "description": "Reten de optica 128 71/81 ",
+    "line": "Reten de optica",
+    "vehicleBrand": "Fiat",
+    "model": "128",
+    "version": "128 71/81",
+    "additionalDescription": "",
+    "side": "Acompañante",
+    "position": "Delantero",
+    "providerBrand": "IND.ARG.",
+    "unitPerPackage": "1",
+    "company": "Cromosol",
+    "productId": "72219",
+    "productDetailId": "840380",
+    "priceNet": "8872.27",
+    "priceListOne": "8872.27",
+    "priceLists": "{\"51\":\"9315.88\"}",
+    "formatPriceList": "$8.872,27",
+    "formatPriceNet": "$8.872,27",
+    "formatClientFinalPrice": "$13.308,41",
+    "avellanedaAvailable": "S",
+    "role": [
+     "Rguest"
+    ]
+   }
+  },
+  {
+   "sort": [
+    "00003000i"
+   ],
+   "_source": {
+    "code": "00003000I",
+    "description": "Reten de optica Super Europa 83/91 ",
+    "line": "Reten de optica",
+    "vehicleBrand": "Fiat",
+    "model": "Super Europa",
+    "version": "Super Europa 83/91",
+    "additionalDescription": "",
+    "side": "Conductor",
+    "position": "Delantero",
+    "providerBrand": "IND.ARG.",
+    "unitPerPackage": "1",
+    "company": "Cromosol",
+    "productId": "72220",
+    "productDetailId": "840382",
+    "priceNet": "8872.27",
+    "priceListOne": "8872.27",
+    "priceLists": "{\"51\":\"9315.88\"}",
+    "formatPriceList": "$8.872,27",
+    "formatPriceNet": "$8.872,27",
+    "formatClientFinalPrice": "$13.308,41",
+    "avellanedaAvailable": "S",
+    "role": [
+     "Rguest"
+    ]
+   }
+  },
+  {
+   "sort": [
+    "00005000d"
+   ],
+   "_source": {
+    "code": "00005000D",
+    "description": "Casco de optica Falcon VI 82/88 De plastico",
+    "line": "Casco de optica",
+    "vehicleBrand": "Ford",
+    "model": "Falcon VI",
+    "version": "Falcon VI 82/88",
+    "additionalDescription": "De plastico",
+    "side": "Acompañante",
+    "position": "Delantero",
+    "providerBrand": "GALLO",
+    "unitPerPackage": "1",
+    "company": "Cromosol",
+    "productId": "72223",
+    "productDetailId": "840386",
+    "priceNet": "3855.27",
+    "priceListOne": "3855.27",
+    "priceLists": "{\"51\":\"4048.03\"}",
+    "formatPriceList": "$3.855,27",
+    "formatPriceNet": "$3.855,27",
+    "formatClientFinalPrice": "$5.782,90",
+    "avellanedaAvailable": "S",
+    "role": [
+     "Rguest"
+    ]
+   }
+  },
+  {
+   "sort": [
+    "00005000d"
+   ],
+   "_source": {
+    "code": "00005000D",
+    "description": "Casco de optica Falcon V 78/81 De plastico",
+    "line": "Casco de optica",
+    "vehicleBrand": "Ford",
+    "model": "Falcon V",
+    "version": "Falcon V 78/81",
+    "additionalDescription": "De plastico",
+    "side": "Acompañante",
+    "position": "Delantero",
+    "providerBrand": "GALLO",
+    "unitPerPackage": "1",
+    "company": "Cromosol",
+    "productId": "72223",
+    "productDetailId": "840385",
+    "priceNet": "3855.27",
+    "priceListOne": "3855.27",
+    "priceLists": "{\"51\":\"4048.03\"}",
+    "formatPriceList": "$3.855,27",
+    "formatPriceNet": "$3.855,27",
+    "formatClientFinalPrice": "$5.782,90",
+    "avellanedaAvailable": "S",
+    "role": [
+     "Rguest"
+    ]
+   }
+  },
+  {
+   "sort": [
+    "00005000d"
+   ],
+   "_source": {
+    "code": "00005000D",
+    "description": "Casco de optica Falcon VII 89/91 De plastico",
+    "line": "Casco de optica",
+    "vehicleBrand": "Ford",
+    "model": "Falcon VII",
+    "version": "Falcon VII 89/91",
+    "additionalDescription": "De plastico",
+    "side": "Acompañante",
+    "position": "Delantero",
+    "providerBrand": "GALLO",
+    "unitPerPackage": "1",
+    "company": "Cromosol",
+    "productId": "72223",
+    "productDetailId": "840387",
+    "priceNet": "3855.27",
+    "priceListOne": "3855.27",
+    "priceLists": "{\"51\":\"4048.03\"}",
+    "formatPriceList": "$3.855,27",
+    "formatPriceNet": "$3.855,27",
+    "formatClientFinalPrice": "$5.782,90",
+    "avellanedaAvailable": "S",
+    "role": [
+     "Rguest"
+    ]
+   }
+  },
+  {
+   "sort": [
+    "00014000d"
+   ],
+   "_source": {
+    "code": "00014000D",
+    "description": "Casco de optica L200 93/96 ",
+    "line": "Casco de optica",
+    "vehicleBrand": "Mitsubishi",
+    "model": "L200",
+    "version": "L200 93/96",
+    "additionalDescription": "",
+    "side": "Acompañante",
+    "position": "Delantero",
+    "providerBrand": "TYC",
+    "unitPerPackage": "1",
+    "company": "Cromosol",
+    "productId": "72233",
+    "productDetailId": "840401",
+    "priceNet": "23352.03",
+    "priceListOne": "23352.03",
+    "priceLists": "{\"51\":\"28706.08\"}",
+    "formatPriceList": "$23.352,03",
+    "formatPriceNet": "$23.352,03",
+    "formatClientFinalPrice": "$35.028,04",
+    "avellanedaAvailable": "N",
+    "role": [
+     "Rguest"
+    ]
+   }
+  },
+  {
+   "sort": [
+    "000150000"
+   ],
+   "_source": {
+    "code": "000150000",
+    "description": "Casco de optica Estanciera 57/67 Completo",
+    "line": "Casco de optica",
+    "vehicleBrand": "IKA",
+    "model": "Estanciera",
+    "version": "Estanciera 57/67",
+    "additionalDescription": "Completo",
+    "side": "",
+    "position": "Delantero",
+    "providerBrand": "IND.ARG.",
+    "unitPerPackage": "1",
+    "company": "Cromosol",
+    "productId": "72235",
+    "productDetailId": "840405",
+    "priceNet": "17800.62",
+    "priceListOne": "17800.62",
+    "priceLists": "{\"51\":\"18690.65\"}",
+    "formatPriceList": "$17.800,62",
+    "formatPriceNet": "$17.800,62",
+    "formatClientFinalPrice": "$26.700,93",
+    "avellanedaAvailable": "S",
+    "role": [
+     "Rguest"
+    ]
+   }
+  },
+  {
+   "sort": [
+    "000200000"
+   ],
+   "_source": {
+    "code": "000200000",
+    "description": "Casco de optica 1500 71/77 ",
+    "line": "Casco de optica",
+    "vehicleBrand": "Dodge",
+    "model": "1500",
+    "version": "1500 71/77",
+    "additionalDescription": "",
+    "side": "",
+    "position": "Delantero",
+    "providerBrand": "IND.ARG.",
+    "unitPerPackage": "1",
+    "company": "Cromosol",
+    "productId": "72236",
+    "productDetailId": "840406",
+    "priceNet": "6468.65",
+    "priceListOne": "6468.65",
+    "priceLists": "{\"51\":\"7398.76\"}",
+    "formatPriceList": "$6.468,65",
+    "formatPriceNet": "$6.468,65",
+    "formatClientFinalPrice": "$9.702,97",
+    "avellanedaAvailable": "N",
+    "role": [
+     "Rguest"
+    ]
+   }
+  },
+  {
+   "sort": [
+    "000350000"
+   ],
+   "_source": {
+    "code": "000350000",
+    "description": "Brazo de espejo Universal Livianos 50/20 ",
+    "line": "Brazo de espejo",
+    "vehicleBrand": "Universal",
+    "model": "Universal Livianos",
+    "version": "Universal Livianos 50/20",
+    "additionalDescription": "",
+    "side": "",
+    "position": "Lateral",
+    "providerBrand": "F.B.",
+    "unitPerPackage": "1",
+    "company": "Cromosol",
+    "productId": "72251",
+    "productDetailId": "840421",
+    "priceNet": "10529.82",
+    "priceListOne": "10529.82",
+    "priceLists": "{\"51\":\"11056.31\"}",
+    "formatPriceList": "$10.529,82",
+    "formatPriceNet": "$10.529,82",
+    "formatClientFinalPrice": "$15.794,73",
+    "avellanedaAvailable": "S",
+    "role": [
+     "Rguest"
+    ]
+   }
+  }
+ ]
+}
