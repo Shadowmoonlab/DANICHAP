@@ -71,7 +71,9 @@ const CAMPOS_SECRETOS = /("(?:clave[a-z_]*|password|pass|token|access_token|refr
 const tapar = txt => secretos.reduce((t, v) => t.split(v).join('[OCULTO]'), txt).replace(CAMPOS_SECRETOS, '$1"[OCULTO]"')
   .replace(/https?:\/\/(www\.)?dropbox\.com\/[^"'\s<>]+/gi, '[LINK DROPBOX OCULTO]');   // la lista de Fal da precios sin login
 
-const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+// Cromosol solo anda por http: el Chrome nuevo bloquea esas páginas (net::ERR_BLOCKED_BY_CLIENT) si no se apaga el "solo HTTPS"
+const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox',
+  '--disable-features=HttpsUpgrades,HttpsFirstBalancedModeAutoEnable,HttpsFirstModeV2ForEngagedSites,HttpsFirstModeIncognito'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1366, height: 900 });
 
