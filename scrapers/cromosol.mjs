@@ -153,7 +153,7 @@ export function filasDe(porCodigo) {
  * páginas 1…⌈total/size⌉−1 de a `simultaneos`, con reintentos; una página vacía antes del final corta el recorrido.
  */
 export async function recorrerCatalogo(pedirPagina, { tamanios = TAMANIOS, simultaneos = SIMULTANEOS, alHits = () => {},
-  intentos = INTENTOS_PAGINA, esperaMs = 3000, log = console.log } = {}) {
+  intentos = INTENTOS_PAGINA, esperaMs = 3000, log = console.log, limite = Infinity, soloSondear = false, previa = null } = {}) {
   const conReintento = async (page, size) => {
     for (let i = 1; ; i++) {
       try {
@@ -167,8 +167,8 @@ export async function recorrerCatalogo(pedirPagina, { tamanios = TAMANIOS, simul
     }
   };
 
-  let size = null, primera = null, total = null;
-  const pendientes = [...tamanios];
+  let size = previa?.size ?? null, primera = previa?.primera ?? null, total = previa?.total ?? null;
+  const pendientes = previa ? [] : [...tamanios];
   while (pendientes.length && !size) {
     const t = pendientes.shift();
     let r;
@@ -186,9 +186,10 @@ export async function recorrerCatalogo(pedirPagina, { tamanios = TAMANIOS, simul
     if (n > minimo && n < t && !pendientes.includes(n)) pendientes.unshift(n);   // el tope real del servidor
   }
   if (!size) throw new Error('/api/products no devolvió una primera página válida con ningún tamaño');
+  if (soloSondear) return { total, size, primera };
 
-  const paginas = Math.max(1, Math.ceil(total / size));
-  log(`[cromosol] ${total} aplicaciones, size=${size}: ${paginas} páginas`);
+  const paginas = Math.max(1, Math.ceil(Math.min(total, limite) / size));
+  if (!previa) log(`[cromosol] ${total} aplicaciones, size=${size}: ${paginas} páginas`);
   let leidos = primera.hits.length, corte = null;
   alHits(primera.hits, 0);
   const resto = Array.from({ length: paginas - 1 }, (_, i) => i + 1);
@@ -203,6 +204,68 @@ export async function recorrerCatalogo(pedirPagina, { tamanios = TAMANIOS, simul
   return { total, size, paginas, leidos, corte };
 }
 
+// El buscador (Elasticsearch) no pagina más allá de 10.000 resultados por búsqueda: con size 500 la página 21 da HTTP 500
+// (03/11). Por eso el catálogo (~187.000 aplicaciones) se pide línea por línea, y una línea que sola pase el tope, por marca.
+export const LIMITE_VENTANA = 10_000;
+
+const ENTIDADES = { amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ', aacute: 'á', eacute: 'é', iacute: 'í',
+  oacute: 'ó', uacute: 'ú', ntilde: 'ñ', Aacute: 'Á', Eacute: 'É', Iacute: 'Í', Oacute: 'Ó', Uacute: 'Ú', Ntilde: 'Ñ', uuml: 'ü' };
+const decodificar = s => s.replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (m, e) => e[0] === '#'
+  ? String.fromCodePoint(parseInt(e[1] === 'x' || e[1] === 'X' ? e.slice(2) : e.slice(1), e[1] === 'x' || e[1] === 'X' ? 16 : 10))
+  : ENTIDADES[e] ?? m);
+
+/** Valores de un <select name="…"> de la página /products (filtros de línea y marca de vehículo), sin la opción vacía. */
+export function opcionesDe(html, nombre) {
+  const m = new RegExp(`<select[^>]*name="${nombre}"[^>]*>([\\s\\S]*?)</select>`).exec(html ?? '');
+  if (!m) return [];
+  return [...new Set([...m[1].matchAll(/<option[^>]*value="([^"]*)"/g)].map(x => limpiar(decodificar(x[1]))).filter(Boolean))];
+}
+
+/**
+ * Recorre todo el catálogo respetando el tope de 10.000 por búsqueda. `pedir(page, size, filtro)`; filtro es '' o
+ * 'filters[line]=…&' (+ 'filters[vehicleBrand]=…&'). Si el total entra en una búsqueda, la lee entera de una.
+ */
+export async function recorrerPorTramos(pedir, { lineas = [], marcas = [], alHits = () => {}, log = console.log,
+  limite = LIMITE_VENTANA, ...op } = {}) {
+  const sonda = await recorrerCatalogo((p, s) => pedir(p, s, ''), { ...op, log, soloSondear: true });
+  const { total, size } = sonda;
+  if (total <= limite) {
+    const r = await recorrerCatalogo((p, s) => pedir(p, s, ''), { ...op, log, alHits, previa: sonda });
+    return { ...r, tramos: 1, recortados: [] };
+  }
+  if (!lineas.length) throw new Error(`${total} aplicaciones pasan el tope de ${limite} por búsqueda y no encontré la lista de líneas para partirla`);
+  log(`[cromosol] ${total} aplicaciones (más de ${limite} por búsqueda): las pido por línea (${lineas.length}), size=${size}`);
+
+  const q = (campo, v) => `filters[${campo}]=${encodeURIComponent(v)}&`;
+  let leidos = 0, tramos = 0, filtroProbado = false;
+  const recortados = [];
+  const leerTramo = async (filtro, etiqueta, alPasarse) => {
+    const s = await recorrerCatalogo((p, t) => pedir(p, t, filtro), { ...op, log, tamanios: [size], soloSondear: true });
+    tramos++;
+    if (!filtroProbado) {
+      // Si el filtro no hiciera nada, cada "línea" traería el catálogo entero (y repetido): mejor cortar con un error claro
+      if (s.total === total) throw new Error(`el filtro por línea no filtra (${etiqueta} trae las ${total} aplicaciones)`);
+      filtroProbado = true;
+    }
+    if (!s.total) return;
+    if (s.total > limite && alPasarse) return alPasarse(s.total);
+    if (s.total > limite) recortados.push(`${etiqueta} (${s.total})`);
+    const r = await recorrerCatalogo((p, t) => pedir(p, t, filtro), { ...op, log, alHits, previa: s, limite });
+    leidos += r.leidos;
+  };
+
+  let hechas = 0;
+  for (const linea of lineas) {
+    await leerTramo(q('line', linea), linea, async n => {
+      log(`[cromosol] la línea "${linea}" tiene ${n}: la parto por marca de vehículo`);
+      for (const marca of marcas) await leerTramo(q('line', linea) + q('vehicleBrand', marca), `${linea} / ${marca}`);
+    });
+    if (++hechas % 50 === 0) log(`[cromosol] líneas ${hechas}/${lineas.length}: ${leidos} aplicaciones leídas`);
+  }
+  if (recortados.length) log(`[cromosol] AVISO: quedaron recortados en ${limite}: ${recortados.join(', ')}`);
+  return { total, size, paginas: tramos, leidos, corte: null, tramos, recortados };
+}
+
 /** Controles antes de guardar: que se haya leído casi todo y que haya códigos suficientes. */
 export function controlar({ total, leidos, corte, codigos }) {
   if (leidos < total * MINIMO_LEIDO) {
@@ -215,7 +278,7 @@ export function controlar({ total, leidos, corte, codigos }) {
 async function scrape() {
   const usuario = env('CROMOSOL_USER'), clave = env('CROMOSOL_PASSWORD');
   const s = crearSesion(BASE);
-  const urlApi = (page, size) => `/api/products?page=${page}&size=${size}&sort=codeSort,asc`;
+  const urlApi = (page, size, filtro = '') => `/api/products?${filtro}page=${page}&size=${size}&sort=codeSort,asc`;
 
   // { ok } si la API responde con la sesión; { rechazado } si Spring devolvió al formulario (/login o ?error)
   const entrar = async () => {
@@ -240,9 +303,9 @@ async function scrape() {
 
   // Si la sesión se corta a mitad del recorrido (302 a /login), se vuelve a entrar (una vez para todos los pedidos en curso)
   let reingreso = null, reingresos = 0;
-  const pedirPagina = async (page, size) => {
+  const pedirPagina = async (page, size, filtro = '') => {
     for (let vuelta = 0; ; vuelta++) {
-      const res = await s.pedir(urlApi(page, size), { headers: API, redirect: 'manual' });
+      const res = await s.pedir(urlApi(page, size, filtro), { headers: API, redirect: 'manual' });
       if (res.status >= 300 && res.status < 400) {
         await res.arrayBuffer().catch(() => {});
         if (vuelta > 0 || (!reingreso && reingresos >= 2)) {
@@ -257,7 +320,7 @@ async function scrape() {
         if (r.rechazado) throw new Error('Login rechazado: revisar CROMOSOL_USER / CROMOSOL_PASSWORD');
         continue;
       }
-      if (!res.ok) throw new Error(`/api/products?page=${page}&size=${size} HTTP ${res.status}`);
+      if (!res.ok) throw new Error(`/api/products?${filtro}page=${page}&size=${size} HTTP ${res.status}`);
       return res.json();
     }
   };
@@ -265,7 +328,11 @@ async function scrape() {
   try {
     const inicio = Date.now();
     const porCodigo = new Map();
-    const lectura = await recorrerCatalogo(pedirPagina, { alHits: hits => agruparHits(hits, porCodigo) });
+    // Líneas y marcas de los filtros de la página de productos (se leen en cada corrida: si Cromosol suma una, entra sola)
+    const pagina = await s.texto('/products').catch(() => '');
+    const lineas = opcionesDe(pagina, 'line'), marcas = opcionesDe(pagina, 'vehicleBrand');
+    console.log(`[cromosol] filtros de la web: ${lineas.length} líneas, ${marcas.length} marcas de vehículo`);
+    const lectura = await recorrerPorTramos(pedirPagina, { lineas, marcas, alHits: hits => agruparHits(hits, porCodigo) });
     const filas = filasDe(porCodigo);
 
     const empresas = new Map();

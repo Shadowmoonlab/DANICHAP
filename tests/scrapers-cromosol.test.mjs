@@ -164,3 +164,55 @@ test('controlar: mínimo de códigos únicos según el total de aplicaciones', (
   assert.throws(() => controlar({ total: 50_000, leidos: 50_000, codigos: 15_000 }), /mínimo 20000/);
   assert.throws(() => controlar({ total: 187236, leidos: 100_000, codigos: 90_000 }), /lectura cortada/);
 });
+
+const { recorrerPorTramos, opcionesDe, LIMITE_VENTANA } = await import('../scrapers/cromosol.mjs');
+
+test('opcionesDe: lee los valores de un select y decodifica entidades', () => {
+  const html = '<select name="line"><option value="">Todas</option><option value="Casco de optica">x</option>'
+    + '<option value="Bomba de nafta &amp; filtro">y</option><option value="Ca&ntilde;o">z</option></select>';
+  assert.deepEqual(opcionesDe(html, 'line'), ['Casco de optica', 'Bomba de nafta & filtro', 'Caño']);
+  assert.deepEqual(opcionesDe(html, 'vehicleBrand'), []);
+});
+
+// Servidor falso con el tope de 10.000 por búsqueda: A 8.000, B 12.000 (Ford 7.000 + Fiat 5.000), C 5.000
+function servidorConTope() {
+  const items = [];
+  const sumar = (line, marca, n) => { for (let i = 0; i < n; i++) items.push({ _source: { code: `${line}${marca}${i}`, line, vehicleBrand: marca, priceNet: '10' } }); };
+  sumar('A', 'Ford', 8000); sumar('B', 'Ford', 7000); sumar('B', 'Fiat', 5000); sumar('C', 'Fiat', 5000);
+  const pedidos = [];
+  const pedir = async (page, size, filtro) => {
+    pedidos.push(filtro);
+    const p = new URLSearchParams(filtro);
+    const sel = items.filter(h => (!p.get('filters[line]') || h._source.line === p.get('filters[line]'))
+      && (!p.get('filters[vehicleBrand]') || h._source.vehicleBrand === p.get('filters[vehicleBrand]')));
+    if ((page + 1) * size > LIMITE_VENTANA) throw new Error('HTTP 500');
+    return { total: sel.length, hits: sel.slice(page * size, (page + 1) * size) };
+  };
+  return { pedir, pedidos };
+}
+
+test('recorrerPorTramos: parte por línea, y la línea que pasa el tope por marca, sin perder ni repetir', async () => {
+  const srv = servidorConTope();
+  const mapa = new Map();
+  const r = await recorrerPorTramos(srv.pedir, { lineas: ['A', 'B', 'C'], marcas: ['Ford', 'Fiat', 'Chevrolet'],
+    alHits: h => agruparHits(h, mapa), log: sinLog, esperaMs: 0 });
+  assert.equal(r.total, 25000);
+  assert.equal(r.leidos, 25000);
+  assert.equal(mapa.size, 25000);
+  assert.deepEqual(r.recortados, []);
+  assert.ok(srv.pedidos.some(f => f.includes('vehicleBrand')), 'B se partió por marca');
+});
+
+test('recorrerPorTramos: si el filtro por línea no filtra, corta con error claro', async () => {
+  const srv = servidorConTope();
+  const ignora = (page, size) => srv.pedir(page, size, '');
+  await assert.rejects(recorrerPorTramos(ignora, { lineas: ['A', 'B'], marcas: [], log: sinLog, esperaMs: 0 }), /no filtra/);
+});
+
+test('recorrerPorTramos: si todo entra en una búsqueda la lee de una vez', async () => {
+  const items = Array.from({ length: 900 }, (_, i) => ({ _source: { code: `X${i}`, priceNet: '1' } }));
+  const pedir = async (page, size) => ({ total: items.length, hits: items.slice(page * size, (page + 1) * size) });
+  const r = await recorrerPorTramos(pedir, { log: sinLog, esperaMs: 0 });
+  assert.equal(r.leidos, 900);
+  assert.equal(r.tramos, 1);
+});
