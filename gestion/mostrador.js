@@ -3,11 +3,11 @@ import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, mesListaDe, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
   actualizarBadgeRepo, unaVez, hoyISO, gananciaDe, gananciaDePrecio, buscarParecidos, errorAmigable, buscarListado, listarStock,
-} from './core.js?v=41';
-import { numeroAR, palabras, normalizar } from './texto.js?v=41';
-import { presupuesto as textoPresupuesto } from './plantillas.js?v=41';
-import { imprimirComprobante } from './comprobante.js?v=41';
-import { editarCliente } from './clientes.js?v=41';
+} from './core.js?v=42';
+import { numeroAR, palabras, normalizar } from './texto.js?v=42';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=42';
+import { imprimirComprobante } from './comprobante.js?v=42';
+import { editarCliente } from './clientes.js?v=42';
 
 let resultados = [];
 let selIdx = -1;
@@ -128,7 +128,8 @@ function abrirWeb(p, q) {
 /* ── Proveedores, siempre a la vista abajo del buscador: se eligen uno o varios (y Mi stock) ──
    Sin escribir: todo lo de los elegidos, por nombre. Escribiendo: se busca solo en ellos (en la base, no solo
    entre los 40 que se ven). Con una búsqueda en todos, cada botón muestra cuántos resultados tiene. */
-const proveedoresConPrecios = () => estado.proveedores.filter(p => p.activo && (estado.ultimaCarga?.[p.slug] || p.lista_mes));
+const proveedoresConPrecios = () => estado.proveedores.filter(p => p.activo
+  && (estado.conProductos?.has(p.slug) || estado.ultimaCarga?.[p.slug] || p.lista_mes));
 
 function renderProveedores(q) {
   const box = $('pos-filtros');

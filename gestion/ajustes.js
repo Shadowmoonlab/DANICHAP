@@ -1,6 +1,6 @@
 // gestion/ajustes.js — Ganancia, redondeo, datos del comprobante y lectura con IA (límite y consumo).
-import { $, h, db, toast, money, estado, registrarVista, confirmar, cargarSheetJS, hoyISO, unaVez } from './core.js?v=41';
-import { numeroAR } from './texto.js?v=41';
+import { $, h, db, toast, money, estado, registrarVista, confirmar, cargarSheetJS, hoyISO, unaVez } from './core.js?v=42';
+import { numeroAR } from './texto.js?v=42';
 
 // USD por millón de tokens (entrada / salida). Misma tabla que MODELOS en supabase/functions/_shared/leer-factura.js
 const PRECIOS_IA = {

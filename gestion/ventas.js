@@ -1,8 +1,8 @@
 // gestion/ventas.js — Historial de ventas con ganancia real y cierre de caja por forma de pago.
-import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=41';
-import { imprimirComprobante } from './comprobante.js?v=41';
-import { calcularCierre, leerDiferencia } from './caja-calc.js?v=41';
-import { numeroAR } from './texto.js?v=41';
+import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=42';
+import { imprimirComprobante } from './comprobante.js?v=42';
+import { calcularCierre, leerDiferencia } from './caja-calc.js?v=42';
+import { numeroAR } from './texto.js?v=42';
 
 let pedidoVentas = 0;   // si se cambia el filtro rápido, la respuesta vieja no pisa a la nueva
 async function cargar() {

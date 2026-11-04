@@ -1,6 +1,6 @@
 // gestion/core.js — Base compartida del panel: DOM, formato, modal, configuración, proveedores, búsqueda
 // Usa los globales de supabase.js (_supabase) y toast.js (showToast), que cargan antes como scripts clásicos.
-import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero, sinPalabrasVacias, conTodosLosProveedores, separarMarcas, patron } from './texto.js?v=41';
+import { normalizar, normalizarAmbos, palabras, relevancia, coincidePalabras, escaparRegex, esNumero, sinPalabrasVacias, conTodosLosProveedores, separarMarcas, patron } from './texto.js?v=42';
 
 export const db = window._supabase ?? _supabase;
 // Avisos del panel: los de éxito duran 4 s (se alcanzan a leer) y los errores quedan hasta cerrarlos
@@ -137,6 +137,11 @@ export async function cargarProveedores() {
     .order('inicio', { ascending: false }).limit(400);
   estado.ultimaCarga = {};
   for (const r of runs || []) estado.ultimaCarga[r.distribuidor] ??= r.inicio;
+  // Quién tiene productos cargados (un renglón alcanza): un robot que falla hace días (Goicoechea con la cuenta
+  // desactivada) sale de las últimas corridas buenas pero sus precios siguen en el buscador y tiene que poder filtrarse
+  const conProductos = await Promise.all(data.map(p => db.from('precios_distribuidor').select('id').eq('distribuidor', p.slug).limit(1)
+    .then(({ data: fila }) => fila?.length ? p.slug : null, () => null)));
+  estado.conProductos = new Set(conProductos.filter(Boolean));
 }
 export const proveedor = slug => estado.proveedores.find(p => p.slug === slug);
 export const nombreProveedor = slug => proveedor(slug)?.nombre || slug;
@@ -188,7 +193,7 @@ export function aPesos(precio, slug) {
 }
 
 /* ── WhatsApp ────────────────────────────────────────────────────────── */
-export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=41';
+export { telefonoWhatsApp, linkWhatsApp } from './texto.js?v=42';
 export async function copiar(texto, aviso = 'Copiado') {
   try { await navigator.clipboard.writeText(texto); toast(aviso, 'success'); return true; }
   catch { openModal({ title: 'Copiá el texto', body: h('textarea', { class: 'input', rows: 12, readonly: true }, texto) }); return false; }
