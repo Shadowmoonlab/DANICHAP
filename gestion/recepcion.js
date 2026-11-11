@@ -4,8 +4,8 @@
 import {
   $, h, icon, vacio, db, toast, money, fechaCorta, estado, nombreProveedor, precioVenta, debounce,
   buscarStock, confirmar, registrarVista, actualizarBadgeRepo, hoyISO, unaVez, aPesos,
-} from './core.js?v=42';
-import { normalizar, numeroAR } from './texto.js?v=42';
+} from './core.js?v=43';
+import { normalizar, numeroAR } from './texto.js?v=43';
 
 const CATEGORIAS = [
   ['mecanica', 'Mecánica'], ['iluminacion', 'Iluminación'], ['faros', 'Faros'], ['opticas', 'Ópticas'],
@@ -234,8 +234,8 @@ function renderEditor() {
     if (!b.nro) return;
     let q = db.from('recepciones').select('id, created_at').eq('nro_comprobante', b.nro);
     q = b.proveedor ? q.eq('proveedor', b.proveedor) : q.is('proveedor', null);
-    const { data } = await q.limit(1);
-    if (data?.length) { avisoDup.textContent = `⚠ Este comprobante ya se cargó el ${fechaCorta(data[0].created_at)}. No lo cargues de nuevo.`; avisoDup.classList.remove('hidden'); }
+    const { data } = await q.limit(2);
+    if (data?.some(r => r.id !== b.corrigiendo)) { avisoDup.textContent = `⚠ Este comprobante ya se cargó el ${fechaCorta(data[0].created_at)}. No lo cargues de nuevo.`; avisoDup.classList.remove('hidden'); }
   });
   const fechaIn = h('input', { class: 'input', type: 'date', value: b.fecha, onchange: e => { b.fecha = e.target.value; } });
 
@@ -283,7 +283,9 @@ function renderEditor() {
   };
 
   $('recepcion-trabajo').replaceChildren(h('div', { class: 'card card-pad' },
-    h('h3', {}, '2. Revisá lo que llegó'),
+    b.corrigiendo ? h('div', { class: 'aviso' }, icon('edit'), h('b', {}, ` Corrigiendo la carga Nº ${b.corrigiendo}. `),
+      'Cambiá lo que esté mal y tocá Guardar corrección: el stock y el Libro diario se ajustan solos.') : null,
+    h('h3', {}, b.corrigiendo ? 'Corregir la carga' : '2. Revisá lo que llegó'),
     h('div', { class: 'grid4' },
       h('div', { class: 'field' }, h('label', { class: 'label' }, 'Proveedor'), prov),
       h('div', { class: 'field' }, h('label', { class: 'label' }, 'Nº de comprobante'), nro),
@@ -304,8 +306,9 @@ function renderEditor() {
         resumen.subiendo ? h('div', { class: 'falta' }, 'Esperá a que termine de subir la foto.') : null),
       h('div', { class: 'acciones' },
         h('button', { class: 'btn btn-lg', onclick: cargarLista }, 'Cancelar'),
+        b.corrigiendo ? h('button', { class: 'btn btn-red btn-lg', onclick: e => anularRecepcion(e.currentTarget, b.corrigiendo) }, icon('delete'), 'Anular esta carga') : null,
         h('button', { class: 'btn btn-green btn-lg', disabled: !activas.length || resumen.revisar || resumen.subiendo ? true : null, onclick: e => confirmarRecepcion(e.currentTarget, suma, resumen) },
-          icon('inventory'), 'Confirmar y cargar')))));
+          icon(b.corrigiendo ? 'save' : 'inventory'), b.corrigiendo ? 'Guardar corrección' : 'Confirmar y cargar')))));
   devolverCursor(cursor);
 }
 
@@ -313,13 +316,14 @@ function renderEditor() {
 const confirmarRecepcion = unaVez(async (btn, suma, resumen) => {
   const b = borrador;
   const activas = b.filas.filter(f => f.incluir);
-  const ok = await confirmar('Confirmar recepción',
+  const ok = await confirmar(b.corrigiendo ? 'Guardar corrección' : 'Confirmar recepción',
+    (b.corrigiendo ? `Se reemplaza la carga Nº ${b.corrigiendo}: se descuenta lo que había sumado y se carga así. ` : '') +
     `Se registra el comprobante${b.nro ? ' ' + b.nro : ''} de ${nombreProveedor(b.proveedor) || 'proveedor sin nombre'} por ${money(suma)}: ` +
     `${resumen.stock} artículos suman stock, se crean ${resumen.nuevos} productos nuevos` +
     `${resumen.pedidos ? ` y ${resumen.pedidos} pedidos quedan como recibidos` : ''}. ¿Confirmás?`, { ok: 'Sí, cargar' });
   if (!ok) return;
   btn.disabled = true;
-  const { data: id, error } = await db.rpc('confirmar_recepcion', { p: {
+  const datosRecepcion = {
     proveedor: b.proveedor || null, nro_comprobante: b.nro || null, fecha: b.fecha || null, total: b.total ?? suma, origen: b.origen, ia_uso: b.iaUso ?? null,
     items: activas.map(f => ({
       codigo: f.codigo || null, descripcion: f.descripcion.trim(), cantidad: f.cantidad, costo_unit: f.costo,
@@ -327,8 +331,15 @@ const confirmarRecepcion = unaVez(async (btn, suma, resumen) => {
       precio_venta: f.accion === 'crear' ? (f.precio_venta ?? precioVenta(f.costo, b.proveedor)) : null,
       reposicion_item_id: f.repo?.id ?? null,
     })),
-  } });
-  if (error) { btn.disabled = false; toast(error.message, 'error'); return; }
+  };
+  const { data: id, error } = b.corrigiendo
+    ? await db.rpc('corregir_recepcion', { p_id: b.corrigiendo, p: datosRecepcion })
+    : await db.rpc('confirmar_recepcion', { p: datosRecepcion });
+  if (error) {
+    btn.disabled = false;
+    toast(/corregir_recepcion|function .* does not exist/i.test(error.message) ? 'Falta activar la corrección en la base (docs/gestion-v15.sql)' : error.message, 'error');
+    return;
+  }
   // confirmar_recepcion crea los productos en el orden de los renglones: se les pone la foto elegida
   const creadas = activas.filter(f => f.accion === 'crear');
   if (creadas.some(f => f.imagen_url)) {
@@ -337,7 +348,7 @@ const confirmarRecepcion = unaVez(async (btn, suma, resumen) => {
       ? db.from('productos').update({ imagen_url: creadas[i].imagen_url }).eq('id', it.producto_id) : null));
     if (!items || res.some(r => r?.error)) toast('La compra quedó cargada, pero alguna foto no se guardó: ponela desde Admin → Productos', 'error');
   }
-  toast(`Recepción Nº ${id} cargada`, 'success');
+  toast(b.corrigiendo ? `Carga corregida (ahora Nº ${id})` : `Recepción Nº ${id} cargada`, 'success');
   borrador = null;
   actualizarBadgeRepo();
   cargarLista();
@@ -360,16 +371,49 @@ async function cargarLista() {
     .select('id, proveedor, nro_comprobante, fecha, total, origen, created_at, recepcion_items(count)')
     .order('created_at', { ascending: false }).limit(30);
   const body = $('recepcion-body');
-  if (error) { body.replaceChildren(h('tr', {}, h('td', { colspan: 6 }, error.message))); return; }
-  if (!data.length) { body.replaceChildren(h('tr', {}, h('td', { colspan: 6 }, vacio('inventory_2', 'Todavía no cargaste mercadería.')))); return; }
+  if (error) { body.replaceChildren(h('tr', {}, h('td', { colspan: 7 }, error.message))); return; }
+  if (!data.length) { body.replaceChildren(h('tr', {}, h('td', { colspan: 7 }, vacio('inventory_2', 'Todavía no cargaste mercadería.')))); return; }
   body.replaceChildren(...data.map(r => h('tr', {},
     h('td', {}, fechaCorta(r.fecha || r.created_at)),
     h('td', {}, r.proveedor ? nombreProveedor(r.proveedor) : h('span', { class: 'muted' }, 'Sin proveedor')),
     h('td', { class: 'muted' }, r.nro_comprobante || '—'),
     h('td', { class: 'right num' }, r.recepcion_items?.[0]?.count ?? 0),
     h('td', { class: 'right num' }, r.total != null ? money(r.total) : '—'),
-    h('td', {}, h('span', { class: 'chip' + (r.origen === 'ia' ? '' : ' chip-gray') }, r.origen === 'ia' ? 'leída con IA' : 'a mano')))));
+    h('td', {}, h('span', { class: 'chip' + (r.origen === 'ia' ? '' : ' chip-gray') }, r.origen === 'ia' ? 'leída con IA' : 'a mano')),
+    h('td', { class: 'right' }, h('button', { class: 'btn btn-sm', onclick: () => corregirRecepcion(r) }, icon('edit'), 'Corregir')))));
 }
+
+/* ── Corregir / anular una carga hecha mal ──────────────────────────── */
+async function corregirRecepcion(r) {
+  const { data: items, error } = await db.from('recepcion_items')
+    .select('codigo, descripcion, cantidad, costo_unit, accion, producto_id, reposicion_item_id, producto:productos(nombre)')
+    .eq('recepcion_id', r.id).order('id');
+  if (error) { toast(error.message, 'error'); return; }
+  await abrirEditor({
+    corrigiendo: r.id, proveedor: r.proveedor || '', nro: r.nro_comprobante || '', fecha: r.fecha || hoyISO(), total: r.total, origen: r.origen,
+    // Lo que creó un producto nuevo ahora ya existe: al corregir se suma a ese mismo producto
+    filas: (items || []).map(it => ({ ...filaVacia(), codigo: it.codigo || '', descripcion: it.descripcion, cantidad: it.cantidad, costo: it.costo_unit,
+      accion: it.producto_id ? 'stock' : 'solo', producto_id: it.producto_id, producto_nombre: it.producto?.nombre || '',
+      repo: it.reposicion_item_id ? { id: it.reposicion_item_id, cantidad: it.cantidad, estado: 'pedido' } : null })),
+  });
+  $('recepcion-trabajo').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+const anularRecepcion = unaVez(async (btn, id) => {
+  const ok = await confirmar('Anular carga', `Se borra la carga Nº ${id}: se descuenta del stock lo que había sumado y deja de figurar como compra en el Libro diario. ¿Confirmás?`, { ok: 'Sí, anular' });
+  if (!ok) return;
+  btn.disabled = true;
+  const { error } = await db.rpc('anular_recepcion', { p_id: id });
+  if (error) {
+    btn.disabled = false;
+    toast(/anular_recepcion|function .* does not exist/i.test(error.message) ? 'Falta activar la corrección en la base (docs/gestion-v15.sql)' : error.message, 'error');
+    return;
+  }
+  toast(`Carga Nº ${id} anulada`, 'success');
+  borrador = null;
+  actualizarBadgeRepo();
+  cargarLista();
+});
 
 export function iniciarRecepcion() {
   registrarVista('recepcion', cargarLista);
