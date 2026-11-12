@@ -417,6 +417,17 @@ export function filasDePdf(paginas, { toleranciaY = 3, toleranciaX = 14 } = {}) 
 }
 
 /** Pasa productos de la lista a filas para importar_lista_precios. */
+/**
+ * Precios que en realidad son códigos de pieza leídos en la columna del precio (RIDA, 11/11: "8200699903" es un
+ * código Renault): número entero, al menos 100 mil y 100 veces la mediana de la lista. Esos no se importan.
+ */
+export function separarPreciosRaros(productos) {
+  const precios = productos.map(p => p.precio).filter(n => n > 0).sort((a, b) => a - b);
+  const mediana = precios.length ? precios[Math.floor(precios.length / 2)] : 0;
+  const esRaro = p => Number.isInteger(p.precio) && p.precio >= 100_000 && mediana > 0 && p.precio >= mediana * 100;
+  return { productos: productos.filter(p => !esRaro(p)), raros: productos.filter(esRaro) };
+}
+
 export function aFilasDePrecio(productos, { descuentoPct = 0, sumarIva = false, ivaPct = 21 } = {}) {
   return productos.map(p => {
     const lista = Math.round(p.precio * (sumarIva ? 1 + ivaPct / 100 : 1) * 100) / 100;

@@ -4,8 +4,8 @@
 import {
   $, h, icon, vacio, db, toast, money, fechaCorta, estado, nombreProveedor, precioVenta, debounce,
   buscarStock, confirmar, registrarVista, actualizarBadgeRepo, hoyISO, unaVez, aPesos,
-} from './core.js?v=43';
-import { normalizar, numeroAR } from './texto.js?v=43';
+} from './core.js?v=44';
+import { normalizar, numeroAR } from './texto.js?v=44';
 
 const CATEGORIAS = [
   ['mecanica', 'Mecánica'], ['iluminacion', 'Iluminación'], ['faros', 'Faros'], ['opticas', 'Ópticas'],

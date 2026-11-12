@@ -2,10 +2,10 @@
 import {
   $, h, icon, vacio, db, toast, money, fecha, estado, DIAS, cargarProveedores, openModal, closeModal, confirmar,
   registrarVista, cargarSheetJS, unaVez, leerTextoPdf, mesListaDe, bloquearModal, errorAmigable, linkWhatsApp,
-} from './core.js?v=43';
-import { parsearLibro, filasDePdf, aFilasDePrecio, mesDeLista, mesCorto } from './listas.js?v=43';
-import { numeroAR } from './texto.js?v=43';
-import { estadoPrecios } from './robots.js?v=43';
+} from './core.js?v=44';
+import { parsearLibro, filasDePdf, aFilasDePrecio, mesDeLista, mesCorto, separarPreciosRaros } from './listas.js?v=44';
+import { numeroAR } from './texto.js?v=44';
+import { estadoPrecios } from './robots.js?v=44';
 
 const MONEDAS = { ARS: 'Pesos', USD: 'Dólares', EUR: 'Euros' };
 const cotizacionDe = m => Number(estado.config[m === 'USD' ? 'cotizacion_usd' : 'cotizacion_eur']) || 0;
@@ -155,7 +155,9 @@ function importarLista(p) {
   const progreso = h('div', { class: 'progreso hidden' }, h('div', { class: 'barra' }), h('span', {}));
   let leido = null, hojasLeidas = null;
   const analizar = archivos => {
-    leido = { ...parsearLibro(hojasLeidas, { minimoPrecio: moneda.value === 'ARS' ? 100 : 1 }), archivos };
+    const libro = parsearLibro(hojasLeidas, { minimoPrecio: moneda.value === 'ARS' ? 100 : 1 });
+    const { productos, raros } = separarPreciosRaros(libro.productos);
+    leido = { ...libro, productos, raros, archivos };
   };
 
   const opciones = () => ({ descuentoPct: numeroAR(descuento.value) || 0, sumarIva: sumarIva.checked });
@@ -178,6 +180,7 @@ function importarLista(p) {
         leido.preciosSinIva === true ? (sumarIva.checked ? ' La lista dice SIN IVA: se le suma el 21% (si no corresponde, destildá "Sumar 21% de IVA").' : ' La lista dice que los precios son SIN IVA.') : leido.preciosSinIva === false ? ' La lista dice que los precios incluyen IVA.' : '',
         leido.descartadas ? ` ${leido.descartadas} renglones sin precio no se importan.` : '',
         leido.repetidos ? ` ${leido.repetidos} códigos se repiten con productos distintos: se guardan todos.` : '',
+        leido.raros?.length ? h('b', {}, ` ${leido.raros.length} precios parecen códigos de pieza (ej. ${leido.raros[0].descripcion.slice(0, 40)}: ${leido.raros[0].precio.toLocaleString('es-AR')}) y no se importan.`) : '',
         mesLista.value ? '' : h('b', {}, ' La lista no dice de qué mes es: elegilo arriba en "Mes de la lista".'),
         m !== 'ARS' ? ` Precios en ${MONEDAS[m].toLowerCase()}: se ven en pesos con la cotización de Ajustes (${money(cotizacionDe(m))}).` : ''),
       h('div', { class: 'tbl-wrap', style: 'max-height:250px' }, h('table', { class: 'tbl' },

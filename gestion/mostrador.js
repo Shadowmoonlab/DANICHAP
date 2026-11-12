@@ -3,11 +3,11 @@ import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, mesListaDe, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
   actualizarBadgeRepo, unaVez, hoyISO, gananciaDe, gananciaDePrecio, buscarParecidos, errorAmigable, buscarListado, listarStock,
-} from './core.js?v=43';
-import { numeroAR, palabras, normalizar } from './texto.js?v=43';
-import { presupuesto as textoPresupuesto } from './plantillas.js?v=43';
-import { imprimirComprobante } from './comprobante.js?v=43';
-import { editarCliente } from './clientes.js?v=43';
+} from './core.js?v=44';
+import { numeroAR, palabras, normalizar } from './texto.js?v=44';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=44';
+import { imprimirComprobante } from './comprobante.js?v=44';
+import { editarCliente } from './clientes.js?v=44';
 
 let resultados = [];
 let selIdx = -1;
