@@ -1,8 +1,8 @@
 // gestion/ventas.js — Historial de ventas con ganancia real y cierre de caja por forma de pago.
-import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=44';
-import { imprimirComprobante } from './comprobante.js?v=44';
-import { calcularCierre, leerDiferencia } from './caja-calc.js?v=44';
-import { numeroAR } from './texto.js?v=44';
+import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=45';
+import { imprimirComprobante } from './comprobante.js?v=45';
+import { calcularCierre, leerDiferencia } from './caja-calc.js?v=45';
+import { numeroAR } from './texto.js?v=45';
 
 let pedidoVentas = 0;   // si se cambia el filtro rápido, la respuesta vieja no pisa a la nueva
 async function cargar() {
@@ -12,10 +12,19 @@ async function cargar() {
   const desde = new Date(`${$('ventas-desde').value}T00:00:00`);
   const hasta = new Date(`${$('ventas-hasta').value}T23:59:59.999`);
   const yo = ++pedidoVentas;
-  const { data, error } = await db.from('ventas')
-    .select('id, created_at, cliente_nombre, medio_pago, total, costo_total, ganancia, impreso, anulada')
-    .gte('created_at', desde.toISOString()).lte('created_at', hasta.toISOString())
-    .order('created_at', { ascending: false }).limit(1000);
+  // De a 1000 (lo máximo que devuelve la base por pedido): con un mes de muchas ventas, los totales de arriba
+  // contaban solo las primeras 1000 y daban de menos
+  const data = [];
+  let error = null;
+  for (let desdeFila = 0; ; desdeFila += 1000) {
+    const r = await db.from('ventas')
+      .select('id, created_at, cliente_nombre, medio_pago, total, costo_total, ganancia, impreso, anulada')
+      .gte('created_at', desde.toISOString()).lte('created_at', hasta.toISOString())
+      .order('created_at', { ascending: false }).order('id', { ascending: false }).range(desdeFila, desdeFila + 999);
+    if (r.error) { error = r.error; break; }
+    data.push(...r.data);
+    if (r.data.length < 1000) break;
+  }
   if (yo !== pedidoVentas) return;
   const body = $('ventas-body');
   if (error) { body.replaceChildren(h('tr', {}, h('td', { colspan: 6 }, error.message))); return; }
@@ -23,11 +32,13 @@ async function cargar() {
   const validas = data.filter(v => !v.anulada);
   // Ventas con algún artículo sin costo (ej. "A mano" sin costo): su ganancia no es $0, es desconocida
   const ids = validas.map(v => v.id);
-  const { data: sinCostoItems } = ids.length
-    ? await db.from('venta_items').select('venta_id').in('venta_id', ids).is('costo_unit', null)
-    : { data: [] };
+  // De a 200 ventas: con todas juntas la dirección del pedido queda demasiado larga y falla
+  const tandas = [];
+  for (let i = 0; i < ids.length; i += 200) tandas.push(ids.slice(i, i + 200));
+  const sinCostoItems = (await Promise.all(tandas.map(t => db.from('venta_items').select('venta_id').in('venta_id', t).is('costo_unit', null))))
+    .flatMap(r => r.data || []);
   if (yo !== pedidoVentas) return;
-  const sinCosto = new Set((sinCostoItems || []).map(i => i.venta_id));
+  const sinCosto = new Set(sinCostoItems.map(i => i.venta_id));
   const vendido = validas.reduce((s, v) => s + Number(v.total), 0);
   const ganancia = validas.reduce((s, v) => s + Number(v.ganancia), 0);
   $('st-vendido').textContent = money(vendido);
@@ -153,26 +164,28 @@ async function cerrarCaja() {
   const deHoy = (previo.data || []).find(c => c.fecha === hoy);
   const anterior = (previo.data || []).find(c => c.fecha < hoy);
   // El cambio con el que se abre suele ser lo que quedó contado al cerrar el día anterior
-  const inicial = h('input', { class: 'input num', type: 'number', min: 0, step: 'any', inputmode: 'decimal',
+  // Texto y no type=number: ahí "150.000" se tomaba como 150 (el navegador toma el punto como decimal)
+  const inicial = h('input', { class: 'input num', inputmode: 'decimal',
     value: deHoy?.efectivo_inicial ?? anterior?.efectivo_contado ?? 0 });
-  const contado = h('input', { class: 'input num input-xl', type: 'number', min: 0, step: 'any', inputmode: 'decimal',
+  const contado = h('input', { class: 'input num input-xl', inputmode: 'decimal',
     value: deHoy?.efectivo_contado ?? '', placeholder: 'Contá los billetes y poné el total' });
+  const plata = input => numeroAR(input.value);   // "150.000" = ciento cincuenta mil
   const notas = h('input', { class: 'input', value: deHoy?.notas || '', placeholder: 'Opcional. Ej: faltante por vuelto mal dado' });
   const cuentas = h('div', { class: 'arqueo' });
   const resultado = h('div', { class: 'arqueo-res' });
 
   const calcular = () => {
-    const c = calcularCierre(mov.data || [], Number(inicial.value) || 0);
+    const c = calcularCierre(mov.data || [], Math.max(0, plata(inicial) || 0));
     cuentas.replaceChildren(...[
-      h('div', {}, h('span', {}, 'Cambio con el que abriste'), h('b', { class: 'num' }, money(Number(inicial.value) || 0))),
+      h('div', {}, h('span', {}, 'Cambio con el que abriste'), h('b', { class: 'num' }, money(Math.max(0, plata(inicial) || 0)))),
       h('div', {}, h('span', {}, '+ Entró en efectivo (ventas y otros ingresos)'), h('b', { class: 'num ganancia' }, money(c.entra))),
       h('div', {}, h('span', {}, '− Salió en efectivo (gastos y retiros)'), h('b', { class: 'num egreso' }, money(c.sale))),
       h('div', { class: 'arqueo-total' }, h('span', {}, 'Tendría que haber en la caja'), h('b', { class: 'num' }, money(c.esperado))),
       Object.keys(c.otros).length ? h('p', { class: 'hint' }, 'No van a la caja (quedan en el banco): ',
         Object.entries(c.otros).map(([m, v]) => `${PAGOS[m] || m} ${money(v)}`).join(' · ')) : null,
     ].filter(Boolean));
-    if (contado.value === '') { resultado.replaceChildren(); return c; }
-    const d = leerDiferencia(contado.value, c.esperado);
+    if (plata(contado) == null) { resultado.replaceChildren(); return c; }
+    const d = leerDiferencia(plata(contado), c.esperado);
     resultado.className = `arqueo-res arqueo-${d.tipo}`;
     resultado.replaceChildren(icon(d.tipo === 'ok' ? 'check_circle' : 'warning'), d.texto);
     return c;
@@ -182,15 +195,15 @@ async function cerrarCaja() {
   calcular();
 
   const guardar = unaVez(async () => {
-    if (contado.value === '') { toast('Poné cuánto contaste en la caja', 'error'); contado.focus(); return; }
+    if (!(plata(contado) >= 0)) { toast('Poné cuánto contaste en la caja', 'error'); contado.focus(); return; }
     const c = calcular();
     const { error } = await db.from('cierres_caja').upsert({
-      fecha: hoy, efectivo_inicial: Number(inicial.value) || 0, efectivo_esperado: c.esperado,
-      efectivo_contado: Number(contado.value), otros_medios: c.otros, notas: notas.value.trim() || null,
+      fecha: hoy, efectivo_inicial: Math.max(0, plata(inicial) || 0), efectivo_esperado: c.esperado,
+      efectivo_contado: plata(contado), otros_medios: c.otros, notas: notas.value.trim() || null,
     }, { onConflict: 'fecha' });
     if (error) { toast(error.message, 'error'); return; }
     closeModal();
-    toast(`Caja cerrada: ${leerDiferencia(contado.value, c.esperado).texto.toLowerCase()}`, 'success');
+    toast(`Caja cerrada: ${leerDiferencia(plata(contado), c.esperado).texto.toLowerCase()}`, 'success');
   });
   openModal({
     title: `Cierre de caja · ${fechaCorta(hoy)}`,

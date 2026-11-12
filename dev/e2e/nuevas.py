@@ -3,6 +3,7 @@ Contra el ambiente local (npm run dev). Usa las listas reales que mandó Daniel 
 Uso: python dev/e2e/nuevas.py
 """
 import re
+import time
 import sys
 from pathlib import Path
 
@@ -259,6 +260,159 @@ def resaltado(page):
     return f"marcado: {marcas} · reciente: {reciente}"
 
 
+def pesos(n):
+    return f"{round(abs(n)):,}".replace(",", ".")
+
+
+@paso("Libro diario: un gasto de '12.500' se guarda como doce mil quinientos")
+def gasto_miles(page):
+    vista(page, "libro")
+    page.click("#libro-nuevo")
+    expect(page.locator("#modal-title")).to_have_text("Cargar gasto o movimiento")
+    page.locator("#modal-body input[placeholder='0']").click()
+    page.keyboard.type("12.500")
+    page.fill("#modal-body input[placeholder^='Opcional']", "Prueba auditoría gasto")
+    page.click("#modal-foot button:has-text('Guardar')")
+    page.wait_for_timeout(1500)
+    if page.locator("#modal-bg").is_visible():
+        page.keyboard.press("Escape")
+    page.evaluate("document.querySelectorAll('#toast-container > *').forEach(t => t.remove())")
+    m = page.evaluate("async () => (await _supabase.from('movimientos').select('id,monto').eq('descripcion','Prueba auditoría gasto').order('id',{ascending:false}).limit(1)).data[0]")
+    page.evaluate(f"async () => _supabase.from('movimientos').update({{anulado: true}}).eq('id', {m['id']})")   # que no quede sumando
+    assert float(m["monto"]) == 12500, f"se guardó {m['monto']} en vez de 12500"
+    return f"monto guardado {m['monto']}"
+
+
+@paso("Cierre de caja: '150.000' contado se toma como ciento cincuenta mil")
+def caja_miles(page):
+    vista(page, "ventas")
+    page.click("#ventas-cerrar")
+    expect(page.locator("#modal-title")).to_contain_text("Cierre de caja")
+    inicial = page.locator("#modal-body .field input").first
+    inicial.fill("")
+    inicial.type("0")
+    page.locator("#modal-body .input-xl").type("150.000")
+    esperado = int(re.sub(r"\D", "", page.inner_text(".arqueo-total b")) or 0)
+    texto = page.inner_text(".arqueo-res")
+    page.keyboard.press("Escape")
+    d = 150000 - esperado
+    assert d == 0 or pesos(d) in texto, f"esperado {esperado}, contado 150.000 → dice «{texto}»"
+    return f"esperado $ {pesos(esperado)} → «{texto}»"
+
+
+@paso("Recepción: corregir una carga actualiza el total del Libro diario (y sin fecha queda la de hoy)")
+def corregir_carga(page):
+    nro = f"AUD-{int(time.time())}"
+    rid = page.evaluate("""async nro => (await _supabase.rpc('confirmar_recepcion', { p: { proveedor: null, nro_comprobante: nro,
+        fecha: new Date().toISOString().slice(0, 10), total: 2000, origen: 'manual',
+        items: [{ descripcion: 'Prueba auditoría', cantidad: 2, costo_unit: 1000, accion: 'solo' }] } })).data""", nro)
+    assert rid, "no se pudo crear la carga de prueba"
+    vista(page, "recepcion")
+    fila = page.locator("#recepcion-body tr", has_text=nro)
+    fila.locator("button:has-text('Corregir')").click()
+    expect(page.locator("text=Corrigiendo la carga")).to_be_visible(timeout=8000)
+    costo = page.locator(".tbl-recep input[aria-label='Costo unitario']").first
+    costo.click()
+    page.keyboard.press("Control+a")
+    page.keyboard.type("1.500")
+    page.keyboard.press("Tab")
+    page.wait_for_timeout(300)
+    page.fill("#recepcion-trabajo input[type=date]", "")
+    page.dispatch_event("#recepcion-trabajo input[type=date]", "change")
+    page.click("button:has-text('Guardar corrección')")
+    page.click("#modal-foot button:has-text('Sí, cargar')")
+    expect(page.locator("#toast-container *").filter(has_text="Carga corregida").first).to_be_visible(timeout=8000)
+    r = page.evaluate("async nro => (await _supabase.from('recepciones').select('total,fecha').eq('nro_comprobante', nro)).data[0]", nro)
+    hoy = page.evaluate("new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)")
+    assert float(r["total"]) == 3000, f"total después de corregir: {r['total']} (tenía que ser 3000)"
+    assert r["fecha"] == hoy, f"fecha guardada: {r['fecha']}"
+    return f"total {r['total']} · fecha {r['fecha']}"
+
+
+@paso("Ventas: con más de 1000 ventas en el período, los totales las cuentan todas")
+def ventas_mil(page):
+    dia = "2020-01-15"
+    filtro = f"gte('created_at','{dia}T03:00:00Z').lt('created_at','2020-01-16T03:00:00Z')"
+    n = page.evaluate(f"async () => (await _supabase.from('ventas').select('id',{{count:'exact',head:true}}).{filtro}).count")
+    if n < 1001:
+        page.evaluate(f"""async () => {{
+            const filas = Array.from({{ length: {1001 - n} }}, () => ({{ medio_pago: 'efectivo', total: 1, costo_total: 0, ganancia: 1, created_at: '{dia}T15:00:00Z' }}));
+            const {{ error }} = await _supabase.from('ventas').insert(filas);
+            if (error) throw new Error(error.message);
+        }}""")
+    total = page.evaluate(f"async () => (await _supabase.from('ventas').select('id',{{count:'exact',head:true}}).{filtro}.eq('anulada', false)).count")
+    vista(page, "ventas")
+    page.fill("#ventas-desde", dia)
+    page.fill("#ventas-hasta", dia)
+    page.dispatch_event("#ventas-hasta", "change")
+    expect(page.locator("#st-cant")).to_have_text(str(total), timeout=15000)
+    page.click("#ventas-hoy")
+    return f"{total} ventas contadas"
+
+
+@paso("Comparar precios: el '★ más barato' es de verdad el más barato")
+def comparar_barato(page):
+    vista(page, "reposicion")
+    page.click("#repo-agregar")
+    page.fill("#modal-body input[aria-label='Buscar repuesto']", "paragolpe")
+    expect(page.locator("#modal-body tbody tr").nth(2)).to_be_visible(timeout=8000)
+    page.wait_for_timeout(800)
+    costos = [int(re.sub(r"\D", "", t) or 0) for t in page.locator("#modal-body tbody tr td:nth-child(4)").all_inner_texts()]
+    page.keyboard.press("Escape")
+    assert costos[0] == min(costos), f"el primero (★ más barato) cuesta {costos[0]} y hay uno de {min(costos)}"
+    return f"{len(costos)} resultados, el primero ${pesos(costos[0])}"
+
+
+def a_mano_rapido(page, desc, precio):
+    page.click("#pos-manual")
+    page.fill("#modal-body input[aria-label='Qué se vende']", desc)
+    page.fill("#modal-body input[aria-label='Precio de venta']", precio)
+    page.click("#modal-foot button:has-text('Agregar a la venta')")
+    expect(page.locator("#pos-items .ti", has_text=desc)).to_be_visible()
+
+
+@paso("Internet lento: lo que se agrega mientras se guarda la venta no se pierde")
+def cobrar_lento(page):
+    vista(page, "mostrador")
+    page.evaluate("""() => { const f = window.fetch; window.fetch = (u, o) => String(u).includes('rpc/registrar_venta')
+        ? new Promise(ok => setTimeout(ok, 2500)).then(() => f(u, o)) : f(u, o); }""")
+    a_mano_rapido(page, "Venta lenta uno", "1000")
+    page.uncheck("#pos-print")
+    page.keyboard.press("F9")
+    page.wait_for_timeout(300)
+    a_mano_rapido(page, "Agregado mientras guardaba", "2000")
+    expect(page.locator("#toast-container *").filter(has_text=re.compile("Venta N")).first).to_be_visible(timeout=10000)
+    page.wait_for_timeout(300)
+    queda = page.locator("#pos-items .ti", has_text="Agregado mientras guardaba").count()
+    page.goto(f"{BASE}/gestion.html")   # saca la demora puesta en fetch
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#g-user")).not_to_be_empty(timeout=8000)
+    assert queda == 1, "el artículo agregado mientras se guardaba la venta desapareció"
+    return "queda en la venta siguiente"
+
+
+@paso("Admin de productos: una categoría con HTML se muestra como texto (no se ejecuta)")
+def admin_xss(page):
+    raro = "<img src=x onerror=window.__xss=1>"
+    expect(page.locator("#g-user")).not_to_be_empty(timeout=8000)
+    pid = page.evaluate("""async raro => (await _supabase.from('productos').insert({ nombre: 'Prueba XSS auditoría', categoria: raro, precio: 1 })
+        .select('id').single()).data.id""", raro)
+    try:
+        page.goto(f"{BASE}/admin.html")
+        page.wait_for_load_state("networkidle")
+        expect(page.locator("#admin-productos-table tr").first).to_be_visible(timeout=10000)
+        page.wait_for_timeout(500)
+        xss = page.evaluate("window.__xss")
+        opciones = page.locator("#admin-filter-cat option").all_inner_texts()
+    finally:
+        page.evaluate(f"async () => _supabase.from('productos').delete().eq('id', '{pid}')")
+        page.goto(f"{BASE}/gestion.html")
+        page.wait_for_load_state("networkidle")
+    assert not xss, "la categoría se ejecutó como HTML"
+    assert raro in opciones, f"la categoría no aparece como texto: {opciones[:5]}"
+    return "se ve como texto"
+
+
 @paso("Celular: Buscar y vender y Proveedores sin correrse de costado")
 def celular(page):
     page.set_viewport_size({"width": 390, "height": 844})
@@ -281,7 +435,8 @@ def main():
         page = b.new_page(viewport={"width": 1366, "height": 900})
         page.on("pageerror", lambda e: errores.append(f"JS: {e}"))
         page.on("console", lambda m: m.type == "error" and not any(x in m.text for x in ("frame-ancestors", "X-Frame")) and errores.append(f"consola: {m.text[:200]}"))
-        for f in (entrar, francar, gomez, liqui, reposiciones, mello, joel_dolares, cotizacion, busqueda, filtros, ganancia, a_mano, tipeo, resaltado, celular):
+        for f in (entrar, francar, gomez, liqui, reposiciones, mello, joel_dolares, cotizacion, busqueda, filtros, ganancia, a_mano, tipeo, resaltado,
+                  gasto_miles, caja_miles, corregir_carga, ventas_mil, comparar_barato, cobrar_lento, admin_xss, celular):
             f(page)
         b.close()
     ok = sum(1 for _, bien, _ in resultados if bien)

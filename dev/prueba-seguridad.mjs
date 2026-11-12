@@ -47,7 +47,14 @@ for (const [tabla, fila] of [['ventas', { medio_pago: 'efectivo', total: 1 }], [
 // Funciones internas
 for (const [fn, body] of [['libro_resumen', { p_desde: '2026-01-01', p_hasta: '2026-12-31', p_agrupar: 'month' }], ['upsert_precios', { p_rows: [], p_visto: new Date().toISOString() }],
   ['importar_lista_precios', { p_proveedor: 'dm', p_rows: [] }], ['importar_lista_lote', { p_proveedor: 'dm', p_rows: [] }],
-  ['finalizar_importacion', { p_proveedor: 'dm', p_codigos: ['x'], p_reemplazar: true, p_cambios: 0 }], ['anular_venta', { p_id: 1 }]]) {
+  ['finalizar_importacion', { p_proveedor: 'dm', p_codigos: ['x'], p_reemplazar: true, p_cambios: 0 }], ['anular_venta', { p_id: 1 }],
+  ['registrar_venta', { p_venta: { items: [{ descripcion: 'x', cantidad: 1, precio_unit: 1 }] } }],
+  ['confirmar_recepcion', { p: { items: [{ descripcion: 'x', cantidad: 1, accion: 'solo' }] } }],
+  ['anular_recepcion', { p_id: 1 }], ['corregir_recepcion', { p_id: 1, p: { items: [] } }], ['deshacer_recepcion', { p_id: 1, p_piso_cero: true }],
+  ['cargar_costo_item', { p_item: 1, p_costo: 1 }], ['caja_del_dia', { p_fecha: '2026-01-01' }],
+  ['libro_movimientos', { p_desde: '2026-01-01', p_hasta: '2026-01-02' }],
+  ['buscar_precios3', { p_patrones: ['\\mfaro'] }], ['sincronizar_precios', { p_rows: [], p_visto: new Date().toISOString() }],
+  ['desactivar_ausentes', { p_distribuidor: 'dm', p_codigos: [] }]]) {
   for (const rol of ['cliente', 'anonimo']) {
     const r = await pedir(rol, `rpc/${fn}`, { method: 'POST', body: JSON.stringify(body) });
     if (r.status === 404) { console.log(`·  ${fn}: no existe en esta base (se omite)`); break; }

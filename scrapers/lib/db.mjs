@@ -113,6 +113,7 @@ async function contarActivos(distribuidor) {
   try {
     const res = await fetch(`${URL_API}/precios_distribuidor?select=codigo&activo=is.true&distribuidor=eq.${encodeURIComponent(distribuidor)}`, {
       headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, Prefer: 'count=exact', Range: '0-0' },
+      signal: AbortSignal.timeout(TIEMPO_MAX_MS),   // sin respuesta = no se sabe: no se da de baja nada
     });
     if (!res.ok && res.status !== 206) return null;
     const total = Number(res.headers.get('content-range')?.split('/')[1]);

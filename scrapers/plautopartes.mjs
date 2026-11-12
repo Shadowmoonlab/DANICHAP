@@ -45,7 +45,9 @@ async function scrape() {
     items.push(...r.data);
   }
   console.log(`[plautopartes] ${items.length} de ${total} artículos`);
-  if (items.length < Math.min(MINIMO, total * 0.9)) throw new Error(`Solo llegaron ${items.length} de ${total} artículos`);
+  // Lectura cortada (faltan más del 5%) o una API que de golpe informa muy pocos artículos: mejor fallar que borrar media lista
+  if (total < MINIMO) throw new Error(`La tienda informa solo ${total} artículos (antes eran más de ${MINIMO})`);
+  if (items.length < total * 0.95) throw new Error(`Solo llegaron ${items.length} de ${total} artículos`);
   const filas = items.map(filaDe).filter(f => f.codigo && f.descripcion);
   return [...new Map(filas.map(f => [f.codigo, f])).values()];
 }

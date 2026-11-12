@@ -368,8 +368,8 @@
     if (!sel) return;
     const cats = [...new Set(allProductos.map(p => p.categoria))].sort();
     const cur  = sel.value;
-    sel.innerHTML = '<option value="">Todas</option>' +
-      cats.map(c => `<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+    // new Option (no innerHTML): la categoría es texto libre de la base, nunca HTML
+    sel.replaceChildren(new Option('Todas', ''), ...cats.map(c => new Option(c, c, false, c === cur)));
   }
 
   /* ══════════════════════════════════════════════════════════════════════════

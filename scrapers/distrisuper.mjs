@@ -3,7 +3,7 @@
 // Artículos: GET  https://api-lupa.uc.r.appspot.com/lupa/articles?page=N (Bearer) → { data, hasMore, totalArticles }
 // Descuentos del cliente: GET /lupa/clients?particularCode=… → general_discount + descuento por marca.
 import { correrScraper, env, numero } from './lib/db.mjs';
-import { UA, enParalelo } from './lib/sesion.mjs';
+import { UA, enParalelo, TIEMPO_MAX_MS } from './lib/sesion.mjs';
 
 const AUTH = 'https://apidistri.distrisuper.com';
 const API = 'https://api-lupa.uc.r.appspot.com/lupa';
@@ -17,7 +17,7 @@ async function pedir(url, { token, method = 'GET', json, intentos = 3 } = {}) {
         'User-Agent': UA, Accept: 'application/json',
         ...(json ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      }, body: json ? JSON.stringify(json) : undefined });
+      }, body: json ? JSON.stringify(json) : undefined, signal: AbortSignal.timeout(TIEMPO_MAX_MS) });
       if (res.status === 401 || res.status === 403) throw Object.assign(new Error(`${url} HTTP ${res.status}`), { final: true });
       if (!res.ok) throw new Error(`${url} HTTP ${res.status}`);
       return await res.json();

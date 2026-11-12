@@ -2,12 +2,13 @@
 // Los totales los calcula la base (libro_resumen / libro_movimientos, docs/add-libro-diario.sql).
 import {
   $, h, icon, vacio, db, toast, money, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, cargarSheetJS, unaVez,
-} from './core.js?v=44';
+} from './core.js?v=45';
 import {
   rangoPeriodo, moverPeriodo, periodoDeHoy, conResultados, totales, etiquetaFila, margen, etiquetaMovimiento,
   hojasExcel, TIPOS_MOV, CATEGORIAS,
-} from './libro-calc.js?v=44';
-import { verVenta } from './ventas.js?v=44';
+} from './libro-calc.js?v=45';
+import { verVenta } from './ventas.js?v=45';
+import { numeroAR } from './texto.js?v=45';
 
 const MEDIOS_MOV = { efectivo: 'Efectivo', transferencia: 'Transferencia', debito: 'Débito', credito: 'Crédito', otro: 'Otro' };
 const hora = iso => new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
@@ -136,12 +137,13 @@ function nuevoMovimiento() {
   tipo.addEventListener('change', llenarCategorias);
   llenarCategorias();
   const fechaIn = h('input', { class: 'input', type: 'date', value: estadoLibro.modo === 'dia' ? estadoLibro.ref : hoyISO(), max: hoyISO() });
-  const monto = h('input', { class: 'input num', type: 'number', min: 1, step: 'any', inputmode: 'decimal', placeholder: '0' });
+  // Texto y no type=number: ahí "12.500" se guardaba como 12,50 (el navegador toma el punto como decimal)
+  const monto = h('input', { class: 'input num', inputmode: 'decimal', placeholder: '0' });
   const medio = h('select', { class: 'select' }, ...Object.entries(MEDIOS_MOV).map(([k, v]) => h('option', { value: k }, v)));
   const detalle = h('input', { class: 'input', placeholder: 'Opcional. Ej: Edesur octubre' });
 
   const guardar = unaVez(async () => {
-    const valor = Number(monto.value);
+    const valor = numeroAR(monto.value);   // "12.500" = doce mil quinientos
     if (!(valor > 0)) { toast('Ingresá el monto', 'error'); monto.focus(); return; }
     const { error } = await db.from('movimientos').insert({
       fecha: fechaIn.value || hoyISO(), tipo: tipo.value, categoria: categoria.value,

@@ -2,7 +2,7 @@
 // Login: POST /api/Login/authenticate {user, password} → { token, ... }
 // Artículos: POST /api/Articulos/Buscar (Bearer) { idMarcas, idRubros, busqueda, pagina, ... } → { totalPages, currentPage, items }
 import { correrScraper, env, numero } from './lib/db.mjs';
-import { enParalelo } from './lib/sesion.mjs';
+import { enParalelo, TIEMPO_MAX_MS } from './lib/sesion.mjs';
 
 const BASE = 'https://prautopartes.com.ar';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
@@ -18,6 +18,7 @@ async function api(ruta, body, token) {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(TIEMPO_MAX_MS),   // un sitio colgado no traba el robot hasta que GitHub lo corta
   });
   if (!res.ok) throw new Error(`${ruta} HTTP ${res.status}`);
   return res.json();

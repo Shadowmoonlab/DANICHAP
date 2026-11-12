@@ -3,11 +3,11 @@ import {
   $, h, icon, vacio, db, toast, money, fecha, PAGOS, debounce, estado, nombreProveedor, mesListaDe, precioVenta,
   buscarPrecios, buscarStock, openModal, closeModal, confirmar, copiar, linkWhatsApp, registrarVista,
   actualizarBadgeRepo, unaVez, hoyISO, gananciaDe, gananciaDePrecio, buscarParecidos, errorAmigable, buscarListado, listarStock,
-} from './core.js?v=44';
-import { numeroAR, palabras, normalizar } from './texto.js?v=44';
-import { presupuesto as textoPresupuesto } from './plantillas.js?v=44';
-import { imprimirComprobante } from './comprobante.js?v=44';
-import { editarCliente } from './clientes.js?v=44';
+} from './core.js?v=45';
+import { numeroAR, palabras, normalizar } from './texto.js?v=45';
+import { presupuesto as textoPresupuesto } from './plantillas.js?v=45';
+import { imprimirComprobante } from './comprobante.js?v=45';
+import { editarCliente } from './clientes.js?v=45';
 
 let resultados = [];
 let selIdx = -1;
@@ -484,6 +484,7 @@ const cobrar = unaVez(async () => {
   const btn = $('pos-cobrar');
   btn.disabled = true;
   const imprimir = $('pos-print').checked;
+  const enviados = venta.slice();   // lo que se agregue mientras se guarda (internet lento) queda para la venta siguiente
   const payload = {
     cliente_id: cliente?.id ?? null, cliente_nombre: cliente?.nombre ?? (nombre || null),
     medio_pago: medio, impreso: imprimir, presupuesto_id: presupuestoId, items: itemsParaGuardar(),
@@ -492,7 +493,9 @@ const cobrar = unaVez(async () => {
   if (error) { btn.disabled = false; toast(errorAmigable(error, 'La venta NO se guardó', 'tocá Cobrar de nuevo'), 'error', 0); return; }
   if (imprimir) imprimirComprobante({ id: ventaId, created_at: new Date().toISOString(), cliente_nombre: payload.cliente_nombre, medio_pago: medio, items: payload.items });
   toast(`Venta Nº ${ventaId}: ${money(payload.items.reduce((s, i) => s + i.cantidad * i.precio_unit, 0))} · ${PAGOS[medio]}`, 'success', 6000);
+  const agregadosMientras = venta.filter(v => !enviados.includes(v));
   limpiarVenta();
+  if (agregadosMientras.length) { venta = agregadosMientras; renderVenta(); }
   actualizarBadgeRepo();
   if (payload.presupuesto_id) actualizarBadgePresupuestos();
   seleccion.clear();   // el próximo cliente arranca buscando en todos los proveedores

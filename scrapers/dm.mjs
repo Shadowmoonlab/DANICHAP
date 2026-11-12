@@ -2,6 +2,7 @@
 // Login: GET /login?cod=<email>&cod2=<clave> → cookie "id"
 // Catálogo completo: GET /getProductos → JSON (doblemente codificado) { data: [[...26 columnas]] }
 import { correrScraper, env, numero } from './lib/db.mjs';
+import { TIEMPO_MAX_MS } from './lib/sesion.mjs';
 
 const BASE = 'https://dmcompras.com';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
@@ -21,7 +22,7 @@ async function login() {
   const headers = { 'User-Agent': UA, 'X-Requested-With': 'XMLHttpRequest' };
   if (process.env.DM_COOKIE_ID) headers.Cookie = `id=${process.env.DM_COOKIE_ID}`;
 
-  const res = await fetch(`${BASE}/login?${qs}`, { headers });
+  const res = await fetch(`${BASE}/login?${qs}`, { headers, signal: AbortSignal.timeout(TIEMPO_MAX_MS) });
   if (res.status >= 500) throw new Error(`DM no responde (HTTP ${res.status})`);   // caída momentánea: correrScraper reintenta
   const cuerpo = (await res.text()).trim();
   if (!res.ok || cuerpo === '' || cuerpo === '0') {
@@ -40,6 +41,7 @@ async function scrape() {
   const cookie = await login();
   const res = await fetch(`${BASE}/getProductos`, {
     headers: { 'User-Agent': UA, 'X-Requested-With': 'XMLHttpRequest', Cookie: cookie },
+    signal: AbortSignal.timeout(5 * TIEMPO_MAX_MS),   // catálogo entero en un solo JSON: más margen, pero nunca colgado
   });
   if (!res.ok) throw new Error(`getProductos HTTP ${res.status}`);
 

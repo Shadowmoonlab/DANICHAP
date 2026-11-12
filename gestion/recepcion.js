@@ -4,8 +4,8 @@
 import {
   $, h, icon, vacio, db, toast, money, fechaCorta, estado, nombreProveedor, precioVenta, debounce,
   buscarStock, confirmar, registrarVista, actualizarBadgeRepo, hoyISO, unaVez, aPesos,
-} from './core.js?v=44';
-import { normalizar, numeroAR } from './texto.js?v=44';
+} from './core.js?v=45';
+import { normalizar, numeroAR } from './texto.js?v=45';
 
 const CATEGORIAS = [
   ['mecanica', 'Mecánica'], ['iluminacion', 'Iluminación'], ['faros', 'Faros'], ['opticas', 'Ópticas'],
@@ -194,7 +194,9 @@ function selectorProducto(f, alCambiar) {
   const input = h('input', { class: 'input input-sm', placeholder: 'Buscar producto…', value: f.producto_nombre, 'aria-label': 'Producto de tu stock' });
   const lista = h('div', { class: 'picker-list hidden' });
   input.addEventListener('input', debounce(async () => {
-    const res = await buscarStock(input.value, 8);
+    let res;
+    try { res = await buscarStock(input.value, 8); }
+    catch { toast('No se pudo buscar en tu stock: revisá internet y escribí de nuevo', 'error'); return; }
     lista.replaceChildren(...res.map(p => h('div', { class: 'picker-op', onclick: () => {
       f.producto_id = p.id; f.producto_nombre = p.nombre; input.value = p.nombre; lista.classList.add('hidden'); alCambiar();
     } }, p.nombre, h('span', { class: 'muted' }, p.stock_cantidad != null ? ` · ${p.stock_cantidad} u.` : ''))));
@@ -324,7 +326,8 @@ const confirmarRecepcion = unaVez(async (btn, suma, resumen) => {
   if (!ok) return;
   btn.disabled = true;
   const datosRecepcion = {
-    proveedor: b.proveedor || null, nro_comprobante: b.nro || null, fecha: b.fecha || null, total: b.total ?? suma, origen: b.origen, ia_uso: b.iaUso ?? null,
+    // Sin fecha la compra no aparecía en el Libro diario (se borra fácil en el celular): queda la de hoy
+    proveedor: b.proveedor || null, nro_comprobante: b.nro || null, fecha: b.fecha || hoyISO(), total: b.total ?? suma, origen: b.origen, ia_uso: b.iaUso ?? null,
     items: activas.map(f => ({
       codigo: f.codigo || null, descripcion: f.descripcion.trim(), cantidad: f.cantidad, costo_unit: f.costo,
       accion: f.accion, producto_id: f.accion === 'stock' ? f.producto_id : null, categoria: f.categoria,
@@ -389,8 +392,12 @@ async function corregirRecepcion(r) {
     .select('codigo, descripcion, cantidad, costo_unit, accion, producto_id, reposicion_item_id, producto:productos(nombre)')
     .eq('recepcion_id', r.id).order('id');
   if (error) { toast(error.message, 'error'); return; }
+  // Si el total era la suma de los renglones (carga a mano), al corregir se recalcula: si no, el Libro diario
+  // seguía con la compra vieja. Si era el total leído de la factura (con IVA, por ej.), se respeta.
+  const sumaVieja = (items || []).reduce((s, it) => s + Number(it.cantidad) * Number(it.costo_unit ?? 0), 0);
+  const total = r.total != null && Math.abs(Number(r.total) - sumaVieja) >= 1 ? r.total : null;
   await abrirEditor({
-    corrigiendo: r.id, proveedor: r.proveedor || '', nro: r.nro_comprobante || '', fecha: r.fecha || hoyISO(), total: r.total, origen: r.origen,
+    corrigiendo: r.id, proveedor: r.proveedor || '', nro: r.nro_comprobante || '', fecha: r.fecha || hoyISO(), total, origen: r.origen,
     // Lo que creó un producto nuevo ahora ya existe: al corregir se suma a ese mismo producto
     filas: (items || []).map(it => ({ ...filaVacia(), codigo: it.codigo || '', descripcion: it.descripcion, cantidad: it.cantidad, costo: it.costo_unit,
       accion: it.producto_id ? 'stock' : 'solo', producto_id: it.producto_id, producto_nombre: it.producto?.nombre || '',

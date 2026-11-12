@@ -4,9 +4,9 @@ import {
   $, h, icon, vacio, db, toast, money, fecha, estado, proveedor, nombreProveedor, DIAS_LARGO, debounce,
   buscarPrecios, openModal, closeModal, copiar, linkWhatsApp, pedirNumero, registrarVista, actualizarBadgeRepo,
   mostrarVista, aPesos,
-} from './core.js?v=44';
-import { palabras } from './texto.js?v=44';
-import { pedidoProveedor } from './plantillas.js?v=44';
+} from './core.js?v=45';
+import { palabras } from './texto.js?v=45';
+import { pedidoProveedor } from './plantillas.js?v=45';
 
 let repoEstado = 'pendiente';
 
@@ -134,8 +134,12 @@ export async function compararPrecios(it, alElegir) {
 
   const correr = async () => {
     const q = input.value;
-    const res = await buscarPrecios(q, 30);
+    let res;
+    try { res = await buscarPrecios(q, 30); }
+    catch { if (input.value === q) lista.replaceChildren(vacio('wifi_off', 'No se pudo buscar. Revisá que haya internet y escribí de nuevo.')); return; }
     if (input.value !== q) return; // respuesta vieja: ya se escribió otra cosa
+    // buscarPrecios ordena por parecido; acá va del más barato al más caro (el primero lleva "★ más barato")
+    res.sort((a, b) => (a.precio_neto ?? Infinity) - (b.precio_neto ?? Infinity));
     if (!res.length) { lista.replaceChildren(vacio('search_off', 'Sin resultados. Probá con menos palabras.')); return; }
     lista.replaceChildren(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' },
       h('thead', {}, h('tr', {}, h('th', {}, 'Proveedor'), h('th', {}, 'Código'), h('th', {}, 'Descripción'), h('th', { class: 'right' }, 'Costo'), h('th', {}))),
