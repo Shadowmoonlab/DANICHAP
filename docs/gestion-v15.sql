@@ -18,16 +18,20 @@ begin
   if not (select public.is_admin()) then
     raise exception 'Solo el administrador puede corregir mercadería';
   end if;
-  if not exists (select 1 from public.recepciones where id = p_id) then
+  -- "for update": dos clics (o dos pestañas) a la vez no descuentan el stock dos veces; el segundo espera y no la encuentra
+  perform 1 from public.recepciones where id = p_id for update;
+  if not found then
     raise exception 'No existe la recepción Nº %', p_id;
   end if;
 
   for it in select * from public.recepcion_items where recepcion_id = p_id loop
-    -- 'stock' y 'crear' sumaron stock a un producto: se le resta lo mismo
+    -- 'stock' y 'crear' sumaron stock a un producto: se le resta lo mismo.
+    -- Si queda en 0 deja de figurar "con stock" en la web (igual que al vender: registrar_venta)
     if it.accion in ('stock', 'crear') and it.producto_id is not null then
       update public.productos
       set stock_cantidad = case when p_piso_cero then greatest(0, coalesce(stock_cantidad, 0) - it.cantidad)
-                                else coalesce(stock_cantidad, 0) - it.cantidad end
+                                else coalesce(stock_cantidad, 0) - it.cantidad end,
+          stock          = case when coalesce(stock_cantidad, 0) - it.cantidad <= 0 then false else stock end
       where id = it.producto_id;
     end if;
     if it.reposicion_item_id is not null then
@@ -64,8 +68,9 @@ begin
   -- Sin piso en cero: si de esa carga ya se vendió algo, la cuenta queda bien al volver a sumar la corregida
   perform public.deshacer_recepcion(p_id, false);
   v_nuevo := public.confirmar_recepcion(p);
-  -- Si a un producto de la carga vieja le quedó stock negativo (se sacó un renglón ya vendido), queda en cero
-  update public.productos set stock_cantidad = 0 where id = any(v_ids) and stock_cantidad < 0;
+  -- Si a un producto de la carga vieja le quedó stock negativo o en cero (se sacó o achicó un renglón ya vendido),
+  -- queda en cero y "sin stock" en la web
+  update public.productos set stock_cantidad = 0, stock = false where id = any(v_ids) and stock_cantidad <= 0;
   return v_nuevo;
 end;
 $$;
