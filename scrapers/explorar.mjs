@@ -11,10 +11,13 @@ import puppeteer from 'puppeteer';
 const SITIOS = {
   delviso: {
     inicio: 'https://metalurgicadelviso.com.ar/admgenexel.php',   // acceso de clientes (usuario + pass)
+    extras: ['/compras/index.php'],                                // posible resumen de compras (login aparte)
     user: 'DELVISO_USER', pass: 'DELVISO_PASSWORD',
   },
   cromosol: {
     inicio: 'http://slaweb.cromosol.com/login',   // solo responde por http (https se cuelga)
+    // Cuenta corriente de cada empresa del grupo (Cromosol, BBA, TYC, Ilegor): la pantalla pide /api/transactions al cargar
+    extras: [1, 2, 3, 4].map(n => `/cliente/cuenta-corriente?company=${n}`),
     user: 'CROMOSOL_USER', pass: 'CROMOSOL_PASSWORD',
   },
   otero: {
@@ -23,10 +26,12 @@ const SITIOS = {
   },
   prautopartes: {
     inicio: 'https://prautopartes.com.ar/',
+    extras: ['/cuentascorrientes', '/#/cuentascorrientes'],   // menú "Comprobantes" → /api/CuentasCorrientes
     user: 'PR_USER', pass: 'PR_PASSWORD',
   },
   goicoechea: {
     inicio: 'https://goicoechea.com.ar/',
+    extras: ['/cuenta/micuenta'],   // resumen: POST /account/myaccount/filter
     user: 'GOICOECHEA_USER', pass: 'GOICOECHEA_PASSWORD',
   },
   tytsa: {   // Laravel con reCAPTCHA v3: puede bloquear al robot
@@ -39,11 +44,17 @@ const SITIOS = {
   },
   distrisuper: {   // Next.js; API en /api/auth/login
     inicio: 'https://lupa.distrisuper.com/',
+    // El chip de saldo abre el detalle de pagos (otra app); el saldo e impagos vienen de /ctacte/{cliente}
+    clicks: ['.tour_1_saldodias'],
     user: 'DISTRISUPER_USER', pass: 'DISTRISUPER_PASSWORD',
   },
   distriferr: {    // la clave viaja en MD5 (campo hpassword)
     inicio: 'https://clientes.distriferr.com.ar/ingreso/',
     user: 'DISTRIFERR_USER', pass: 'DISTRIFERR_PASSWORD',
+  },
+  dm: {           // DM Distribuidora: el login real es GET /login?cod=&cod2= (lo arma el formulario de la home)
+    inicio: 'https://dmcompras.com/',
+    user: 'DM_EMAIL', pass: 'DM_PASSWORD',
   },
   fal: {           // WordPress + WooCommerce
     inicio: 'https://autopartesfal.com/mi-cuenta/',
@@ -80,7 +91,7 @@ await page.setViewport({ width: 1366, height: 900 });
 let nJson = 0;
 const indice = [];
 const resumen = { sitio, inicio: cfg.inicio, login: 'no intentado', paginas: 0 };
-page.on('response', async res => {
+async function guardarRespuesta(res) {
   const tipo = res.headers()['content-type'] || '';
   const tipoReq = res.request().resourceType();
   if (!['xhr', 'fetch', 'document'].includes(tipoReq)) return;
@@ -93,7 +104,8 @@ page.on('response', async res => {
     indice.push({ archivo, metodo: res.request().method(), url: tapar(res.url()), status: res.status(),
                   postData: tapar(res.request().postData() || '').slice(0, 500), bytes: cuerpo.length });
   } catch { /* respuestas sin cuerpo (redirects) */ }
-});
+}
+page.on('response', guardarRespuesta);
 
 async function guardarPagina(nombre) {
   const html = await page.content();
@@ -182,8 +194,49 @@ async function enlaces(origen) {
     .map(h => h.split('#')[0]);
 }
 
+// Pantallas de resumen de cuenta: se visitan primero (antes del recorrido de 25 páginas) y se espera a que la
+// página termine de pedir sus datos, porque muchas los piden un rato después de cargar (Cromosol, PR).
+const esperarDatos = () => page.waitForNetworkIdle({ idleTime: 3000, timeout: 25_000 }).catch(() => {});
+async function visitarExtras() {
+  const origen = new URL(cfg.inicio).origin;
+  let n = 0;
+  for (const ruta of cfg.extras ?? []) {
+    try {
+      await page.goto(new URL(ruta, origen).href, { waitUntil: 'networkidle2', timeout: 45_000 });
+      await esperarDatos();
+      await guardarPagina(`R${++n}-${ruta.replace(/[^a-z0-9]+/gi, '_').slice(0, 40)}`);
+      resumen.paginas++;
+    } catch (e) { console.log(`No pude abrir ${ruta}: ${e.message}`); }
+  }
+  for (const selector of cfg.clicks ?? []) {
+    try {
+      await page.goto(page.url(), { waitUntil: 'networkidle2', timeout: 45_000 });
+      const el = await page.waitForSelector(selector, { timeout: 15_000 });
+      await el.click();
+      await esperarDatos();
+      await new Promise(ok => setTimeout(ok, 3000));
+      await guardarPagina(`C${++n}-${selector.replace(/[^a-z0-9]+/gi, '_').slice(0, 30)}`);
+      // Si abrió otra pestaña (ej. la app de pagos de Lupa), también se guarda
+      const pestanas = await browser.pages();
+      const nueva = pestanas[pestanas.length - 1];
+      if (nueva !== page) {
+        await nueva.waitForNetworkIdle({ idleTime: 3000, timeout: 25_000 }).catch(() => {});
+        await fs.writeFile(path.join(salida, `C${n}-pestana.html`), tapar(await nueva.content()));
+        resumen.paginas++;
+      }
+    } catch (e) { console.log(`No pude tocar ${selector}: ${e.message}`); }
+  }
+}
+
+// Las pestañas nuevas que abra el sitio también guardan sus respuestas de datos
+browser.on('targetcreated', async t => {
+  const p = await t.page().catch(() => null);
+  if (p && p !== page) p.on('response', guardarRespuesta);
+});
+
 try {
   await login();
+  await visitarExtras();
   await recorrer();
 } finally {
   await fs.writeFile(path.join(salida, 'indice.json'), JSON.stringify(indice, null, 2));

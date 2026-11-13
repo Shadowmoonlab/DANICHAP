@@ -11,7 +11,7 @@ on:
         required: true
         default: todos
         type: choice
-        options: [todos, delviso, cromosol, otero, prautopartes, goicoechea, tytsa, primeraalternativa, distrisuper, distriferr, fal]
+        options: [todos, resumenes, delviso, cromosol, otero, prautopartes, goicoechea, tytsa, primeraalternativa, distrisuper, distriferr, fal, dm]
 
 jobs:
   explorar:
@@ -20,7 +20,8 @@ jobs:
     strategy:
       fail-fast: false     # si un sitio falla, los demás siguen
       matrix:
-        sitio: ${{ inputs.sitio == 'todos' && fromJSON('["delviso","cromosol","otero","goicoechea","tytsa","primeraalternativa","distrisuper","distriferr","fal"]') || fromJSON(format('["{0}"]', inputs.sitio)) }}
+        # "resumenes": solo los que tienen resumen de cuenta en la web (cuenta corriente de proveedores)
+        sitio: ${{ inputs.sitio == 'todos' && fromJSON('["delviso","cromosol","otero","goicoechea","tytsa","primeraalternativa","distrisuper","distriferr","fal","dm","prautopartes"]') || inputs.sitio == 'resumenes' && fromJSON('["cromosol","distrisuper","prautopartes","dm","delviso","goicoechea"]') || fromJSON(format('["{0}"]', inputs.sitio)) }}
     steps:
       - uses: actions/checkout@v5
 
@@ -51,6 +52,8 @@ jobs:
           PRIMERAALT_PASSWORD: ${{ secrets.PRIMERAALT_PASSWORD }}
           DISTRISUPER_USER: ${{ secrets.DISTRISUPER_USER }}
           DISTRISUPER_PASSWORD: ${{ secrets.DISTRISUPER_PASSWORD }}
+          DM_EMAIL: ${{ secrets.DM_EMAIL }}
+          DM_PASSWORD: ${{ secrets.DM_PASSWORD }}
           DISTRIFERR_USER: ${{ secrets.DISTRIFERR_USER }}
           DISTRIFERR_PASSWORD: ${{ secrets.DISTRIFERR_PASSWORD }}
           FAL_USER: ${{ secrets.FAL_USER }}

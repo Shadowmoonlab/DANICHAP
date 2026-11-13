@@ -12,7 +12,7 @@ test('PL Autopartes: arma la fila con sku, título, rubro, precio y foto', () =>
   const f = filaDe({ id: 'abc', title: 'x', brand: '', category: { name: 'Chevrolet' }, pictures: ['https://img/1.jpg'],
     baseVariant: { sku: 'RR0192', title: 'Alma  delantera corsa', price: { amount: 12600, currency: 'ARS' } } });
   assert.deepEqual(f, { codigo: 'RR0192', descripcion: 'Alma delantera corsa', marca: null, rubro: 'Chevrolet', origen: null,
-    precio_lista: 12600, precio_neto: 12600, imagen_url: 'https://img/1.jpg' });
+    precio_lista: 12600, precio_neto: 11340, imagen_url: 'https://img/1.jpg' });
 });
 
 test('PL Autopartes: sin precio queda en null (no en 0)', () => {

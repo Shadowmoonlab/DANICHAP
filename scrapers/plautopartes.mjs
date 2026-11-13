@@ -2,13 +2,14 @@
 // La vitrina es pública: no hay login. La web pide los productos a la API de RediRedi con el id de la tienda
 // en el encabezado X-RR-Store-ID: GET /inventory/storefront/v2/items?sortBy=title.asc&perPage=100&page=N
 // → { data: [{ title, sku, category.name, brand, baseVariant.price.amount, pictures[] }], meta: { total } } (~410 artículos).
-// Los precios son los que muestra la tienda (en pesos).
+// precio_lista = el que muestra la tienda (en pesos); precio_neto = con el descuento de cliente de Daniel.
 import { correrScraper } from './lib/db.mjs';
 
 const API = 'https://api.rediredi.com';
 const TIENDA = '29645753-b33c-4379-a6f5-729595fac8ce';   // id público de la tienda (viene en el HTML de la web)
 const POR_PAGINA = 100;
-const MINIMO = 200;   // si trae menos, algo cambió en la API: mejor fallar que borrar media lista
+const MINIMO = 200;
+const DESCUENTO = 0.10;   // Daniel tiene 10% de descuento en la tienda (12/11): su costo es lista − 10%   // si trae menos, algo cambió en la API: mejor fallar que borrar media lista
 
 async function pagina(n) {
   const qs = new URLSearchParams({ sortBy: 'title.asc', perPage: String(POR_PAGINA), page: String(n), query: '' });
@@ -30,7 +31,7 @@ export function filaDe(it) {
     rubro: it.category?.name?.trim() || null,
     origen: null,
     precio_lista: precio > 0 ? precio : null,
-    precio_neto: precio > 0 ? precio : null,
+    precio_neto: precio > 0 ? Math.round(precio * (1 - DESCUENTO) * 100) / 100 : null,
     imagen_url: it.pictures?.[0] || v.pictures?.[0] || null,
   };
 }
