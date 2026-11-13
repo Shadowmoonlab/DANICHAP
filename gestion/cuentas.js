@@ -1,12 +1,13 @@
 // gestion/cuentas.js — Cuentas corrientes de proveedores: cuánto se le debe a cada uno, qué está vencido,
 // pagos (enteros o en parte, aplicados a remitos), notas de crédito/débito y resumen por WhatsApp.
-// Los saldos los calcula la base: cc_proveedores / cc_movimientos (docs/gestion-v18.sql).
+// Los saldos los calcula la base: cc_proveedores / cc_movimientos (docs/gestion-v18.sql). Lo que dice cada proveedor
+// (resumenes_proveedor, docs/gestion-v19.sql, lo leen los robots scrapers/resumen-*.mjs) se compara en el detalle.
 import {
   $, h, icon, vacio, db, toast, money, fechaCorta, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez,
   errorAmigable, estado, linkWhatsApp, proveedor,
 } from './core.js?v=45';
 import { numeroAR } from './texto.js?v=45';
-import { repartirPago, ordenarCuentas, totalAdeudado, diasVencido, textoResumen } from './cuentas-calc.js?v=45';
+import { repartirPago, ordenarCuentas, totalAdeudado, diasVencido, textoResumen, compararResumen, tituloMovimiento } from './cuentas-calc.js?v=45';
 
 const MEDIOS = { efectivo: 'Efectivo', transferencia: 'Transferencia', cheque: 'Cheque', echeq: 'Echeq' };
 const TRAMOS = [['vencido_30', 'vencido 1 a 30 días', 'chip-amber'], ['vencido_60', 'vencido 31 a 60 días', 'chip-vencido'],
@@ -68,7 +69,10 @@ function pintarLista() {
 /* ── Detalle de un proveedor ─────────────────────────────────────────── */
 async function verDetalle(f) {
   cc.actual = f.proveedor;
-  const { data, error } = await db.rpc('cc_movimientos', { p_proveedor: f.proveedor });
+  const [{ data, error }, resumen] = await Promise.all([
+    db.rpc('cc_movimientos', { p_proveedor: f.proveedor }),
+    ultimoResumen(f.proveedor),
+  ]);
   if (error) return toast(mensaje(error, 'No se pudieron traer los movimientos'), 'error');
   if (cc.actual !== f.proveedor) return;   // tocó otro mientras cargaba
   cc.movimientos = data || [];
@@ -102,11 +106,47 @@ async function verDetalle(f) {
         h('button', { class: 'btn btn-lg', id: 'cc-nota', onclick: () => registrarNota(f) }, icon('receipt'), 'Nota de crédito / débito'),
         h('a', { class: 'btn btn-lg', id: 'cc-whatsapp', href: linkWhatsApp(proveedor(f.proveedor)?.whatsapp, texto), target: '_blank', rel: 'noopener' },
           icon('chat'), 'Resumen por WhatsApp'))),
+    bloqueResumen(resumen, saldo, impagos),
     h('h3', { class: 'sub-title' }, 'Movimientos'),
     h('div', { class: 'card tbl-wrap' }, h('table', { class: 'tbl cc-tbl' },
       h('thead', {}, h('tr', {}, h('th', {}, 'Fecha'), h('th', {}, 'Qué'), h('th', { class: 'right' }, 'Importe'), h('th', { class: 'right' }, 'Saldo'))),
       h('tbody', { id: 'cc-movs' }, ...filasMovimientos()))),
     botonAnulados());
+}
+
+/* ── Lo que dice el proveedor (último resumen leído por los robots) ──── */
+// Sin la tabla (falta docs/gestion-v19.sql) o sin resúmenes de este proveedor: no se muestra nada
+async function ultimoResumen(prov) {
+  const { data, error } = await db.from('resumenes_proveedor').select('fecha_lectura, saldo_segun_proveedor, detalle')
+    .eq('proveedor', prov).order('fecha_lectura', { ascending: false }).limit(1);
+  return error ? null : data?.[0] ?? null;
+}
+
+function bloqueResumen(r, saldoSistema, impagos) {
+  if (!r) return null;
+  const cmp = compararResumen({ saldoProveedor: Number(r.saldo_segun_proveedor), saldoSistema, docsProveedor: r.detalle, remitosSistema: impagos });
+  const dif = cmp.diferencia;
+  const explicacion = cmp.coinciden ? 'Coinciden: el proveedor dice lo mismo que tu sistema.'
+    : dif > 0 ? `El proveedor dice que le debés ${money(dif)} más de lo que figura en tu sistema.`
+      : `El proveedor dice que le debés ${money(-dif)} menos de lo que figura en tu sistema.`;
+  const nombre = d => d.comprobante || 'Comprobante sin número';
+  return h('div', { class: 'card card-pad cc-resumen', id: 'cc-resumen' },
+    h('div', { class: 'cc-resumen-top' }, icon('fact_check'), h('b', {}, 'Resumen del proveedor'),
+      h('span', { class: 'muted' }, `leído el ${fechaCorta(r.fecha_lectura)}`)),
+    h('p', { class: 'cc-resumen-saldos num', id: 'cc-resumen-saldos' },
+      `Según el proveedor ${money(r.saldo_segun_proveedor)} · Según tu sistema ${money(saldoSistema)} · Diferencia ${money(Math.abs(dif))}`),
+    h('p', { class: cmp.coinciden ? 'cc-resumen-ok' : 'egreso' }, explicacion),
+    cmp.docs.length ? h('details', { class: 'cc-resumen-docs', open: !cmp.coinciden || null },
+      h('summary', {}, `Impagos según el proveedor (${cmp.docs.length})`),
+      h('ul', { class: 'cc-resumen-lista' }, ...cmp.docs.map(d => h('li', {},
+        h('span', {}, nombre(d), d.fecha ? h('span', { class: 'muted' }, ` · ${fechaCorta(d.fecha)}`) : null),
+        h('b', { class: `num ${Number(d.saldo) < 0 ? 'ganancia' : ''}` }, Number(d.saldo) < 0 ? `${money(-d.saldo)} a favor` : money(d.saldo)),
+        d.enSistema ? null : h('span', { class: 'chip chip-amber' }, Number(d.saldo) < 0 ? 'no está cargada' : 'no figura impago en tu sistema'))))) : null,
+    cmp.soloSistema.length ? h('details', { class: 'cc-resumen-docs' },
+      h('summary', {}, `Impagos en tu sistema que el proveedor no tiene pendientes (${cmp.soloSistema.length})`),
+      h('ul', { class: 'cc-resumen-lista' }, ...cmp.soloSistema.map(x => h('li', {},
+        h('span', {}, x.nro_comprobante ? `Nº ${x.nro_comprobante}` : 'Compra sin número', h('span', { class: 'muted' }, ` · ${fechaCorta(x.fecha)}`)),
+        h('b', { class: 'num' }, money(x.pendiente)))))) : null);
 }
 
 // Lo anulado queda guardado pero escondido: si no, la lista se llena de renglones tachados
@@ -151,11 +191,11 @@ function filasMovimientos() {
       const aCuenta = Number(m.haber) - Number(m.aplicado);
       if (aCuenta > 0 && !m.anulado) info.push(h('span', { class: 'chip chip-stock' }, `${money(aCuenta)} a cuenta`));
     }
-    const titulo = { compra: 'Compra', pago: 'Pago', nota_credito: 'Nota de crédito', nota_debito: 'Nota de débito' }[m.tipo] || m.tipo;
+    const { titulo, detalle } = tituloMovimiento(m);   // las compras y pagos de la planilla importada son notas
     const anulable = (m.tipo === 'pago' || m.tipo.startsWith('nota_')) && !m.anulado;
     return h('tr', { class: [m.anulado ? 'anulada' : '', `cc-${m.tipo}`].join(' ').trim() },
       h('td', { class: 'num' }, fechaCorta(m.fecha)),
-      h('td', {}, h('b', {}, titulo), m.detalle ? ` · ${m.detalle}` : null,
+      h('td', {}, h('b', {}, titulo), detalle ? ` · ${detalle}` : null,
         m.anulado ? h('span', { class: 'muted' }, ' · anulado') : null,
         info.length ? h('div', { class: 'cc-mov-info' }, ...info) : null,
         // El botón va en la misma celda: en el celular una columna aparte quedaba afuera de la pantalla
@@ -171,7 +211,7 @@ async function anular(m, titulo) {
   if (!(await confirmar(`Anular ${titulo.toLowerCase()}`, `¿Anular ${titulo.toLowerCase()} del ${fechaCorta(m.fecha)} por ${importe}? No se borra: queda tachado y deja de contar en el saldo.`, { ok: 'Sí, anular', peligro: true }))) return;
   const { error } = await db.rpc(m.tipo === 'pago' ? 'anular_pago_proveedor' : 'anular_nota_proveedor', { p_id: m.ref_id });
   if (error) return toast(mensaje(error, 'No se anuló'), 'error');
-  toast(`${titulo} anulado${titulo.startsWith('Nota') ? 'a' : ''}`);
+  toast(`${titulo} anulad${/^(Nota|Compra)/.test(titulo) ? 'a' : 'o'}`);
   cargar();
 }
 

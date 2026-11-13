@@ -13,6 +13,8 @@ const CATEGORIAS = [
   ['electricidad', 'Electricidad'], ['limpieza', 'Limpieza / Liqui Moly'], ['cerraduras', 'Cerraduras'],
 ];
 const MAX_LADO = 2000; // px: suficiente para leer una factura, liviano para subir
+// Pagado al contado (Cuentas corrientes, docs/gestion-v18.sql): mismos medios que un pago a proveedor
+const MEDIOS_CONTADO = { efectivo: 'Efectivo', transferencia: 'Transferencia', cheque: 'Cheque', echeq: 'Echeq' };
 
 let borrador = null;   // { proveedor, nro, fecha, total, origen, advertencias, filas: [...] }
 
@@ -312,6 +314,14 @@ function renderEditor() {
       h('thead', {}, h('tr', {}, h('th', {}), h('th', {}, 'Código'), h('th', {}, 'Descripción'), h('th', {}, 'Cant.'), h('th', {}, 'Costo unit.'), h('th', { class: 'right' }, 'Subtotal'), h('th', {}, 'Qué hago'), h('th', {}))),
       h('tbody', {}, ...filas))),
     h('button', { class: 'btn btn-sm', style: 'margin-top:10px', onclick: () => { b.filas.push(filaVacia()); renderEditor(); } }, icon('add'), 'Agregar renglón'),
+    // Con proveedor: la compra queda "a pagar" en su cuenta corriente, salvo que se haya pagado en el momento
+    b.proveedor && !b.corrigiendo ? h('div', { class: 'recep-contado' },
+      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: b.alContado, 'aria-label': 'Pagado al contado',
+        onchange: e => { b.alContado = e.target.checked; renderEditor(); } }), 'Pagado al contado'),
+      b.alContado ? h('select', { class: 'select input-auto', 'aria-label': 'Cómo se pagó',
+        onchange: e => { b.medioContado = e.target.value; } },
+        ...Object.entries(MEDIOS_CONTADO).map(([v, l]) => h('option', { value: v, selected: v === (b.medioContado || 'efectivo') ? true : null }, l))) : null,
+      h('span', { class: 'muted' }, b.alContado ? 'Se anota el pago y la compra queda saldada.' : 'Si no, queda en su cuenta corriente como "a pagar".')) : null,
     h('div', { class: 'recep-resumen' },
       h('div', {},
         h('div', { class: 'recep-total num' }, money(suma)),
@@ -364,11 +374,14 @@ async function completarPorCodigo(f, b) {
 const confirmarRecepcion = unaVez(async (btn, suma, resumen) => {
   const b = borrador;
   const activas = b.filas.filter(f => f.incluir);
+  const alContado = Boolean(b.proveedor && b.alContado && !b.corrigiendo);
+  const medio = b.medioContado || 'efectivo';
   const ok = await confirmar(b.corrigiendo ? 'Guardar corrección' : 'Confirmar recepción',
     (b.corrigiendo ? `Se reemplaza la carga Nº ${b.corrigiendo}: se descuenta lo que había sumado y se carga así. ` : '') +
     `Se registra el comprobante${b.nro ? ' ' + b.nro : ''} de ${nombreProveedor(b.proveedor) || 'proveedor sin nombre'} por ${money(suma)}: ` +
     `${resumen.stock} artículos suman stock, se crean ${resumen.nuevos} productos nuevos` +
-    `${resumen.pedidos ? ` y ${resumen.pedidos} pedidos quedan como recibidos` : ''}. ¿Confirmás?`, { ok: 'Sí, cargar' });
+    `${resumen.pedidos ? ` y ${resumen.pedidos} pedidos quedan como recibidos` : ''}.` +
+    `${alContado ? ` Queda pagada al contado (${MEDIOS_CONTADO[medio].toLowerCase()}).` : ''} ¿Confirmás?`, { ok: 'Sí, cargar' });
   if (!ok) return;
   btn.disabled = true;
   const datosRecepcion = {
@@ -397,7 +410,20 @@ const confirmarRecepcion = unaVez(async (btn, suma, resumen) => {
       ? db.from('productos').update({ imagen_url: creadas[i].imagen_url }).eq('id', it.producto_id) : null));
     if (!items || res.some(r => r?.error)) toast('La compra quedó cargada, pero alguna foto no se guardó: ponela desde Admin → Productos', 'error');
   }
-  toast(b.corrigiendo ? `Carga corregida (ahora Nº ${id})` : `Recepción Nº ${id} cargada`, 'success');
+  // Pagado al contado: el pago por el total, aplicado a esta compra. Si falla, la compra igual queda cargada
+  let pagada = false;
+  if (alContado) {
+    const { error: errorPago } = await db.rpc('registrar_pago_proveedor', { p: {
+      proveedor: b.proveedor, fecha: datosRecepcion.fecha, monto: datosRecepcion.total, medio,
+      nota: `Pagado al contado${b.nro ? ` · Nº ${b.nro}` : ''}`,
+      aplicaciones: [{ recepcion_id: id, monto: datosRecepcion.total }],
+    } });
+    if (errorPago) {
+      console.warn('[gestion] pago al contado:', errorPago.message);
+      toast(`La compra Nº ${id} quedó cargada, pero el pago no se guardó. Cargalo desde Cuentas corrientes → ${nombreProveedor(b.proveedor)} → Registrar pago.`, 'error');
+    } else pagada = true;
+  }
+  toast(b.corrigiendo ? `Carga corregida (ahora Nº ${id})` : `Recepción Nº ${id} cargada${pagada ? ' y pagada' : ''}`, 'success');
   borrador = null;
   actualizarBadgeRepo();
   cargarLista();

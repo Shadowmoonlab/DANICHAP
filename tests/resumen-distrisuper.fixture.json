@@ -1,0 +1,13 @@
+{
+  "_nota": "Recorte de GET distrimdp.dvrdns.org/ctacte/{cliente} (Distrisuper) con la misma forma que la captura, pero números, nombres y montos inventados",
+  "ok": 1,
+  "data": {
+    "cliente": "000000", "razonsocial": "CLIENTE DE PRUEBA", "saldo": 1750.5, "vendedor": "VENDEDOR", "sucursal": "BA(000)",
+    "color": "#9ECC99", "color_dias": "#9ECC99", "color_estado": "#9ECC99", "estado": "AUTORIZADO", "dias": 17, "updated": "2026-01-20T02:00:00.000Z",
+    "data": [
+      { "id": 1, "CODIGOCLIENTE": "00000", "RAZONSOCIAL": "CLIENTE DE PRUEBA", "CODIGOPARTICULAR": "000000", "COMPROBANTE": "FA-000000101", "EMPRESA": "DIMES", "CONDICION": "PPAL", "TOTAL": 1000, "PAGADO": 0, "SALDO": 1000, "FECHACOMPROBANTE": "2026-01-03T03:00:00.000Z", "DIAS": 17, "updated_at": "2026-01-20T02:00:00.000Z", "ACUMULADO": 1000 },
+      { "id": 2, "CODIGOCLIENTE": "00000", "RAZONSOCIAL": "CLIENTE DE PRUEBA", "CODIGOPARTICULAR": "000000", "COMPROBANTE": "FA-000000000102", "EMPRESA": "DIMES", "CONDICION": "DS", "TOTAL": 1000.5, "PAGADO": 250, "SALDO": 750.5, "FECHACOMPROBANTE": "2026-01-10T03:00:00.000Z", "DIAS": 10, "updated_at": "2026-01-20T02:00:00.000Z", "ACUMULADO": 1750.5 },
+      { "id": 3, "CODIGOCLIENTE": "00000", "RAZONSOCIAL": "CLIENTE DE PRUEBA", "CODIGOPARTICULAR": "000000", "COMPROBANTE": "FA-000000103", "EMPRESA": "DIMES", "CONDICION": "PPAL", "TOTAL": 300, "PAGADO": 300, "SALDO": 0, "FECHACOMPROBANTE": "2026-01-12T03:00:00.000Z", "DIAS": 8, "updated_at": "2026-01-20T02:00:00.000Z", "ACUMULADO": 1750.5 }
+    ]
+  }
+}

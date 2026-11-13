@@ -57,3 +57,42 @@ test('Excel: resumen con totales y hoja de movimientos', () => {
   assert.deepEqual(hojas[1][1][1].slice(1, 7), ['Venta', 1, 'Consumidor final', '', 'Efectivo', 10000]);
   assert.equal(hojasExcel({ titulo: 'x', agrupar: 'month', resumen: [] }).length, 1);
 });
+
+// Desde el corte (docs/gestion-v18.sql) la caja cuenta lo PAGADO a proveedores; las compras con proveedor
+// quedan como "a pagar" (informativas) y las compras sin proveedor salen de la caja como siempre
+const NOVIEMBRE = [
+  { periodo: '2026-11-20', cant_ventas: 1, ventas: 10000, costo: 6000, ganancia: 4000, fiado: 0, cobros: 0,
+    compras: 50000, compras_caja: 3000, pagos_proveedores: 20000, gastos: 1000, otros_ingresos: 0, retiros: 0 },
+];
+
+test('caja desde el corte: sale lo pagado a proveedores y las compras al contado, no las compras a pagar', () => {
+  const d = conResultados(NOVIEMBRE[0]);
+  assert.equal(d.caja_salio, 20000 + 3000 + 1000);
+  assert.equal(d.compras_a_pagar, 47000);
+  assert.equal(d.resultado, 3000);   // el resultado económico no cambia
+  const t = totales(NOVIEMBRE);
+  assert.equal(t.pagos_proveedores, 20000);
+  assert.equal(t.compras_caja, 3000);
+  assert.equal(t.caja_salio, 24000);
+});
+
+test('caja: una compra con proveedor (a pagar) no cambia la caja; un pago sí; una compra sin proveedor sí', () => {
+  const base = { ventas: 0, fiado: 0, cobros: 0, otros_ingresos: 0, gastos: 0, retiros: 0 };
+  assert.equal(conResultados({ ...base, compras: 80000, compras_caja: 0, pagos_proveedores: 0 }).caja_neto, 0);
+  assert.equal(conResultados({ ...base, compras: 0, compras_caja: 0, pagos_proveedores: 15000 }).caja_neto, -15000);
+  assert.equal(conResultados({ ...base, compras: 7000, compras_caja: 7000, pagos_proveedores: 0 }).caja_neto, -7000);
+});
+
+test('Excel: muestra pagos a proveedores, compras a pagar y el pago como "Pago a proveedor"', () => {
+  const hojas = hojasExcel({ titulo: 'noviembre de 2026', agrupar: 'day', resumen: NOVIEMBRE,
+    movimientos: [{ momento: '2026-11-20T15:00:00Z', tipo: 'pago_proveedor', ref_id: 9, detalle: 'Cromosol', medio: 'cheque', importe: 20000, ingreso: 0, egreso: 20000, ganancia: null, anulado: false }],
+    pagos: { cheque: 'Cheque' } });
+  const resumen = hojas[0][1];
+  const fila = k => resumen.find(r => r[0] === k);
+  assert.equal(fila('Pagos a proveedores')[1], 20000);
+  assert.equal(fila('Compras a pagar (no salen de la caja)')[1], 47000);
+  assert.match(resumen.find(r => String(r[0]).startsWith('Caja: salió'))[0], /pagos a proveedores/);
+  const enc = resumen.find(r => r[0] === 'Día');
+  assert.ok(enc.includes('Pagos a proveedores'));
+  assert.deepEqual(hojas[1][1][1].slice(1, 7), ['Pago a proveedor', 9, 'Cromosol', '', 'Cheque', 20000]);
+});

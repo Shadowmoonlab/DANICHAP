@@ -254,6 +254,8 @@ table.tbl { width: 100%; border-collapse: collapse; }
 .picker-op:hover { background: var(--navy-soft); }
 .recep-resumen { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
 .recep-total { font: 900 28px 'Space Grotesk', sans-serif; color: var(--navy); }
+.recep-contado { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; font-size: 15px; }
+.recep-contado .check { margin: 0; font-size: 16px; }
 
 /* Ventas: caja */
 .caja { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -541,3 +543,13 @@ body { font-size: 16px; }
 }
 
 .cc-acciones a.btn { text-decoration: none; }
+/* Comparación con el resumen del proveedor (docs/gestion-v19.sql) */
+.cc-resumen { display: grid; gap: 6px; margin-top: 12px; }
+.cc-resumen-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cc-resumen-saldos { margin: 0; font-weight: 700; font-size: 16px; color: var(--navy); overflow-wrap: anywhere; }
+.cc-resumen p { margin: 0; }
+.cc-resumen-ok { color: var(--green); font-weight: 600; }
+.cc-resumen-docs summary { cursor: pointer; font-weight: 700; color: var(--navy-2); padding: 6px 0; }
+.cc-resumen-lista { list-style: none; margin: 0; padding: 0; max-height: 280px; overflow-y: auto; }
+.cc-resumen-lista li { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line-2); font-size: 14px; }
+.cc-resumen-lista li:last-child { border-bottom: 0; }

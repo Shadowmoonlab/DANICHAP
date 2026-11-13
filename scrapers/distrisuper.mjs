@@ -3,14 +3,14 @@
 // Artículos: GET  https://api-lupa.uc.r.appspot.com/lupa/articles?page=N (Bearer) → { data, hasMore, totalArticles }
 // Descuentos del cliente: GET /lupa/clients?particularCode=… → general_discount + descuento por marca.
 import { correrScraper, env, numero } from './lib/db.mjs';
-import { UA, enParalelo, TIEMPO_MAX_MS } from './lib/sesion.mjs';
+import { UA, enParalelo, TIEMPO_MAX_MS, esPrincipal } from './lib/sesion.mjs';
 
-const AUTH = 'https://apidistri.distrisuper.com';
+export const AUTH = 'https://apidistri.distrisuper.com';
 const API = 'https://api-lupa.uc.r.appspot.com/lupa';
 const SIMULTANEOS = 12;
 const POR_PAGINA = 500;   // la API acepta limit (por defecto 10): 25.000 artículos en ~50 pedidos
 
-async function pedir(url, { token, method = 'GET', json, intentos = 3 } = {}) {
+export async function pedir(url, { token, method = 'GET', json, intentos = 3 } = {}) {
   for (let i = 1; ; i++) {
     try {
       const res = await fetch(url, { method, headers: {
@@ -28,13 +28,19 @@ async function pedir(url, { token, method = 'GET', json, intentos = 3 } = {}) {
   }
 }
 
-async function scrape() {
+/** Login de Lupa → { token, usuario } (usuario = nº de cliente). Lo reusa scrapers/resumen-distrisuper.mjs. */
+export async function iniciarSesion() {
   const usuario = env('DISTRISUPER_USER');
   // Solo un 401/403 es clave mal; una caída del sitio (5xx, red) sale tal cual y se reintenta más tarde
   const login = await pedir(`${AUTH}/api/auth/login`, { method: 'POST', json: { email: usuario, password: env('DISTRISUPER_PASSWORD') } })
     .catch(err => { if (/HTTP (401|403)/.test(err.message)) return null; throw err; });
   const token = login?.access_token;
   if (!token) throw new Error('Login rechazado: revisar DISTRISUPER_USER / DISTRISUPER_PASSWORD');
+  return { token, usuario };
+}
+
+async function scrape() {
+  const { token, usuario } = await iniciarSesion();
 
   // Descuentos del cliente, nombres de rubro y la 1ª página, a la vez
   const url = n => `${API}/articles?search=&page=${n}&rubroCodes=&brandCar=&modelCar=&brandCodes=&limit=${POR_PAGINA}`;
@@ -83,4 +89,5 @@ async function scrape() {
   return [...new Map(filas.map(f => [f.codigo, f])).values()];
 }
 
-await correrScraper('distrisuper', scrape);
+// Solo corre cuando es el archivo que se ejecutó con node (el robot de resumen de cuenta importa el login)
+if (esPrincipal(import.meta.url)) await correrScraper('distrisuper', scrape);

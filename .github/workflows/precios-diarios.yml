@@ -85,6 +85,37 @@ jobs:
           PRIMERAALT_USER: ${{ secrets.PRIMERAALT_USER }}
           PRIMERAALT_PASSWORD: ${{ secrets.PRIMERAALT_PASSWORD }}
 
+  # Resumen de cuenta corriente de cada proveedor (lo que dice que le debés → tabla resumenes_proveedor), una vez por día:
+  # en la corrida de las 06:23 (o a mano), DESPUÉS de los robots de precios (es la misma cuenta: no se entra dos veces a la vez)
+  # y sin afectarlos: si falla, los precios ya se cargaron y la corrida no queda en rojo (continue-on-error).
+  resumenes:
+    needs: [plan, scrape]
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '23 9 * * *') }}
+    name: ${{ matrix.robot }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        robot: [resumen-cromosol, resumen-distrisuper]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Robot ${{ matrix.robot }}
+        run: node scrapers/${{ matrix.robot }}.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          CROMOSOL_USER: ${{ secrets.CROMOSOL_USER }}
+          CROMOSOL_PASSWORD: ${{ secrets.CROMOSOL_PASSWORD }}
+          DISTRISUPER_USER: ${{ secrets.DISTRISUPER_USER }}
+          DISTRISUPER_PASSWORD: ${{ secrets.DISTRISUPER_PASSWORD }}
+
   # En repos públicos GitHub desactiva los workflows programados tras 60 días sin actividad.
   # Volver a habilitarlo por API cada vez que corre reinicia ese contador (mismo método que usa
   # la acción keepalive-workflow), sin commits ni cambios en el repo.

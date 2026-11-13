@@ -1,6 +1,9 @@
 // sesion.mjs — HTTP con cookies para los robots (sitios PHP / WordPress / Django que guardan la sesión en cookies).
 // Sin navegador: más rápido y liviano que Puppeteer. Reintenta cada pedido ante cortes momentáneos.
 
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 export const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 const esperar = ms => new Promise(ok => setTimeout(ok, ms));
 // Un sitio colgado no puede trabar el robot: cada pedido tiene 60 s como máximo (sin esto Node espera 5 min,
@@ -84,4 +87,14 @@ export async function enParalelo(items, n, fn) {
     }
   }));
   return resultados;
+}
+
+/**
+ * true si `url` (import.meta.url) es el archivo que se corrió con node, y no un import de otro robot o de un test.
+ * Así un robot puede exportar su login (ej. el de resumen de cuenta lo reusa) sin arrancar la carga de precios al importarlo.
+ */
+export function esPrincipal(url) {
+  if (!process.argv[1]) return false;
+  const norm = p => (process.platform === 'win32' ? p.toLowerCase() : p);
+  return norm(path.resolve(fileURLToPath(url))) === norm(path.resolve(process.argv[1]));
 }

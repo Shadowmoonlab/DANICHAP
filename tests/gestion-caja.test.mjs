@@ -28,3 +28,23 @@ test('lectura de la diferencia', () => {
   assert.match(leerDiferencia(49000, 50000).texto, /Faltan \$1\.000/);
   assert.match(leerDiferencia(50500, 50000).texto, /Sobran \$500/);
 });
+
+// docs/gestion-v18.sql: caja_del_dia trae lo pagado a proveedores y las compras sin proveedor (desde el 14/11)
+test('pago a proveedor en efectivo baja lo esperado; por transferencia no toca la caja', () => {
+  const dia = [
+    { medio: 'efectivo', ventas: 100000, cobros: 0, ingresos: 0, gastos: 0, retiros: 0, pagos_proveedores: 30000, compras: 0 },
+    { medio: 'transferencia', ventas: 0, cobros: 0, ingresos: 0, gastos: 0, retiros: 0, pagos_proveedores: 50000, compras: 0 },
+  ];
+  const c = calcularCierre(dia, 0);
+  assert.equal(c.entra, 100000);
+  assert.equal(c.sale, 30000);
+  assert.equal(c.esperado, 70000);
+  assert.equal(leerDiferencia(70000, c.esperado).tipo, 'ok');   // contó 70.000: sin faltante
+  assert.deepEqual(c.otros, { transferencia: -50000 });          // la transferencia sale del banco, no de la caja
+});
+
+test('compra sin proveedor (pagada en el momento) sale del efectivo', () => {
+  const c = calcularCierre([{ medio: 'efectivo', ventas: 20000, cobros: 0, ingresos: 0, gastos: 0, retiros: 0, pagos_proveedores: 0, compras: 5000 }], 1000);
+  assert.equal(c.sale, 5000);
+  assert.equal(c.esperado, 16000);
+});

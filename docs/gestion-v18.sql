@@ -10,7 +10,9 @@
 --   registrar_pago_proveedor / anular_pago_proveedor / registrar_nota_proveedor / anular_nota_proveedor
 --   cc_proveedores(hoy)           saldo y vencidos de cada proveedor (al día, 1-30, 31-60, +60 días)
 --   cc_movimientos(proveedor)     compras, pagos y notas de un proveedor con el saldo después de cada uno
---   libro_movimientos             los pagos a proveedores salen como egreso en el Libro diario (los anulados no)
+--   libro_resumen / libro_movimientos  desde el 14/11/2026 la caja del Libro diario cuenta lo PAGADO a proveedores
+--                                 (los anulados no); las compras con proveedor quedan "a pagar" (ver punto 10)
+--   caja_del_dia                  el cierre de caja descuenta los pagos a proveedores en efectivo (ver punto 10b)
 --
 -- saldo = compras (recepciones.total, o la suma de sus renglones si no tiene total) + notas de débito
 --         − notas de crédito − pagos no anulados
@@ -436,9 +438,101 @@ begin
 end;
 $$;
 
--- ── 10. Libro diario: los pagos a proveedores salen como egreso ────────────
--- Igual que en add-libro-diario.sql, más los pagos a proveedores no anulados (tipo 'pago_proveedor').
--- Ventas y compras se calculan exactamente igual que antes.
+-- ── 10. Libro diario: la caja cuenta lo PAGADO a proveedores ──────────────
+-- Decisión de Daniel (14/11): desde el corte (14/11/2026) lo que sale de la caja es lo que se le PAGA al proveedor
+-- (pagos_proveedor no anulados), no la compra. Las compras CON proveedor quedan informativas ("a pagar").
+-- Las compras SIN proveedor siguen saliendo de la caja el día de la compra (se toman como pagadas en el momento).
+-- Antes del corte todo queda como estaba: las compras salen de la caja y los pagos con fecha anterior NO
+-- (si no, una compra vieja contaría dos veces y cambiarían días ya cerrados, ej. al importar el Excel en la etapa 2).
+create or replace function public.libro_corte_compras()
+returns date
+language sql
+immutable
+set search_path = ''
+as $$ select date '2026-11-14' $$;
+
+-- libro_resumen: igual que en add-libro-diario.sql (ventas, cobros, compras, gastos sin cambios) y suma dos columnas al final:
+--   compras_caja       compras que salen de la caja (sin proveedor, o anteriores al corte)
+--   pagos_proveedores  pagos a proveedores desde el corte (no anulados)
+drop function if exists public.libro_resumen(date, date, text);
+create or replace function public.libro_resumen(p_desde date, p_hasta date, p_agrupar text default 'day')
+returns table (
+  periodo date, cant_ventas integer, ventas numeric, costo numeric, ganancia numeric, fiado numeric,
+  cobros numeric, compras numeric, gastos numeric, otros_ingresos numeric, retiros numeric,
+  compras_caja numeric, pagos_proveedores numeric
+)
+language plpgsql
+stable
+security invoker          -- respeta el RLS: solo el administrador ve datos
+set search_path = ''
+as $$
+#variable_conflict use_column   -- columnas de salida con el mismo nombre que columnas de tablas
+declare
+  v_corte date := public.libro_corte_compras();
+begin
+  if not (select public.is_admin()) then raise exception 'Solo el administrador puede ver el libro diario'; end if;
+  if p_agrupar not in ('day', 'month') then raise exception 'p_agrupar debe ser day o month'; end if;
+
+  return query
+  with
+  v as (
+    select date_trunc(p_agrupar, (created_at at time zone 'America/Argentina/Buenos_Aires'))::date as p,
+           count(*)::integer as n, sum(total) as tot, sum(costo_total) as cos, sum(ganancia) as gan,
+           sum(total) filter (where medio_pago = 'cuenta_corriente') as fia
+    from public.ventas
+    where not anulada
+      and created_at >= (p_desde::timestamp at time zone 'America/Argentina/Buenos_Aires')
+      and created_at <  ((p_hasta + 1)::timestamp at time zone 'America/Argentina/Buenos_Aires')
+    group by 1
+  ),
+  c as (
+    select date_trunc(p_agrupar, (created_at at time zone 'America/Argentina/Buenos_Aires'))::date as p, sum(monto) as tot
+    from public.pagos_clientes
+    where not anulado
+      and created_at >= (p_desde::timestamp at time zone 'America/Argentina/Buenos_Aires')
+      and created_at <  ((p_hasta + 1)::timestamp at time zone 'America/Argentina/Buenos_Aires')
+    group by 1
+  ),
+  r as (
+    select x.p, sum(x.tot) as tot, sum(x.tot) filter (where x.proveedor is null or x.fecha < v_corte) as caja
+    from (
+      select date_trunc(p_agrupar, rr.fecha)::date as p, rr.proveedor, rr.fecha,
+             coalesce(rr.total, (select sum(i.cantidad * i.costo_unit) from public.recepcion_items i where i.recepcion_id = rr.id), 0) as tot
+      from public.recepciones rr
+      where rr.fecha between p_desde and p_hasta
+    ) x
+    group by 1
+  ),
+  m as (
+    select date_trunc(p_agrupar, fecha)::date as p,
+           sum(monto) filter (where tipo = 'gasto')   as gas,
+           sum(monto) filter (where tipo = 'ingreso') as ing,
+           sum(monto) filter (where tipo = 'retiro')  as ret
+    from public.movimientos
+    where not anulado and fecha between p_desde and p_hasta
+    group by 1
+  ),
+  pp as (
+    select date_trunc(p_agrupar, fecha)::date as p, sum(monto) as tot
+    from public.pagos_proveedor
+    where not anulado and fecha between p_desde and p_hasta and fecha >= v_corte
+    group by 1
+  ),
+  periodos as (select p from v union select p from c union select p from r union select p from m union select p from pp)
+  select pe.p,
+         coalesce(v.n, 0), coalesce(v.tot, 0), coalesce(v.cos, 0), coalesce(v.gan, 0), coalesce(v.fia, 0),
+         coalesce(c.tot, 0), coalesce(r.tot, 0), coalesce(m.gas, 0), coalesce(m.ing, 0), coalesce(m.ret, 0),
+         coalesce(r.caja, 0), coalesce(pp.tot, 0)
+  from periodos pe
+  left join v on v.p = pe.p left join c on c.p = pe.p left join r on r.p = pe.p left join m on m.p = pe.p
+  left join pp on pp.p = pe.p
+  order by pe.p;
+end;
+$$;
+
+-- libro_movimientos: igual que en add-libro-diario.sql, más los pagos a proveedores (tipo 'pago_proveedor'; los
+-- anulados no aparecen). Una compra con proveedor desde el corte no sale de la caja (egreso 0, "a pagar");
+-- un pago anterior al corte se lista pero no sale de la caja (la compra ya había salido).
 drop function if exists public.libro_movimientos(date, date);
 create or replace function public.libro_movimientos(p_desde date, p_hasta date)
 returns table (
@@ -452,8 +546,9 @@ set search_path = ''
 as $$
 #variable_conflict use_column   -- columnas de salida con el mismo nombre que columnas de tablas
 declare
-  v_ini timestamptz := p_desde::timestamp at time zone 'America/Argentina/Buenos_Aires';
-  v_fin timestamptz := (p_hasta + 1)::timestamp at time zone 'America/Argentina/Buenos_Aires';
+  v_ini   timestamptz := p_desde::timestamp at time zone 'America/Argentina/Buenos_Aires';
+  v_fin   timestamptz := (p_hasta + 1)::timestamp at time zone 'America/Argentina/Buenos_Aires';
+  v_corte date := public.libro_corte_compras();
 begin
   if not (select public.is_admin()) then raise exception 'Solo el administrador puede ver el libro diario'; end if;
   if p_hasta - p_desde > 92 then raise exception 'El detalle se pide por día o mes (máximo 3 meses)'; end if;
@@ -469,11 +564,17 @@ begin
     from public.pagos_clientes pc left join public.clientes cl on cl.id = pc.cliente_id
     where pc.created_at >= v_ini and pc.created_at < v_fin
     union all
-    select (rr.fecha::timestamp + time '12:00') at time zone 'America/Argentina/Buenos_Aires', 'compra', rr.id,
-           coalesce(rr.proveedor, 'Proveedor') || coalesce(' · Nº ' || rr.nro_comprobante, ''), null, null,
-           coalesce(rr.total, (select sum(i.cantidad * i.costo_unit) from public.recepcion_items i where i.recepcion_id = rr.id), 0),
-           0, coalesce(rr.total, (select sum(i.cantidad * i.costo_unit) from public.recepcion_items i where i.recepcion_id = rr.id), 0), null, false
-    from public.recepciones rr where rr.fecha between p_desde and p_hasta
+    select (y.fecha::timestamp + time '12:00') at time zone 'America/Argentina/Buenos_Aires', 'compra', y.id,
+           coalesce(y.nombre, y.proveedor, 'Proveedor') || coalesce(' · Nº ' || y.nro_comprobante, '')
+             || case when y.a_pagar then ' · a pagar: sale de la caja al pagarla' else '' end,
+           null, null, y.tot, 0, case when y.a_pagar then 0 else y.tot end, null, false
+    from (
+      select rr.id, rr.fecha, rr.proveedor, pr.nombre, rr.nro_comprobante,
+             rr.proveedor is not null and rr.fecha >= v_corte as a_pagar,
+             coalesce(rr.total, (select sum(i.cantidad * i.costo_unit) from public.recepcion_items i where i.recepcion_id = rr.id), 0) as tot
+      from public.recepciones rr left join public.proveedores pr on pr.slug = rr.proveedor
+      where rr.fecha between p_desde and p_hasta
+    ) y
     union all
     select (mm.fecha::timestamp + (mm.created_at at time zone 'America/Argentina/Buenos_Aires')::time) at time zone 'America/Argentina/Buenos_Aires',
            mm.tipo, mm.id, coalesce(mm.descripcion, mm.categoria), mm.categoria, mm.medio, mm.monto,
@@ -481,12 +582,60 @@ begin
     from public.movimientos mm where mm.fecha between p_desde and p_hasta
     union all
     select (pp.fecha::timestamp + (pp.created_at at time zone 'America/Argentina/Buenos_Aires')::time) at time zone 'America/Argentina/Buenos_Aires',
-           'pago_proveedor', pp.id, coalesce(pr.nombre, pp.proveedor) || coalesce(' · ' || pp.nota, ''), null, pp.medio,
-           pp.monto, 0, pp.monto, null, false
+           'pago_proveedor', pp.id,
+           coalesce(pr.nombre, pp.proveedor) || coalesce(' · ' || pp.nota, '')
+             || case when pp.fecha < v_corte then ' · anterior al 14/11: la compra ya había salido de la caja' else '' end,
+           null, pp.medio, pp.monto, 0, case when pp.fecha < v_corte then 0 else pp.monto end, null, false
     from public.pagos_proveedor pp left join public.proveedores pr on pr.slug = pp.proveedor
     where not pp.anulado and pp.fecha between p_desde and p_hasta
   ) x
   order by 1;
+end;
+$$;
+
+-- ── 10b. Cierre de caja: lo pagado a proveedores también sale de la caja ───
+-- Igual que en gestion-v3.sql, y desde el corte (libro_corte_compras, 14/11/2026) suma dos columnas por medio de pago:
+--   pagos_proveedores  pagos a proveedores no anulados (el de efectivo baja lo que tiene que haber en la caja;
+--                      el de transferencia, cheque o echeq no toca la caja)
+--   compras            compras SIN proveedor (se toman como pagadas en efectivo en el momento, igual que en el Libro diario)
+-- Antes del corte no se suma nada nuevo: los cierres viejos dan lo mismo que antes.
+drop function if exists public.caja_del_dia(date);
+create or replace function public.caja_del_dia(p_fecha date)
+returns table (medio text, ventas numeric, cobros numeric, ingresos numeric, gastos numeric, retiros numeric,
+               pagos_proveedores numeric, compras numeric)
+language plpgsql
+stable
+security invoker
+set search_path = ''
+as $$
+#variable_conflict use_column
+declare
+  v_ini   timestamptz := p_fecha::timestamp at time zone 'America/Argentina/Buenos_Aires';
+  v_fin   timestamptz := (p_fecha + 1)::timestamp at time zone 'America/Argentina/Buenos_Aires';
+  v_desde boolean     := p_fecha >= public.libro_corte_compras();
+begin
+  if not (select public.is_admin()) then raise exception 'Solo el administrador puede ver la caja'; end if;
+  return query
+  with mov as (
+    select medio_pago as medio, total as ventas, 0::numeric as cobros, 0::numeric as ingresos, 0::numeric as gastos, 0::numeric as retiros,
+           0::numeric as pagos, 0::numeric as compras
+    from public.ventas where not anulada and medio_pago <> 'cuenta_corriente' and created_at >= v_ini and created_at < v_fin
+    union all
+    select medio, 0, monto, 0, 0, 0, 0, 0 from public.pagos_clientes where not anulado and created_at >= v_ini and created_at < v_fin
+    union all
+    select medio, 0, 0, case when tipo = 'ingreso' then monto else 0 end, case when tipo = 'gasto' then monto else 0 end,
+           case when tipo = 'retiro' then monto else 0 end, 0, 0
+    from public.movimientos where not anulado and fecha = p_fecha
+    union all
+    select pp.medio, 0, 0, 0, 0, 0, pp.monto, 0
+    from public.pagos_proveedor pp where v_desde and not pp.anulado and pp.fecha = p_fecha
+    union all
+    select 'efectivo', 0, 0, 0, 0, 0, 0,
+           coalesce(rr.total, (select sum(i.cantidad * i.costo_unit) from public.recepcion_items i where i.recepcion_id = rr.id), 0)
+    from public.recepciones rr where v_desde and rr.proveedor is null and rr.fecha = p_fecha
+  )
+  select m.medio, sum(m.ventas), sum(m.cobros), sum(m.ingresos), sum(m.gastos), sum(m.retiros), sum(m.pagos), sum(m.compras)
+  from mov m group by m.medio order by m.medio;
 end;
 $$;
 
@@ -500,6 +649,8 @@ revoke all on function public.cc_proveedores(date)               from public, an
 revoke all on function public.cc_movimientos(text)               from public, anon;
 revoke all on function public.corregir_recepcion(bigint, jsonb)  from public, anon;
 revoke all on function public.libro_movimientos(date, date)      from public, anon;
+revoke all on function public.libro_resumen(date, date, text)    from public, anon;
+revoke all on function public.caja_del_dia(date)                 from public, anon;
 grant execute on function public.saldo_recepcion(bigint)           to authenticated;
 grant execute on function public.registrar_pago_proveedor(jsonb)   to authenticated;
 grant execute on function public.anular_pago_proveedor(bigint)     to authenticated;
@@ -509,5 +660,8 @@ grant execute on function public.cc_proveedores(date)              to authentica
 grant execute on function public.cc_movimientos(text)              to authenticated;
 grant execute on function public.corregir_recepcion(bigint, jsonb) to authenticated;
 grant execute on function public.libro_movimientos(date, date)     to authenticated;
+grant execute on function public.libro_resumen(date, date, text)   to authenticated;
+grant execute on function public.libro_corte_compras()             to authenticated;
+grant execute on function public.caja_del_dia(date)                to authenticated;
 
 notify pgrst, 'reload schema';

@@ -12,10 +12,10 @@
 //        priceLists {"51": …} es otra lista (entre +5 % y +23 %) que la web no muestra en ningún lado: no se usan.
 // Fotos: solo hay links firmados de S3 que vencen a los 30 s (imagePreSigned): no se guardan.
 import { correrScraper, env, numero, esErrorDefinitivo } from './lib/db.mjs';
-import { crearSesion, enParalelo } from './lib/sesion.mjs';
+import { crearSesion, enParalelo, esPrincipal } from './lib/sesion.mjs';
 
-const BASE = 'http://slaweb.cromosol.com';
-const API = { Accept: 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest' };
+export const BASE = 'http://slaweb.cromosol.com';
+export const API = { Accept: 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest' };
 const TAMANIOS = [500, 200, 108, 36];   // 36/72/108 son los que ofrece la web; si no acepta uno grande se baja
 const SIMULTANEOS = 4;
 const INTENTOS_PAGINA = 3;
@@ -275,6 +275,18 @@ export function controlar({ total, leidos, corte, codigos }) {
   if (codigos < minimo) throw new Error(`solo ${codigos} códigos únicos en ${total} aplicaciones (mínimo ${minimo})`);
 }
 
+/**
+ * Login de Spring Security en la sesión `s` (crearSesion(BASE)): GET /login (cookie) y POST con usuario y clave.
+ * { rechazado: true } si volvió al formulario (/login o ?error); { ok: true } si entró. Lo reusa scrapers/resumen-cromosol.mjs.
+ */
+export async function iniciarSesion(s, usuario, clave) {
+  await s.pedir('/login');
+  const res = await s.pedir('/login', { method: 'POST', form: { username: usuario, password: clave, 'remember-me': 'on' } });
+  await res.arrayBuffer().catch(() => {});
+  const destino = new URL(res.url || `${BASE}/login`);
+  return /^\/login\/?$/i.test(destino.pathname) || destino.searchParams.has('error') ? { rechazado: true } : { ok: true };
+}
+
 async function scrape() {
   const usuario = env('CROMOSOL_USER'), clave = env('CROMOSOL_PASSWORD');
   const s = crearSesion(BASE);
@@ -282,11 +294,7 @@ async function scrape() {
 
   // { ok } si la API responde con la sesión; { rechazado } si Spring devolvió al formulario (/login o ?error)
   const entrar = async () => {
-    await s.pedir('/login');
-    const res = await s.pedir('/login', { method: 'POST', form: { username: usuario, password: clave, 'remember-me': 'on' } });
-    await res.arrayBuffer().catch(() => {});
-    const destino = new URL(res.url || `${BASE}/login`);
-    if (/^\/login\/?$/i.test(destino.pathname) || destino.searchParams.has('error')) return { rechazado: true };
+    if ((await iniciarSesion(s, usuario, clave)).rechazado) return { rechazado: true };
     const prueba = await s.pedir(urlApi(0, 1), { headers: API, redirect: 'manual' });
     await prueba.arrayBuffer().catch(() => {});
     return prueba.ok ? { ok: true } : { motivo: `/api/products HTTP ${prueba.status} después de entrar` };
@@ -357,5 +365,6 @@ async function scrape() {
   }
 }
 
-// Los tests importan las funciones de arriba sin correr el robot (CROMOSOL_SOLO_FUNCIONES=1)
-if (process.env.CROMOSOL_SOLO_FUNCIONES !== '1') await correrScraper('cromosol', scrape);
+// Los tests importan las funciones de arriba sin correr el robot (CROMOSOL_SOLO_FUNCIONES=1); el robot de resumen de
+// cuenta importa el login (solo corre cuando es el archivo que se ejecutó con node)
+if (process.env.CROMOSOL_SOLO_FUNCIONES !== '1' && esPrincipal(import.meta.url)) await correrScraper('cromosol', scrape);

@@ -508,7 +508,14 @@ def cc_nota(page):
     return f"saldo $ {pesos(CC['base'] + 50000)}"
 
 
-@paso("Libro diario: el pago al proveedor sale como egreso del día")
+CORTE = "2026-11-14"   # docs/gestion-v18.sql → libro_corte_compras(): desde ese día la caja cuenta los pagos
+
+
+def hoy_iso(page):
+    return page.evaluate("new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)")
+
+
+@paso("Libro diario: el pago al proveedor figura en el día (egreso desde el corte)")
 def cc_libro(page):
     page.evaluate("document.querySelectorAll('#toast-container > *').forEach(t => t.remove())")
     vista(page, "libro")
@@ -518,9 +525,13 @@ def cc_libro(page):
     fila = page.locator("#libro-body tr", has=page.locator(".chip", has_text="Pago a proveedor")).filter(has_text="Cromosol").first
     expect(fila).to_be_visible(timeout=8000)
     sale = fila.locator("td.egreso").inner_text().replace("\xa0", " ")
-    assert "40.000" in sale, f"columna Sale: {sale!r}"
-    expect(page.locator("#lb-pagos-prov")).to_be_visible()
-    return f"egreso {sale.strip()} · {texto_plata(page, '#lb-pagos-prov')}"
+    if hoy_iso(page) >= CORTE:
+        assert "40.000" in sale, f"columna Sale: {sale!r}"
+        expect(page.locator("#lb-pagos-prov")).to_be_visible()
+        return f"egreso {sale.strip()} · {texto_plata(page, '#lb-pagos-prov')}"
+    # antes del corte la compra ya había salido de la caja: el pago se lista pero no sale (no cuenta dos veces)
+    assert not sale.strip() and "anterior al 14/11" in fila.inner_text(), f"antes del corte: Sale={sale!r} · {fila.inner_text()!r}"
+    return "listado; antes del corte no sale de la caja (la compra ya salió)"
 
 
 @paso("Cuentas corrientes: anular el pago devuelve el saldo (y sale del Libro diario)")
@@ -562,6 +573,127 @@ def cc_vencido(page):
     fila = page.locator(f".cc-fila[data-proveedor='{CC['prov']}']").first
     expect(fila.locator(".chip", has_text="vencido 1 a 30")).to_contain_text(pesos(float(s["vencido_30"])), timeout=8000)
     return f"vencido 1-30: $ {pesos(float(s['vencido_30']))} · remito impago más viejo {s['impago_desde']}"
+
+
+def caja_dia(page, dia):
+    """Lo que sale de la caja un día según libro_resumen (misma cuenta que conResultados de libro-calc.js)."""
+    r = page.evaluate("async d => (await _supabase.rpc('libro_resumen', { p_desde: d, p_hasta: d, p_agrupar: 'day' })).data[0] || null", dia) or {}
+    n = lambda k: float(r.get(k) or 0)
+    return {"salio": n("pagos_proveedores") + n("compras_caja") + n("gastos") + n("retiros"), "compras": n("compras")}
+
+
+def nueva_compra(page, prov, nro, fecha, total):
+    rid = page.evaluate("""async ([p, nro, f, t]) => (await _supabase.rpc('confirmar_recepcion', { p: { proveedor: p, nro_comprobante: nro,
+        fecha: f, total: t, origen: 'manual', items: [{ descripcion: 'Prueba caja', cantidad: 1, costo_unit: t, accion: 'solo' }] } })).data""", [prov, nro, fecha, total])
+    assert rid, f"no se pudo crear la compra {nro}"
+    return rid
+
+
+@paso("Libro diario desde el corte: compra con proveedor no cambia la caja; un pago sí; compra sin proveedor sí")
+def caja_corte(page):
+    dia, antes_corte, nro = "2026-11-20", "2026-11-10", f"CC-{int(time.time())}-K"
+    recs, pago = [], None
+    try:
+        c0 = caja_dia(page, dia)
+        recs.append(nueva_compra(page, CC["prov"], nro + "1", dia, 50000))
+        c1 = caja_dia(page, dia)
+        assert c1["compras"] - c0["compras"] == 50000 and c1["salio"] == c0["salio"], f"compra con proveedor: {c0} → {c1}"
+        pago = page.evaluate("""async ([p, d]) => (await _supabase.rpc('registrar_pago_proveedor', { p: { proveedor: p, fecha: d, monto: 20000,
+            medio: 'efectivo', nota: 'Prueba e2e' } })).data""", [CC["prov"], dia])
+        c2 = caja_dia(page, dia)
+        assert c2["salio"] - c1["salio"] == 20000, f"pago: {c1} → {c2}"
+        recs.append(nueva_compra(page, None, nro + "2", dia, 7000))
+        c3 = caja_dia(page, dia)
+        assert c3["salio"] - c2["salio"] == 7000, f"compra sin proveedor: {c2} → {c3}"
+        movs = page.evaluate("async d => (await _supabase.rpc('libro_movimientos', { p_desde: d, p_hasta: d })).data", dia)
+        compra = next(m for m in movs if m["tipo"] == "compra" and m["ref_id"] == recs[0])
+        assert float(compra["egreso"]) == 0 and "a pagar" in compra["detalle"], f"renglón de la compra: {compra}"
+        # antes del corte nada cambia: la compra con proveedor sigue saliendo de la caja
+        v0 = caja_dia(page, antes_corte)
+        recs.append(nueva_compra(page, CC["prov"], nro + "3", antes_corte, 9000))
+        v1 = caja_dia(page, antes_corte)
+        assert v1["salio"] - v0["salio"] == 9000, f"antes del corte: {v0} → {v1}"
+    finally:
+        page.evaluate("""async ([pago, recs]) => {
+            if (pago) await _supabase.rpc('anular_pago_proveedor', { p_id: pago });
+            for (const r of recs) await _supabase.rpc('anular_recepcion', { p_id: r });
+        }""", [pago, recs])
+    return "a pagar: caja igual · pago $ 20.000 sale · sin proveedor $ 7.000 sale · antes del 14/11 como siempre"
+
+
+@paso("Cierre de caja: venta en efectivo 100.000 − pago a proveedor en efectivo 30.000 = 70.000 (la transferencia no cuenta)")
+def caja_cierre_proveedor(page):
+    dia = "2026-11-20"   # después del corte: el cierre de ese día ya descuenta los pagos a proveedores
+    calc = """async ([d, inicial]) => {
+        const { calcularCierre } = await import('/gestion/caja-calc.js?v=e2e');
+        const { data, error } = await _supabase.rpc('caja_del_dia', { p_fecha: d });
+        if (error) throw new Error(error.message);
+        return { ...calcularCierre(data, inicial), ef: data.find(f => f.medio === 'efectivo') || {} };
+    }"""
+    venta, pagos = None, []
+    try:
+        antes = page.evaluate(calc, [dia, 0])
+        venta = page.evaluate("""async d => (await _supabase.from('ventas').insert({ medio_pago: 'efectivo', total: 100000, costo_total: 0, ganancia: 100000,
+            created_at: d + 'T15:00:00Z', notas: 'Prueba e2e cierre' }).select('id').single()).data.id""", dia)
+        for medio, monto in (("efectivo", 30000), ("transferencia", 50000)):
+            pagos.append(page.evaluate("""async ([p, d, medio, monto]) => (await _supabase.rpc('registrar_pago_proveedor', { p: { proveedor: p, fecha: d,
+                monto, medio, nota: 'Prueba e2e' } })).data""", [CC["prov"], dia, medio, monto]))
+        despues = page.evaluate(calc, [dia, 0])
+        dif = page.evaluate("""async ([contado, esperado]) => (await import('/gestion/caja-calc.js?v=e2e')).leerDiferencia(contado, esperado)""",
+                            [antes["esperado"] + 70000, despues["esperado"]])
+    finally:
+        page.evaluate("""async ([venta, pagos]) => {
+            if (venta) await _supabase.from('ventas').update({ anulada: true }).eq('id', venta);
+            for (const p of pagos) if (p) await _supabase.rpc('anular_pago_proveedor', { p_id: p });
+        }""", [venta, pagos])
+    assert despues["esperado"] - antes["esperado"] == 70000, f"esperado: {antes['esperado']} → {despues['esperado']} (tenía que subir 70.000)"
+    assert float(despues["ef"].get("pagos_proveedores") or 0) - float(antes["ef"].get("pagos_proveedores") or 0) == 30000, f"efectivo: {despues['ef']}"
+    assert dif["tipo"] == "ok", f"contando 70.000 más dice: {dif['texto']}"
+    return f"esperado +$ 70.000 · contado igual → «{dif['texto']}» · transferencia fuera de la caja"
+
+
+@paso("Recepción: 'Pagado al contado' anota el pago y la compra queda saldada")
+def recepcion_contado(page):
+    nro = f"CC-{int(time.time())}-C"
+    base = float(cc_saldo(page)["saldo"])
+    vista(page, "recepcion")
+    page.click("button:has-text('Cargar a mano')")
+    expect(page.locator("text=Revisá lo que llegó")).to_be_visible(timeout=5000)
+    expect(page.locator("#recepcion-trabajo input[aria-label='Pagado al contado']")).to_have_count(0)   # sin proveedor no aparece
+    page.select_option("#recepcion-trabajo select[aria-label='Proveedor']", CC["prov"])
+    expect(page.locator("#recepcion-trabajo input[aria-label='Pagado al contado']")).to_be_visible(timeout=5000)
+    page.fill("#recepcion-trabajo input[placeholder='0001-00012345']", nro)
+    page.locator("#recepcion-trabajo input[placeholder='0001-00012345']").dispatch_event("change")
+    page.fill(".tbl-recep input[aria-label='Descripción']", "Prueba pagado al contado")
+    page.locator(".tbl-recep input[aria-label='Costo unitario']").first.click()
+    page.keyboard.type("30.000")
+    page.keyboard.press("Tab")
+    page.wait_for_timeout(300)
+    page.locator("#recepcion-trabajo input[aria-label='Pagado al contado']").check()
+    expect(page.locator("#recepcion-trabajo select[aria-label='Cómo se pagó']")).to_have_value("efectivo")
+    page.click("button:has-text('Confirmar y cargar')")
+    expect(page.locator("#modal-body")).to_contain_text("pagada al contado")
+    page.click("#modal-foot button:has-text('Sí, cargar')")
+    expect(page.locator("#toast-container *").filter(has_text="cargada y pagada").first).to_be_visible(timeout=8000)
+    rec = page.evaluate("async nro => (await _supabase.from('recepciones').select('id, total').eq('nro_comprobante', nro)).data[0]", nro)
+    pend = float(page.evaluate("async id => (await _supabase.rpc('saldo_recepcion', { p_id: id })).data", rec["id"]))
+    pago = page.evaluate("""async id => (await _supabase.from('pagos_aplicaciones').select('monto, pago:pagos_proveedor(id, monto, medio, anulado)')
+        .eq('recepcion_id', id)).data""", rec["id"])
+    saldo = float(cc_saldo(page)["saldo"])
+    try:
+        assert float(rec["total"]) == 30000 and pend == 0, f"compra {rec} · falta pagar {pend}"
+        assert len(pago) == 1 and float(pago[0]["monto"]) == 30000 and pago[0]["pago"]["medio"] == "efectivo", f"pago: {pago}"
+        assert saldo == base, f"el saldo del proveedor cambió: {base} → {saldo}"
+        # al corregir esa carga no se ofrece "Pagado al contado" (el pago ya está hecho)
+        page.locator("#recepcion-body tr", has_text=nro).locator("button:has-text('Corregir')").click()
+        expect(page.locator("text=Corrigiendo la carga")).to_be_visible(timeout=8000)
+        expect(page.locator("#recepcion-trabajo input[aria-label='Pagado al contado']")).to_have_count(0)
+        page.click("#recepcion-trabajo button:has-text('Cancelar')")
+    finally:
+        if pago:
+            page.evaluate("async id => _supabase.rpc('anular_pago_proveedor', { p_id: id })", pago[0]["pago"]["id"])
+        page.evaluate("async id => _supabase.rpc('anular_recepcion', { p_id: id })", rec["id"])
+    return f"compra Nº {rec['id']} de $ 30.000 pagada en efectivo; saldo del proveedor sin cambios"
 
 
 @paso("Cuentas corrientes en el celular (390px) y limpieza de la prueba")
@@ -618,7 +750,7 @@ def main():
         page.on("console", lambda m: m.type == "error" and not any(x in m.text for x in ("frame-ancestors", "X-Frame")) and errores.append(f"consola: {m.text[:200]}"))
         for f in (entrar, francar, gomez, liqui, reposiciones, mello, joel_dolares, cotizacion, busqueda, filtros, ganancia, a_mano, tipeo, resaltado,
                   gasto_miles, caja_miles, corregir_carga, ventas_mil, comparar_barato, cobrar_lento, admin_xss,
-                  cc_compra, cc_pago, cc_nota, cc_libro, cc_anular, cc_vencido, cc_celular, celular):
+                  cc_compra, cc_pago, cc_nota, cc_libro, cc_anular, cc_vencido, caja_corte, caja_cierre_proveedor, recepcion_contado, cc_celular, celular):
             f(page)
         b.close()
     ok = sum(1 for _, bien, _ in resultados if bien)

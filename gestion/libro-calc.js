@@ -44,17 +44,26 @@ export function periodoDeHoy(modo, hoy) {
 
 const n = v => Number(v) || 0;
 
-/** Una fila de resumen con sus resultados: económico (ganancia − gastos) y de caja (lo que entró − lo que salió). */
+/**
+ * Una fila de resumen con sus resultados: económico (ganancia − gastos) y de caja (lo que entró − lo que salió).
+ * Caja (docs/gestion-v18.sql): sale lo PAGADO a proveedores (pagos_proveedores) y las compras que cuentan como
+ * pagadas al momento (compras_caja: sin proveedor, o anteriores al corte). Las demás compras quedan "a pagar".
+ * Sin v18 (filas sin compras_caja) toda compra sale de la caja, como antes.
+ */
 export function conResultados(r) {
+  const comprasCaja = r.compras_caja == null ? n(r.compras) : n(r.compras_caja);
   const entro = n(r.ventas) - n(r.fiado) + n(r.cobros) + n(r.otros_ingresos);
-  const salio = n(r.compras) + n(r.gastos) + n(r.retiros);
-  return { ...r, resultado: n(r.ganancia) - n(r.gastos), caja_entro: entro, caja_salio: salio, caja_neto: entro - salio };
+  const salio = n(r.pagos_proveedores) + comprasCaja + n(r.gastos) + n(r.retiros);
+  return { ...r, resultado: n(r.ganancia) - n(r.gastos), caja_entro: entro, caja_salio: salio, caja_neto: entro - salio,
+    compras_a_pagar: n(r.compras) - comprasCaja };
 }
 
 /** Totales de todas las filas del período. */
 export function totales(filas) {
-  const campos = ['cant_ventas', 'ventas', 'costo', 'ganancia', 'fiado', 'cobros', 'compras', 'gastos', 'otros_ingresos', 'retiros'];
+  const campos = ['cant_ventas', 'ventas', 'costo', 'ganancia', 'fiado', 'cobros', 'compras', 'gastos', 'otros_ingresos', 'retiros', 'pagos_proveedores'];
   const t = Object.fromEntries(campos.map(c => [c, filas.reduce((s, f) => s + n(f[c]), 0)]));
+  // Sin v18 las filas no traen compras_caja: toda compra sale de la caja (como antes)
+  t.compras_caja = filas.reduce((s, f) => s + (f.compras_caja == null ? n(f.compras) : n(f.compras_caja)), 0);
   return conResultados(t);
 }
 
@@ -68,7 +77,8 @@ export function etiquetaFila(periodo, agrupar) {
 /** Margen bruto en % (ganancia / ventas), o null si no hubo ventas. */
 export const margen = t => (n(t.ventas) > 0 ? Math.round((n(t.ganancia) / n(t.ventas)) * 1000) / 10 : null);
 
-const ETIQ_MOV = { venta: 'Venta', cobro: 'Cobro cta. cte.', compra: 'Compra', gasto: 'Gasto', retiro: 'Retiro', ingreso: 'Otro ingreso' };
+const ETIQ_MOV = { venta: 'Venta', cobro: 'Cobro cta. cte.', compra: 'Compra', gasto: 'Gasto', retiro: 'Retiro', ingreso: 'Otro ingreso',
+  pago_proveedor: 'Pago a proveedor' };
 export const etiquetaMovimiento = m => ETIQ_MOV[m.tipo] || m.tipo;
 
 /**
@@ -81,11 +91,11 @@ export function hojasExcel({ titulo, agrupar, resumen, movimientos, pagos = {} }
     [`DANICHAP — Libro diario — ${titulo}`], [],
     ['Ventas', t.ventas], ['Costo de lo vendido', t.costo], ['Ganancia bruta', t.ganancia], ['Gastos', t.gastos],
     ['Resultado (ganancia − gastos)', t.resultado], [],
-    ['Caja: entró', t.caja_entro], ['Caja: salió (compras + gastos + retiros)', t.caja_salio], ['Caja: neto', t.caja_neto],
-    ['Compras a proveedores', t.compras], [],
-    [agrupar === 'month' ? 'Mes' : 'Día', 'Ventas', 'Cant.', 'Costo', 'Ganancia', 'Compras', 'Gastos', 'Otros ingresos', 'Retiros', 'Resultado', 'Caja neto'],
-    ...resumen.map(r => { const x = conResultados(r); return [r.periodo, n(r.ventas), n(r.cant_ventas), n(r.costo), n(r.ganancia), n(r.compras), n(r.gastos), n(r.otros_ingresos), n(r.retiros), x.resultado, x.caja_neto]; }),
-    ['TOTAL', t.ventas, t.cant_ventas, t.costo, t.ganancia, t.compras, t.gastos, t.otros_ingresos, t.retiros, t.resultado, t.caja_neto],
+    ['Caja: entró', t.caja_entro], ['Caja: salió (pagos a proveedores + compras al contado + gastos + retiros)', t.caja_salio], ['Caja: neto', t.caja_neto],
+    ['Pagos a proveedores', t.pagos_proveedores], ['Compras a proveedores', t.compras], ['Compras a pagar (no salen de la caja)', t.compras_a_pagar], [],
+    [agrupar === 'month' ? 'Mes' : 'Día', 'Ventas', 'Cant.', 'Costo', 'Ganancia', 'Compras', 'Pagos a proveedores', 'Gastos', 'Otros ingresos', 'Retiros', 'Resultado', 'Caja neto'],
+    ...resumen.map(r => { const x = conResultados(r); return [r.periodo, n(r.ventas), n(r.cant_ventas), n(r.costo), n(r.ganancia), n(r.compras), n(r.pagos_proveedores), n(r.gastos), n(r.otros_ingresos), n(r.retiros), x.resultado, x.caja_neto]; }),
+    ['TOTAL', t.ventas, t.cant_ventas, t.costo, t.ganancia, t.compras, t.pagos_proveedores, t.gastos, t.otros_ingresos, t.retiros, t.resultado, t.caja_neto],
   ];
   const hojas = [['Resumen', hoja1]];
   if (movimientos?.length) {

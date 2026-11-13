@@ -182,6 +182,41 @@ export async function correrScraper(distribuidor, scrape) {
   }
 }
 
+// ¿El robot de precios de esta cuenta dio "Login rechazado" hoy? Entonces el de resumen no prueba la misma clave
+// (cada intento fallido acerca el bloqueo de la cuenta de Daniel). Sin poder saberlo, prueba igual.
+async function claveRechazadaHoy(distribuidor) {
+  const desde = `${new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)}T03:00:00.000Z`;   // 00:00 en Argentina
+  const filas = await rest(`scraper_runs?select=ok,error&distribuidor=eq.${encodeURIComponent(distribuidor)}&fin=gte.${desde}&order=inicio.desc&limit=1`,
+    { method: 'GET' }).catch(() => null);
+  return !!filas?.[0] && !filas[0].ok && /^Login rechazado/.test(filas[0].error ?? '');
+}
+
+// Corre un robot de resumen de cuenta (scrapers/resumen-*.mjs) y guarda una fila en resumenes_proveedor (docs/gestion-v19.sql).
+// `leer` devuelve { saldo, detalle: [comprobantes impagos], datos: {cabecera} }. No usa scraper_runs (esa tabla decide los
+// reintentos de los robots de precios). Por consola y en el resumen de GitHub van solo cantidades: el repo es público.
+export async function correrResumen(proveedor, leer) {
+  const etiqueta = `resumen ${proveedor}`;
+  try {
+    if (await claveRechazadaHoy(proveedor)) {
+      console.warn(`[${etiqueta}] hoy el robot de precios dio "Login rechazado": no pruebo la misma clave`);
+      resumen(`⏭️ **${etiqueta}**: no se probó (clave rechazada hoy)`);
+      return;
+    }
+    const r = await conReintentos(leer, { etiqueta, intentos: 2, esperasMs: [30_000] });
+    const saldo = Number(r?.saldo);
+    if (!Number.isFinite(saldo) || Math.abs(saldo) >= 1e12) throw new Error('El resumen no trae un saldo válido');
+    const detalle = Array.isArray(r.detalle) ? r.detalle : [];
+    await rest('resumenes_proveedor', { body: { proveedor, saldo_segun_proveedor: Math.round(saldo * 100) / 100, detalle, datos: r.datos ?? {} },
+      prefer: 'return=minimal' });
+    console.log(`[${etiqueta}] OK — guardado (${detalle.length} comprobantes impagos)`);
+    resumen(`✅ **${etiqueta}**: ${detalle.length} comprobantes impagos`);
+  } catch (err) {
+    console.error(`[${etiqueta}] ERROR — ${err.message || err}`);
+    resumen(`❌ **${etiqueta}**: ${String(err.message || err).slice(0, 300)}`);
+    process.exitCode = 1;
+  }
+}
+
 // Resumen visible en la página de la corrida de GitHub Actions
 function resumen(linea) {
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, linea + '\n');

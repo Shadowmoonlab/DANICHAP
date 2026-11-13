@@ -1,10 +1,11 @@
 // gestion/caja-calc.js — Cierre de caja (puro y testeable): cuánto efectivo tendría que haber y la diferencia.
-// Las filas vienen de caja_del_dia (una por medio de pago) — docs/gestion-v3.sql.
+// Las filas vienen de caja_del_dia (una por medio de pago) — docs/gestion-v3.sql; desde docs/gestion-v18.sql traen
+// también lo pagado a proveedores (pagos_proveedores) y las compras sin proveedor (compras, siempre en efectivo).
 
 const n = v => Number(v) || 0;
 
 /**
- * @param {{medio: string, ventas, cobros, ingresos, gastos, retiros}[]} filas
+ * @param {{medio: string, ventas, cobros, ingresos, gastos, retiros, pagos_proveedores?, compras?}[]} filas
  * @param {number} inicial  efectivo con el que se abrió la caja (cambio)
  * @returns {{ entra: number, sale: number, esperado: number, otros: Record<string, number> }}
  *   entra/sale/esperado: solo efectivo · otros: lo que entró por cada medio que no es efectivo (va al banco)
@@ -12,11 +13,11 @@ const n = v => Number(v) || 0;
 export function calcularCierre(filas, inicial = 0) {
   const ef = filas.find(f => f.medio === 'efectivo') || {};
   const entra = n(ef.ventas) + n(ef.cobros) + n(ef.ingresos);
-  const sale = n(ef.gastos) + n(ef.retiros);
+  const sale = n(ef.gastos) + n(ef.retiros) + n(ef.pagos_proveedores) + n(ef.compras);
   const otros = {};
   for (const f of filas) {
     if (f.medio === 'efectivo') continue;
-    const neto = n(f.ventas) + n(f.cobros) + n(f.ingresos) - n(f.gastos) - n(f.retiros);
+    const neto = n(f.ventas) + n(f.cobros) + n(f.ingresos) - n(f.gastos) - n(f.retiros) - n(f.pagos_proveedores) - n(f.compras);
     if (neto) otros[f.medio] = neto;
   }
   return { entra, sale, esperado: n(inicial) + entra - sale, otros };

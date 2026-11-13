@@ -1,5 +1,6 @@
 // gestion/cuentas-calc.js — Cuenta corriente de proveedores (puro y testeable): repartir un pago entre remitos,
-// ordenar la lista, días vencidos y el resumen para WhatsApp. Los saldos los calcula la base (docs/gestion-v18.sql).
+// ordenar la lista, días vencidos, el resumen para WhatsApp y la comparación con el resumen del proveedor.
+// Los saldos los calcula la base (docs/gestion-v18.sql).
 
 const n = v => Number(v) || 0;
 const centavos = v => Math.round(n(v) * 100);
@@ -67,4 +68,59 @@ export function textoResumen({ negocio, proveedor, saldo, hoy, remitos }) {
   }
   lineas.push('', 'Cualquier diferencia avisame. Gracias.');
   return lineas.join('\n');
+}
+
+/* ── Comparación con el resumen que publica el proveedor (docs/gestion-v19.sql: resumenes_proveedor) ── */
+// Números de un comprobante para compararlo: todas las cifras juntas y el último grupo, sin ceros adelante
+// ("FC A 0001-00000106" → "100000106" y "106"). Menos de 3 cifras no alcanza para decir que es el mismo.
+function numerosDe(txt) {
+  const grupos = String(txt ?? '').match(/\d+/g) ?? [];
+  const sinCeros = s => s.replace(/^0+/, '');
+  return [sinCeros(grupos.join('')), sinCeros(grupos.at(-1) ?? '')].filter(s => s.length >= 3);
+}
+
+/** ¿Es el mismo comprobante? ("FC A 0001-00000106" del proveedor = "106" o "0001-00000106" cargado en Recepción) */
+export function mismoComprobante(a, b) {
+  const nb = numerosDe(b);
+  return numerosDe(a).some(x => nb.includes(x));
+}
+
+/**
+ * Compara lo que dice el proveedor con la cuenta del sistema.
+ * @param {{saldoProveedor: number, saldoSistema: number,
+ *          docsProveedor: {comprobante: string, fecha?: string, saldo: number}[],
+ *          remitosSistema: {id: number, nro_comprobante: string|null, fecha: string, pendiente: number}[]}} datos
+ * @returns {{ diferencia: number, coinciden: boolean,
+ *             docs: object[],            impagos según el proveedor (más viejo primero), con enSistema = está impago en el sistema
+ *             soloProveedor: object[],   impagos según el proveedor que en el sistema no figuran impagos
+ *             soloSistema: object[] }}   remitos impagos en el sistema que el proveedor no tiene pendientes
+ */
+export function compararResumen({ saldoProveedor, saldoSistema, docsProveedor, remitosSistema }) {
+  const diferencia = pesos(centavos(saldoProveedor) - centavos(saldoSistema));
+  const remitos = (remitosSistema ?? []).filter(r => centavos(r.pendiente) > 0)
+    .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || a.id - b.id);
+  const docs = (Array.isArray(docsProveedor) ? docsProveedor : []).filter(d => centavos(d.saldo) !== 0)
+    .map(d => ({ ...d, enSistema: remitos.some(r => mismoComprobante(d.comprobante, r.nro_comprobante)) }))
+    .sort((a, b) => String(a.fecha ?? '').localeCompare(String(b.fecha ?? '')) || String(a.comprobante).localeCompare(String(b.comprobante)));
+  return {
+    diferencia,
+    coinciden: Math.abs(diferencia) < 1,
+    docs,
+    soloProveedor: docs.filter(d => !d.enSistema),
+    soloSistema: remitos.filter(r => !docs.some(d => mismoComprobante(d.comprobante, r.nro_comprobante))),
+  };
+}
+
+const TITULOS = { compra: 'Compra', pago: 'Pago', nota_credito: 'Nota de crédito', nota_debito: 'Nota de débito' };
+/**
+ * Título y detalle de un movimiento de cc_movimientos. Las compras y pagos importados de la planilla de Daniel son notas
+ * con detalle "Planilla · Compra · RTO 123" (dev/importar-planilla-proveedores.mjs): se muestran como "Compra (planilla)".
+ */
+export function tituloMovimiento(m) {
+  const detalle = m.detalle ?? '';
+  const partes = detalle.split(' · ');
+  if (String(m.tipo).startsWith('nota_') && partes[0] === 'Planilla' && partes.length >= 2) {
+    return { titulo: `${partes[1]} (planilla)`, detalle: partes.slice(2).join(' · ') };
+  }
+  return { titulo: TITULOS[m.tipo] || m.tipo, detalle };
 }

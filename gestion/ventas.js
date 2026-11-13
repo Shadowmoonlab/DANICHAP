@@ -150,6 +150,7 @@ function cargarCosto(v, i) {
 }
 
 /* ── Cierre de caja con arqueo: lo que hay que tener en efectivo vs. lo que se contó ── */
+const MEDIOS_PROVEEDOR = { cheque: 'Cheques a proveedores', echeq: 'Echeqs a proveedores' };   // pagos de Cuentas corrientes
 async function cerrarCaja() {
   const hoy = hoyISO();
   const [mov, previo] = await Promise.all([
@@ -179,10 +180,10 @@ async function cerrarCaja() {
     cuentas.replaceChildren(...[
       h('div', {}, h('span', {}, 'Cambio con el que abriste'), h('b', { class: 'num' }, money(Math.max(0, plata(inicial) || 0)))),
       h('div', {}, h('span', {}, '+ Entró en efectivo (ventas y otros ingresos)'), h('b', { class: 'num ganancia' }, money(c.entra))),
-      h('div', {}, h('span', {}, '− Salió en efectivo (gastos y retiros)'), h('b', { class: 'num egreso' }, money(c.sale))),
+      h('div', {}, h('span', {}, '− Salió en efectivo (gastos, retiros y pagos a proveedores)'), h('b', { class: 'num egreso' }, money(c.sale))),
       h('div', { class: 'arqueo-total' }, h('span', {}, 'Tendría que haber en la caja'), h('b', { class: 'num' }, money(c.esperado))),
       Object.keys(c.otros).length ? h('p', { class: 'hint' }, 'No van a la caja (quedan en el banco): ',
-        Object.entries(c.otros).map(([m, v]) => `${PAGOS[m] || m} ${money(v)}`).join(' · ')) : null,
+        Object.entries(c.otros).map(([m, v]) => `${PAGOS[m] || MEDIOS_PROVEEDOR[m] || m} ${money(v)}`).join(' · ')) : null,
     ].filter(Boolean));
     if (plata(contado) == null) { resultado.replaceChildren(); return c; }
     const d = leerDiferencia(plata(contado), c.esperado);

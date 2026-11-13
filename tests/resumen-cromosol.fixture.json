@@ -1,0 +1,14 @@
+{
+  "_nota": "Recorte de GET /api/transactions?company=1&page=0 (Cromosol) con la misma forma que la captura, pero números, fechas y montos inventados",
+  "empresa1": [
+    { "client": "000000", "createdDate": "2026-01-20 00:00:00.0", "type": "FC A", "numerator": "0001-00000106", "total": 1000.5, "balance": 1000.5, "discount": 0.0, "expiration": "2026-02-19 00:00:00.0", "note": "", "code": "21" },
+    { "client": "000000", "createdDate": "2026-01-18 00:00:00.0", "type": "FC A", "numerator": "0001-00000105", "total": 2000.0, "balance": 500.0, "discount": 0.0, "expiration": "2026-02-17 00:00:00.0", "note": "", "code": "21" },
+    { "client": "000000", "createdDate": "2026-01-17 00:00:00.0", "type": "RC X", "numerator": "0001-00000050", "total": -3000.0, "balance": 0.0, "discount": 0.0, "expiration": "2026-01-18 00:00:00.0", "note": "", "code": "RC" },
+    { "client": "000000", "createdDate": "2026-01-16 00:00:00.0", "type": "NC A", "numerator": "0001-00000020", "total": -150.0, "balance": 0.0, "discount": 0.0, "expiration": "2026-02-15 00:00:00.0", "note": "DEVOLUCION", "code": "45" },
+    { "client": "000000", "createdDate": "2026-01-15 00:00:00.0", "type": "FC A", "numerator": "0001-00000104", "total": 3000.0, "balance": 0.0, "discount": 0.0, "expiration": "2026-02-14 00:00:00.0", "note": "", "code": "21" },
+    { "client": "000000", "createdDate": "2026-01-10 00:00:00.0", "type": "NC A", "numerator": "0001-00000019", "total": -200.25, "balance": -200.25, "discount": 0.0, "expiration": "2026-02-09 00:00:00.0", "note": "BONIFICACION", "code": "05" }
+  ],
+  "empresa3": [
+    { "client": "000000", "createdDate": "2026-01-05 00:00:00.0", "type": "FC A", "numerator": "0003-00000007", "total": 700.0, "balance": 700.0, "discount": 0.0, "expiration": "2026-02-04 00:00:00.0", "note": "", "code": null }
+  ]
+}

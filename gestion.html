@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="gestion.css?v=9"/>
+<link rel="stylesheet" href="gestion.css?v=10"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
 <script src="toast.js?v=3" defer></script>
 <script src="supabase.js?v=2" defer></script>
@@ -214,7 +214,7 @@
     <div class="stats stats-5">
       <div class="card stat"><div class="v num" id="lb-ventas">$ 0</div><div class="l">Ventas</div><div class="d" id="lb-ventas-n"></div></div>
       <div class="card stat good"><div class="v num" id="lb-ganancia">$ 0</div><div class="l" title="Ventas menos lo que costó la mercadería (solo artículos con costo conocido)">Ganancia bruta *</div><div class="d" id="lb-margen"></div></div>
-      <div class="card stat"><div class="v num" id="lb-compras">$ 0</div><div class="l">Compras a proveedores</div><div class="d">cargadas en Recepción</div></div>
+      <div class="card stat"><div class="v num" id="lb-compras">$ 0</div><div class="l" id="lb-compras-l">Compras (a pagar)</div><div class="d" id="lb-compras-d">cargadas en Recepción</div></div>
       <div class="card stat"><div class="v num" id="lb-gastos">$ 0</div><div class="l">Gastos</div><div class="d" id="lb-gastos-d"></div></div>
       <div class="card stat good" id="lb-resultado-card"><div class="v num" id="lb-resultado">$ 0</div><div class="l" title="Ganancia bruta menos gastos (los retiros del dueño no son gasto)">Resultado</div><div class="d">ganancia − gastos</div></div>
     </div>

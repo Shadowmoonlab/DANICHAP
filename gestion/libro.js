@@ -11,9 +11,8 @@ import { verVenta } from './ventas.js?v=45';
 import { numeroAR } from './texto.js?v=45';
 
 const MEDIOS_MOV = { efectivo: 'Efectivo', transferencia: 'Transferencia', debito: 'Débito', credito: 'Crédito', otro: 'Otro' };
-// Pagos a proveedores (Cuentas corrientes, docs/gestion-v18.sql): salen como egreso en el detalle del día
+// Pagos a proveedores (Cuentas corrientes, docs/gestion-v18.sql): desde el 14/11 son lo que sale de la caja
 const MEDIOS_PROV = { cheque: 'Cheque', echeq: 'Echeq' };
-const etiqueta = m => (m.tipo === 'pago_proveedor' ? 'Pago a proveedor' : etiquetaMovimiento(m));
 const hora = iso => new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 const estadoLibro = { modo: 'dia', ref: null, resumen: [], movimientos: [] };
 
@@ -29,11 +28,8 @@ async function cargar() {
   // Ventas del período con algún artículo sin costo: su ganancia no se conoce (se avisa, no se esconde)
   const sinCosto = db.from('venta_items').select('venta_id, ventas!inner(created_at, anulada)').is('costo_unit', null)
     .eq('ventas.anulada', false).gte('ventas.created_at', `${p.desde}T00:00:00-03:00`).lte('ventas.created_at', `${p.hasta}T23:59:59.999-03:00`);
-  // Lo pagado a proveedores en el período (sin v18 la tabla no existe: no se muestra)
-  const pagosProv = db.from('pagos_proveedor').select('monto').eq('anulado', false).gte('fecha', p.desde).lte('fecha', p.hasta);
-  const [[res, mov], faltan, pagados] = await Promise.all([Promise.all(pedidos), sinCosto, pagosProv]);
+  const [[res, mov], faltan] = await Promise.all([Promise.all(pedidos), sinCosto]);
   estadoLibro.ventasSinCosto = new Set((faltan.data || []).map(i => i.venta_id)).size;
-  estadoLibro.pagosProveedores = (pagados.data || []).reduce((s, x) => s + Number(x.monto), 0);
   const error = res.error || mov?.error;
   if (error) {
     const falta = /libro_resumen|libro_movimientos|movimientos/.test(error.message) && /find|exist/i.test(error.message);
@@ -66,6 +62,9 @@ function pintarTotales(t) {
   const mg = margen(t);
   $('lb-margen').textContent = mg == null ? 'sin ventas' : `margen ${String(mg).replace('.', ',')} %`;
   $('lb-compras').textContent = money(t.compras);
+  // Las compras con proveedor no salen de la caja: sale lo que se le paga (Cuentas corrientes)
+  $('lb-compras-l').textContent = estadoLibro.modo === 'dia' ? 'Compras del día (a pagar)' : 'Compras (a pagar)';
+  $('lb-compras-d').textContent = t.compras_a_pagar < t.compras ? `${money(t.compras - t.compras_a_pagar)} salió de la caja` : 'no cambian la caja: sale al pagarlas';
   $('lb-gastos').textContent = money(t.gastos);
   // Los retiros del dueño no son gasto (no bajan el resultado), pero sí salen de la caja
   $('lb-gastos-d').textContent = t.retiros ? `aparte: ${money(t.retiros)} de retiros` : 'alquiler, servicios, sueldos…';
@@ -80,7 +79,9 @@ function pintarTotales(t) {
       h('span', {}, `${estadoLibro.ventasSinCosto === 1 ? '1 venta' : `${estadoLibro.ventasSinCosto} ventas`} sin costo`), h('b', {}, 'la ganancia real es mayor: cargalo en Ventas')) : null,
     t.fiado ? h('div', { class: 'caja-item fiado' }, h('span', {}, 'Vendido fiado'), h('b', { class: 'num' }, money(t.fiado))) : null,
     t.cobros ? h('div', { class: 'caja-item' }, h('span', {}, 'Cobrado de cta. cte.'), h('b', { class: 'num' }, money(t.cobros))) : null,
-    estadoLibro.pagosProveedores ? h('div', { class: 'caja-item', id: 'lb-pagos-prov' }, h('span', {}, 'Pagado a proveedores'), h('b', { class: 'num egreso' }, money(estadoLibro.pagosProveedores))) : null,
+    t.pagos_proveedores ? h('div', { class: 'caja-item', id: 'lb-pagos-prov' }, h('span', {}, 'Pagado a proveedores'), h('b', { class: 'num egreso' }, money(t.pagos_proveedores))) : null,
+    t.compras_a_pagar ? h('div', { class: 'caja-item fiado', id: 'lb-a-pagar', title: 'Compras con proveedor: salen de la caja cuando se pagan (Cuentas corrientes)' },
+      h('span', {}, estadoLibro.modo === 'dia' ? 'Compras del día (a pagar)' : 'Compras a pagar'), h('b', { class: 'num' }, money(t.compras_a_pagar)), h('span', { class: 'muted' }, 'no cambian la caja')) : null,
   ].filter(Boolean));
 }
 
@@ -99,7 +100,7 @@ function pintarMovimientos() {
     return h('tr', { class: [abrir ? 'clickable' : '', m.anulado ? 'anulada' : '', `mov-${m.tipo}`].join(' ').trim(),
       onclick: abrir, tabindex: abrir ? 0 : null, onkeydown: abrir ? e => { if (e.key === 'Enter') abrir(); } : null },
       h('td', { class: 'num' }, hora(m.momento)),
-      h('td', {}, h('span', { class: `chip chip-mov chip-${m.tipo}` }, etiqueta(m))),
+      h('td', {}, h('span', { class: `chip chip-mov chip-${m.tipo}` }, etiquetaMovimiento(m))),
       h('td', {}, m.detalle, m.categoria && m.categoria !== m.detalle ? h('span', { class: 'muted' }, ` · ${m.categoria}`) : null,
         m.tipo === 'venta' && m.medio === 'cuenta_corriente' ? h('span', { class: 'muted' }, ' · fiado: entra al cobrarlo') : null),
       h('td', {}, PAGOS[m.medio] || MEDIOS_MOV[m.medio] || MEDIOS_PROV[m.medio] || '—'),
@@ -196,7 +197,6 @@ async function descargarExcel() {
     if (error) return toast(error.message, 'error');
     movimientos = data;
   }
-  movimientos = movimientos.map(m => (m.tipo === 'pago_proveedor' ? { ...m, tipo: etiqueta(m) } : m));   // "Pago a proveedor" en el Excel
   try {
     const XLSX = await cargarSheetJS();
     const wb = XLSX.utils.book_new();
@@ -214,7 +214,7 @@ function imprimir() {
   $('print-area').replaceChildren(h('div', { class: 'cmp libro-print' },
     h('div', { class: 'cmp-head' }, h('h1', {}, 'Libro diario'), h('div', {}, p.titulo)),
     h('table', {}, h('tbody', {},
-      ...[['Ventas', t.ventas], ['Ganancia bruta', t.ganancia], ['Compras a proveedores', t.compras], ['Gastos', t.gastos], ['Retiros del dueño', t.retiros],
+      ...[['Ventas', t.ventas], ['Ganancia bruta', t.ganancia], ['Compras a proveedores', t.compras], ['Pagos a proveedores', t.pagos_proveedores], ['Gastos', t.gastos], ['Retiros del dueño', t.retiros],
         ['Resultado (ganancia − gastos)', t.resultado], ['Neto de caja', t.caja_neto]]
         .map(([k, v]) => h('tr', {}, h('td', {}, k), h('td', { class: 'right' }, money(v)))))),
     tabla));
