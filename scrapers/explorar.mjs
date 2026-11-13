@@ -78,8 +78,10 @@ const variantes = v => [v, encodeURIComponent(v), encodeURIComponent(v).replace(
 const secretos = [...new Set([usuario, clave].filter(v => v && v.length > 2).flatMap(variantes))]
   .sort((a, b) => b.length - a.length);
 // Además, cualquier campo JSON con forma de clave o token (algunos sitios devuelven la clave hasheada)
-const CAMPOS_SECRETOS = /("(?:clave[a-z_]*|password|pass|token|access_token|refresh_token|user_token)"\s*:\s*)"[^"]*"/gi;
-const tapar = txt => secretos.reduce((t, v) => t.split(v).join('[OCULTO]'), txt).replace(CAMPOS_SECRETOS, '$1"[OCULTO]"')
+// Cualquier campo cuyo nombre tenga clave/pass/token/secret (idToken de Firebase en DM, password_temporal, etc.)
+const CAMPOS_SECRETOS = /("[\w-]*(?:clave|pass|token|secret)[\w-]*"\s*:\s*)"[^"]*"/gi;
+const JWT = /eyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,}/g;   // tokens de sesión sueltos (en URLs, HTML o JSON)
+const tapar = txt => secretos.reduce((t, v) => t.split(v).join('[OCULTO]'), txt).replace(CAMPOS_SECRETOS, '$1"[OCULTO]"').replace(JWT, '[TOKEN OCULTO]')
   .replace(/https?:\/\/(www\.)?dropbox\.com\/[^"'\s<>]+/gi, '[LINK DROPBOX OCULTO]');   // la lista de Fal da precios sin login
 
 // Cromosol solo anda por http: el Chrome nuevo bloquea esas páginas (net::ERR_BLOCKED_BY_CLIENT) si no se apaga el "solo HTTPS"
