@@ -413,6 +413,187 @@ def admin_xss(page):
     return "se ve como texto"
 
 
+# ── Cuentas corrientes de proveedores (docs/gestion-v18.sql + gestion/cuentas.js) ──
+CC = {"prov": "cromosol", "nro": f"CC-{int(time.time())}", "recepciones": [], "pago": None, "nota": None}
+
+
+def cc_saldo(page):
+    """Saldo y vencidos del proveedor de prueba según la base."""
+    return page.evaluate("async p => (await _supabase.rpc('cc_proveedores', {})).data.find(x => x.proveedor === p)", CC["prov"])
+
+
+def cc_abrir(page):
+    vista(page, "cuentas")
+    page.locator(f".cc-fila[data-proveedor='{CC['prov']}']").first.click()
+    expect(page.locator("#cc-detalle h3").first).to_have_text(re.compile("Cromosol", re.I), timeout=8000)
+
+
+def cc_limpiar(page):
+    """Deja la cuenta de prueba sin restos de esta prueba (también de una corrida anterior que se cortó)."""
+    page.evaluate("""async p => {
+        const pagos = (await _supabase.from('pagos_proveedor').select('id').eq('proveedor', p).eq('nota', 'Prueba e2e').eq('anulado', false)).data || [];
+        for (const x of pagos) await _supabase.rpc('anular_pago_proveedor', { p_id: x.id });
+        const notas = (await _supabase.from('notas_proveedor').select('id').eq('proveedor', p).eq('motivo', 'Devolución prueba e2e').eq('anulado', false)).data || [];
+        for (const x of notas) await _supabase.rpc('anular_nota_proveedor', { p_id: x.id });
+        const recs = (await _supabase.from('recepciones').select('id').eq('proveedor', p).like('nro_comprobante', 'CC-%')).data || [];
+        for (const x of recs) await _supabase.rpc('anular_recepcion', { p_id: x.id });
+        await _supabase.from('proveedores').update({ plazo_dias: null }).eq('slug', p);
+    }""", CC["prov"])
+
+
+def texto_plata(page, sel):
+    return page.inner_text(sel).replace("\xa0", " ")
+
+
+@paso("Cuentas corrientes: una compra de Recepción aparece en la cuenta del proveedor")
+def cc_compra(page):
+    cc_limpiar(page)
+    CC["base"] = float(cc_saldo(page)["saldo"])
+    rid = page.evaluate("""async ([p, nro]) => (await _supabase.rpc('confirmar_recepcion', { p: { proveedor: p, nro_comprobante: nro,
+        fecha: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10), total: 100000, origen: 'manual',
+        items: [{ descripcion: 'Prueba cuenta corriente', cantidad: 1, costo_unit: 100000, accion: 'solo' }] } })).data""", [CC["prov"], CC["nro"]])
+    assert rid, "no se pudo crear la compra de prueba"
+    CC["recepciones"].append(rid)
+    vista(page, "cuentas")
+    fila = page.locator(f".cc-fila[data-proveedor='{CC['prov']}']").first
+    expect(fila).to_be_visible(timeout=8000)
+    esperado = CC["base"] + 100000
+    assert pesos(esperado) in fila.inner_text().replace("\xa0", " "), f"la fila dice {fila.inner_text()!r}, esperaba $ {pesos(esperado)}"
+    adeudado = page.evaluate("async () => (await _supabase.rpc('cc_proveedores', {})).data.reduce((s, x) => s + Math.max(0, x.saldo), 0)")
+    assert pesos(adeudado) in texto_plata(page, "#cc-adeudado"), f"total adeudado: {texto_plata(page, '#cc-adeudado')} vs {adeudado}"
+    cc_abrir(page)
+    expect(page.locator("#cc-movs tr", has_text=CC["nro"])).to_be_visible()
+    return f"saldo $ {pesos(esperado)} con el remito {CC['nro']}"
+
+
+@paso("Cuentas corrientes: pago parcial de '40.000' aplicado al remito baja el saldo")
+def cc_pago(page):
+    page.click("#cc-pagar")
+    expect(page.locator("#modal-title")).to_contain_text("Pago a")
+    page.locator("#modal-body input[aria-label='Monto del pago']").click()
+    page.keyboard.type("40.000")
+    remito = page.locator("#modal-body .cc-remito", has_text=CC["nro"])
+    expect(remito.locator("input")).to_be_checked()
+    expect(remito.locator(".cc-aplica")).to_contain_text("40.000")
+    page.locator("#modal-body select[aria-label='Cómo pagaste']").select_option("transferencia")
+    page.fill("#modal-body input[aria-label='Nota del pago']", "Prueba e2e")
+    page.click("#modal-foot button:has-text('Guardar pago')")
+    expect(page.locator("#toast-container *").filter(has_text=re.compile("Pago Nº")).first).to_be_visible(timeout=8000)
+    s = cc_saldo(page)
+    assert float(s["saldo"]) == CC["base"] + 60000, f"saldo después del pago: {s['saldo']}"
+    pago = page.evaluate("""async p => (await _supabase.from('pagos_proveedor').select('id, monto, medio, pagos_aplicaciones(recepcion_id, monto)')
+        .eq('proveedor', p).eq('anulado', false).order('id', { ascending: false }).limit(1)).data[0]""", CC["prov"])
+    CC["pago"] = pago["id"]
+    ap = pago["pagos_aplicaciones"]
+    assert float(pago["monto"]) == 40000 and pago["medio"] == "transferencia", f"pago guardado: {pago}"
+    assert len(ap) == 1 and ap[0]["recepcion_id"] == CC["recepciones"][0] and float(ap[0]["monto"]) == 40000, f"aplicación: {ap}"
+    expect(page.locator("#cc-saldo")).to_contain_text(pesos(CC["base"] + 60000))
+    expect(page.locator("#cc-movs tr.cc-compra", has_text=CC["nro"])).to_contain_text("falta pagar")
+    return f"pago Nº {pago['id']} aplicado al remito; saldo $ {pesos(CC['base'] + 60000)}"
+
+
+@paso("Cuentas corrientes: nota de crédito baja el saldo")
+def cc_nota(page):
+    page.click("#cc-nota")
+    expect(page.locator("#modal-title")).to_contain_text("Nota de")
+    page.locator("#modal-body input[aria-label='Monto de la nota']").click()
+    page.keyboard.type("10.000")
+    page.fill("#modal-body input[aria-label='Motivo']", "Devolución prueba e2e")
+    page.click("#modal-foot button:has-text('Guardar nota')")
+    expect(page.locator("#toast-container *").filter(has_text="Nota de crédito").first).to_be_visible(timeout=8000)
+    s = cc_saldo(page)
+    assert float(s["saldo"]) == CC["base"] + 50000, f"saldo después de la nota: {s['saldo']}"
+    CC["nota"] = page.evaluate("async p => (await _supabase.from('notas_proveedor').select('id').eq('proveedor', p).eq('motivo', 'Devolución prueba e2e').order('id', { ascending: false }).limit(1)).data[0].id", CC["prov"])
+    expect(page.locator("#cc-saldo")).to_contain_text(pesos(CC["base"] + 50000))
+    return f"saldo $ {pesos(CC['base'] + 50000)}"
+
+
+@paso("Libro diario: el pago al proveedor sale como egreso del día")
+def cc_libro(page):
+    page.evaluate("document.querySelectorAll('#toast-container > *').forEach(t => t.remove())")
+    vista(page, "libro")
+    page.locator("#libro-modos .subtab[data-modo='dia']").click()
+    page.click("#libro-hoy")
+    page.wait_for_load_state("networkidle")
+    fila = page.locator("#libro-body tr", has=page.locator(".chip", has_text="Pago a proveedor")).filter(has_text="Cromosol").first
+    expect(fila).to_be_visible(timeout=8000)
+    sale = fila.locator("td.egreso").inner_text().replace("\xa0", " ")
+    assert "40.000" in sale, f"columna Sale: {sale!r}"
+    expect(page.locator("#lb-pagos-prov")).to_be_visible()
+    return f"egreso {sale.strip()} · {texto_plata(page, '#lb-pagos-prov')}"
+
+
+@paso("Cuentas corrientes: anular el pago devuelve el saldo (y sale del Libro diario)")
+def cc_anular(page):
+    cc_abrir(page)
+    fila = page.locator("#cc-movs tr.cc-pago:not(.anulada)", has_text="40.000").first
+    fila.locator("button:has-text('Anular')").click()
+    expect(page.locator("#modal-title")).to_contain_text("Anular pago")
+    page.click("#modal-foot button:has-text('Sí, anular')")
+    expect(page.locator("#toast-container *").filter(has_text="Pago anulado").first).to_be_visible(timeout=8000)
+    s = cc_saldo(page)
+    assert float(s["saldo"]) == CC["base"] + 90000, f"saldo después de anular: {s['saldo']}"
+    # lo anulado queda escondido; con "Ver anulados" aparece tachado
+    expect(page.locator("#cc-movs tr.cc-pago.anulada")).to_have_count(0)
+    page.click("#cc-ver-anulados")
+    expect(page.locator("#cc-movs tr.cc-pago.anulada").first).to_be_visible()
+    hoy = page.evaluate("new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)")
+    libro = page.evaluate("async d => (await _supabase.rpc('libro_movimientos', { p_desde: d, p_hasta: d })).data", hoy)
+    assert not any(m["tipo"] == "pago_proveedor" and m["ref_id"] == CC["pago"] for m in libro), "el pago anulado sigue en el Libro diario"
+    return f"saldo vuelve a $ {pesos(CC['base'] + 90000)}"
+
+
+@paso("Cuentas corrientes: plazo de 30 días → un remito de hace 45 días figura vencido 1 a 30")
+def cc_vencido(page):
+    page.click("#cc-plazo")
+    page.fill("#modal-body input[aria-label='Plazo de pago en días']", "30")
+    page.click("#modal-foot button:has-text('Guardar')")
+    expect(page.locator(".cc-plazo")).to_contain_text("30 días", timeout=8000)
+    antes = cc_saldo(page)
+    rid = page.evaluate("""async ([p, nro]) => (await _supabase.rpc('confirmar_recepcion', { p: { proveedor: p, nro_comprobante: nro,
+        fecha: new Date(Date.now() - 45 * 864e5).toISOString().slice(0, 10), total: 20000, origen: 'manual',
+        items: [{ descripcion: 'Prueba vencida', cantidad: 1, costo_unit: 20000, accion: 'solo' }] } })).data""", [CC["prov"], CC["nro"] + "-V"])
+    CC["recepciones"].append(rid)
+    s = cc_saldo(page)
+    # La nota de crédito suelta de $ 10.000 (paso anterior) cancela primero lo más viejo: del remito vencido quedan $ 10.000
+    assert float(s["vencido_30"]) - float(antes["vencido_30"]) == 10000, f"vencido 1-30: {antes['vencido_30']} → {s['vencido_30']}"
+    assert float(s["al_dia"]) + float(s["vencido_30"]) + float(s["vencido_60"]) + float(s["vencido_mas"]) == float(s["saldo"]), f"los tramos no suman el saldo: {s}"
+    vista(page, "cuentas")
+    fila = page.locator(f".cc-fila[data-proveedor='{CC['prov']}']").first
+    expect(fila.locator(".chip", has_text="vencido 1 a 30")).to_contain_text(pesos(float(s["vencido_30"])), timeout=8000)
+    return f"vencido 1-30: $ {pesos(float(s['vencido_30']))} · remito impago más viejo {s['impago_desde']}"
+
+
+@paso("Cuentas corrientes en el celular (390px) y limpieza de la prueba")
+def cc_celular(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    malas = []
+    try:
+        vista(page, "cuentas")
+        page.wait_for_timeout(400)
+        if page.evaluate("document.documentElement.scrollWidth") > 395:
+            malas.append("lista")
+        page.screenshot(path=str(CAPTURAS / "celular_cuentas.png"))
+        cc_abrir(page)
+        page.wait_for_timeout(400)
+        if page.evaluate("document.documentElement.scrollWidth") > 395:
+            malas.append("detalle")
+        page.screenshot(path=str(CAPTURAS / "celular_cuentas_detalle.png"), full_page=True)
+        page.click("#cc-pagar")
+        page.wait_for_timeout(300)
+        if page.evaluate("document.documentElement.scrollWidth") > 395:
+            malas.append("pago")
+        page.screenshot(path=str(CAPTURAS / "celular_cuentas_pago.png"))
+        page.keyboard.press("Escape")
+    finally:
+        page.set_viewport_size({"width": 1366, "height": 900})
+        cc_limpiar(page)   # deja la cuenta como estaba: nota anulada, compras de prueba anuladas, sin plazo
+    final = float(cc_saldo(page)["saldo"])
+    assert not malas, "se corre de costado: " + ", ".join(malas)
+    assert final == CC["base"], f"la cuenta quedó en {final} (antes {CC['base']})"
+    return "lista, detalle y pago entran en 390px; cuenta limpia"
+
+
 @paso("Celular: Buscar y vender y Proveedores sin correrse de costado")
 def celular(page):
     page.set_viewport_size({"width": 390, "height": 844})
@@ -436,7 +617,8 @@ def main():
         page.on("pageerror", lambda e: errores.append(f"JS: {e}"))
         page.on("console", lambda m: m.type == "error" and not any(x in m.text for x in ("frame-ancestors", "X-Frame")) and errores.append(f"consola: {m.text[:200]}"))
         for f in (entrar, francar, gomez, liqui, reposiciones, mello, joel_dolares, cotizacion, busqueda, filtros, ganancia, a_mano, tipeo, resaltado,
-                  gasto_miles, caja_miles, corregir_carga, ventas_mil, comparar_barato, cobrar_lento, admin_xss, celular):
+                  gasto_miles, caja_miles, corregir_carga, ventas_mil, comparar_barato, cobrar_lento, admin_xss,
+                  cc_compra, cc_pago, cc_nota, cc_libro, cc_anular, cc_vencido, cc_celular, celular):
             f(page)
         b.close()
     ok = sum(1 for _, bien, _ in resultados if bien)

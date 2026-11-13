@@ -11,6 +11,9 @@ import { verVenta } from './ventas.js?v=45';
 import { numeroAR } from './texto.js?v=45';
 
 const MEDIOS_MOV = { efectivo: 'Efectivo', transferencia: 'Transferencia', debito: 'Débito', credito: 'Crédito', otro: 'Otro' };
+// Pagos a proveedores (Cuentas corrientes, docs/gestion-v18.sql): salen como egreso en el detalle del día
+const MEDIOS_PROV = { cheque: 'Cheque', echeq: 'Echeq' };
+const etiqueta = m => (m.tipo === 'pago_proveedor' ? 'Pago a proveedor' : etiquetaMovimiento(m));
 const hora = iso => new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 const estadoLibro = { modo: 'dia', ref: null, resumen: [], movimientos: [] };
 
@@ -26,8 +29,11 @@ async function cargar() {
   // Ventas del período con algún artículo sin costo: su ganancia no se conoce (se avisa, no se esconde)
   const sinCosto = db.from('venta_items').select('venta_id, ventas!inner(created_at, anulada)').is('costo_unit', null)
     .eq('ventas.anulada', false).gte('ventas.created_at', `${p.desde}T00:00:00-03:00`).lte('ventas.created_at', `${p.hasta}T23:59:59.999-03:00`);
-  const [[res, mov], faltan] = await Promise.all([Promise.all(pedidos), sinCosto]);
+  // Lo pagado a proveedores en el período (sin v18 la tabla no existe: no se muestra)
+  const pagosProv = db.from('pagos_proveedor').select('monto').eq('anulado', false).gte('fecha', p.desde).lte('fecha', p.hasta);
+  const [[res, mov], faltan, pagados] = await Promise.all([Promise.all(pedidos), sinCosto, pagosProv]);
   estadoLibro.ventasSinCosto = new Set((faltan.data || []).map(i => i.venta_id)).size;
+  estadoLibro.pagosProveedores = (pagados.data || []).reduce((s, x) => s + Number(x.monto), 0);
   const error = res.error || mov?.error;
   if (error) {
     const falta = /libro_resumen|libro_movimientos|movimientos/.test(error.message) && /find|exist/i.test(error.message);
@@ -74,6 +80,7 @@ function pintarTotales(t) {
       h('span', {}, `${estadoLibro.ventasSinCosto === 1 ? '1 venta' : `${estadoLibro.ventasSinCosto} ventas`} sin costo`), h('b', {}, 'la ganancia real es mayor: cargalo en Ventas')) : null,
     t.fiado ? h('div', { class: 'caja-item fiado' }, h('span', {}, 'Vendido fiado'), h('b', { class: 'num' }, money(t.fiado))) : null,
     t.cobros ? h('div', { class: 'caja-item' }, h('span', {}, 'Cobrado de cta. cte.'), h('b', { class: 'num' }, money(t.cobros))) : null,
+    estadoLibro.pagosProveedores ? h('div', { class: 'caja-item', id: 'lb-pagos-prov' }, h('span', {}, 'Pagado a proveedores'), h('b', { class: 'num egreso' }, money(estadoLibro.pagosProveedores))) : null,
   ].filter(Boolean));
 }
 
@@ -92,10 +99,10 @@ function pintarMovimientos() {
     return h('tr', { class: [abrir ? 'clickable' : '', m.anulado ? 'anulada' : '', `mov-${m.tipo}`].join(' ').trim(),
       onclick: abrir, tabindex: abrir ? 0 : null, onkeydown: abrir ? e => { if (e.key === 'Enter') abrir(); } : null },
       h('td', { class: 'num' }, hora(m.momento)),
-      h('td', {}, h('span', { class: `chip chip-mov chip-${m.tipo}` }, etiquetaMovimiento(m))),
+      h('td', {}, h('span', { class: `chip chip-mov chip-${m.tipo}` }, etiqueta(m))),
       h('td', {}, m.detalle, m.categoria && m.categoria !== m.detalle ? h('span', { class: 'muted' }, ` · ${m.categoria}`) : null,
         m.tipo === 'venta' && m.medio === 'cuenta_corriente' ? h('span', { class: 'muted' }, ' · fiado: entra al cobrarlo') : null),
-      h('td', {}, PAGOS[m.medio] || MEDIOS_MOV[m.medio] || '—'),
+      h('td', {}, PAGOS[m.medio] || MEDIOS_MOV[m.medio] || MEDIOS_PROV[m.medio] || '—'),
       h('td', { class: 'right num' }, money(m.importe)),
       h('td', { class: 'right num ganancia' }, Number(m.ingreso) ? money(m.ingreso) : ''),
       h('td', { class: 'right num egreso' }, Number(m.egreso) ? money(m.egreso) : ''),
@@ -189,10 +196,11 @@ async function descargarExcel() {
     if (error) return toast(error.message, 'error');
     movimientos = data;
   }
+  movimientos = movimientos.map(m => (m.tipo === 'pago_proveedor' ? { ...m, tipo: etiqueta(m) } : m));   // "Pago a proveedor" en el Excel
   try {
     const XLSX = await cargarSheetJS();
     const wb = XLSX.utils.book_new();
-    for (const [nombre, filas] of hojasExcel({ titulo: p.titulo, agrupar: p.agrupar, resumen: estadoLibro.resumen, movimientos, pagos: { ...MEDIOS_MOV, ...PAGOS } })) {
+    for (const [nombre, filas] of hojasExcel({ titulo: p.titulo, agrupar: p.agrupar, resumen: estadoLibro.resumen, movimientos, pagos: { ...MEDIOS_PROV, ...MEDIOS_MOV, ...PAGOS } })) {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(filas), nombre);
     }
     XLSX.writeFile(wb, `danichap-libro-${estadoLibro.ref}.xlsx`);

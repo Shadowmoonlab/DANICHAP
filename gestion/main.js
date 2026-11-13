@@ -9,9 +9,10 @@ import { iniciarVentas } from './ventas.js?v=45';
 import { iniciarLibro } from './libro.js?v=45';
 import { iniciarClientes, cargarClientes } from './clientes.js?v=45';
 import { iniciarProveedores } from './proveedores.js?v=45';
+import { iniciarCuentas } from './cuentas.js?v=45';
 import { iniciarAjustes } from './ajustes.js?v=45';
 
-const VISTAS = ['mostrador', 'reposicion', 'recepcion', 'ventas', 'libro', 'clientes', 'proveedores', 'ajustes'];
+const VISTAS = ['mostrador', 'reposicion', 'recepcion', 'ventas', 'libro', 'clientes', 'proveedores', 'cuentas', 'ajustes'];
 
 async function verificarAcceso() {
   const user = await Auth.getUser();
@@ -50,7 +51,7 @@ async function iniciar() {
 
   await Promise.all([cargarConfig(), cargarProveedores()]);
   iniciarMostrador(); iniciarReposicion(); iniciarRecepcion(); iniciarVentas(); iniciarLibro();
-  iniciarClientes(); iniciarProveedores(); iniciarAjustes();
+  iniciarClientes(); iniciarProveedores(); iniciarCuentas(); iniciarAjustes();
   atajos();
   cargarClientes();
   actualizarBadgeRepo();

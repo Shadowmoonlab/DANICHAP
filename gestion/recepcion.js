@@ -173,6 +173,8 @@ async function cruzarConPedidos() {
 
 function chipsCoincidencia(f) {
   const chips = [];
+  if (f.deLista) chips.push(h('span', { class: 'chip chip-stock' }, '✓ de la lista del proveedor'));
+  if (f.noEnLista) chips.push(h('span', { class: 'chip chip-amber' }, 'este código no está en su lista: escribí la descripción'));
   if (f.repo) {
     chips.push(h('span', { class: 'chip chip-stock' }, f.repo.estado === 'pedido' ? '✓ estaba pedido' : '✓ estaba en la lista'));
     if (f.cantidad && f.repo.cantidad !== Number(f.cantidad)) chips.push(h('span', { class: 'chip chip-amber' }, `pediste ${f.repo.cantidad}, llegaron ${f.cantidad}`));
@@ -260,12 +262,19 @@ function renderEditor() {
       : h('span', { class: 'muted', style: 'font-size:12px' }, 'No cambia el stock');
     return h('tr', { class: (f.legible ? '' : 'fila-revisar') + (f.incluir ? '' : ' fila-off') },
       h('td', {}, h('input', { type: 'checkbox', checked: f.incluir, 'aria-label': 'Incluir', onchange: e => { f.incluir = e.target.checked; repintar(); } })),
-      h('td', {}, h('input', { class: 'input input-sm', value: f.codigo, 'aria-label': 'Código', oninput: e => { f.codigo = e.target.value.trim(); } })),
+      h('td', {}, h('input', { class: 'input input-sm', value: f.codigo, 'aria-label': 'Código', placeholder: 'Código',
+        oninput: e => { f.codigo = e.target.value.trim(); },
+        onchange: async () => { if (await completarPorCodigo(f, b)) repintar(); },
+        onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); e.target.closest('tr').querySelector('[aria-label="Cantidad"]').focus(); } } })),
       h('td', {}, h('input', { class: 'input input-sm', value: f.descripcion, 'aria-label': 'Descripción', style: 'min-width:220px', oninput: e => { f.descripcion = e.target.value; } }),
         h('div', { class: 'chips' }, ...chipsCoincidencia(f))),
       h('td', {}, h('input', { class: 'input input-sm num', value: f.cantidad ?? '', inputmode: 'numeric', style: 'width:64px', 'aria-label': 'Cantidad',
+        onfocus: e => e.target.select(),   // la cantidad arranca en 1: lo que se escribe la reemplaza ("3", no "13")
         oninput: e => { f.cantidad = parseInt(e.target.value, 10) || null; },
-        onchange: () => { f.legible = f.costo != null && f.cantidad != null; repintar(); } })),
+        onchange: () => { f.legible = f.costo != null && f.cantidad != null; repintar(); },
+        onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); f.legible = f.costo != null && f.cantidad != null;
+          if (i === b.filas.length - 1) b.filas.push(filaVacia());
+          b.enfocarCodigo = i + 1; setTimeout(() => { if (borrador === b) renderEditor(); }, 0); } } })),
       h('td', {}, h('input', { class: 'input input-sm num', value: f.costo ?? '', inputmode: 'decimal', style: 'width:110px', 'aria-label': 'Costo unitario',
         placeholder: '¿?', oninput: e => { f.costo = numeroAR(e.target.value); },
         onchange: () => { f.legible = f.costo != null && f.cantidad != null; repintar(); } })),
@@ -295,6 +304,9 @@ function renderEditor() {
       h('div', { class: 'field' }, h('label', { class: 'label' }, 'Total del comprobante'),
         h('div', { class: 'total-recep num' }, b.total != null ? money(b.total) : '—', b.preciosConIva === false ? h('span', { class: 'muted' }, ' (+IVA)') : null))),
     avisoDup,
+    b.origen === 'manual' ? h('p', { class: 'hint', style: 'margin:8px 0 0' }, b.proveedor
+      ? h('span', {}, 'Escribí el ', h('b', {}, 'código'), ' y tocá Enter: la descripción y el costo salen solos de la lista del proveedor. Poné la ', h('b', {}, 'cantidad'), ' y Enter para el siguiente.')
+      : h('b', {}, 'Elegí primero el proveedor: así, al escribir el código, la descripción y el costo salen solos.')) : null,
     b.advertencias?.length ? h('div', { class: 'aviso' }, h('b', {}, 'Para revisar: '), b.advertencias.join(' · ')) : null,
     h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl tbl-recep' },
       h('thead', {}, h('tr', {}, h('th', {}), h('th', {}, 'Código'), h('th', {}, 'Descripción'), h('th', {}, 'Cant.'), h('th', {}, 'Costo unit.'), h('th', { class: 'right' }, 'Subtotal'), h('th', {}, 'Qué hago'), h('th', {}))),
@@ -312,6 +324,40 @@ function renderEditor() {
         h('button', { class: 'btn btn-green btn-lg', disabled: !activas.length || resumen.revisar || resumen.subiendo ? true : null, onclick: e => confirmarRecepcion(e.currentTarget, suma, resumen) },
           icon(b.corrigiendo ? 'save' : 'inventory'), b.corrigiendo ? 'Guardar corrección' : 'Confirmar y cargar')))));
   devolverCursor(cursor);
+  if (b.enfocarCodigo != null) {
+    $('recepcion-trabajo').querySelectorAll('.tbl-recep tbody tr')[b.enfocarCodigo]?.querySelector('[aria-label="Código"]')?.focus();
+    b.enfocarCodigo = null;
+  }
+}
+
+/**
+ * Carga a mano (pedido de Daniel, 12/11): con el proveedor elegido, el código trae la descripción y el costo de su
+ * lista, y si ese código ya está vinculado a un producto de su stock, lo suma ahí. Devuelve true si cambió algo.
+ */
+async function completarPorCodigo(f, b) {
+  f.deLista = false; f.noEnLista = false;
+  if (!b.proveedor || !f.codigo) return true;
+  const codigo = f.codigo.replace(/[\\%_]/g, m => '\\' + m);   // ilike sin comodines: el código tal cual, sin importar mayúsculas
+  const [{ data: lista }, { data: propios }] = await Promise.all([
+    db.from('precios_distribuidor').select('descripcion, precio_neto, precio_lista').eq('distribuidor', b.proveedor).eq('activo', true).ilike('codigo', codigo).limit(1),
+    db.from('productos_costos').select('producto_id, costo, producto:productos(nombre)').eq('proveedor', b.proveedor).ilike('codigo_proveedor', codigo).limit(1),
+  ]);
+  const p = lista?.[0], propio = propios?.[0];
+  if (!p && !propio) { f.noEnLista = true; return true; }
+  if (p) {
+    f.deLista = true;
+    if (!f.descripcion.trim() || f.descripcionAuto) { f.descripcion = p.descripcion; f.descripcionAuto = true; }
+    if (f.costo == null || f.costoAuto) { f.costo = aPesos(p.precio_neto ?? p.precio_lista, b.proveedor); f.costoAuto = true; }
+  }
+  if (propio) {
+    f.accion = 'stock'; f.producto_id = propio.producto_id; f.producto_nombre = propio.producto?.nombre || '';
+    f.costo_anterior = propio.costo;
+    if (!f.descripcion.trim()) f.descripcion = f.producto_nombre;
+  } else if (f.accion === 'solo') {
+    f.accion = 'crear';   // no está en el stock todavía: se crea el producto con el precio de venta sugerido
+  }
+  f.legible = f.costo != null && f.cantidad != null;
+  return true;
 }
 
 // unaVez + botón deshabilitado: un doble clic o una conexión lenta no cargan dos veces la misma compra
