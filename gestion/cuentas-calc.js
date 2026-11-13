@@ -64,7 +64,7 @@ export function textoResumen({ negocio, proveedor, saldo, hoy, remitos }) {
   } else if (n(saldo) < 0) {
     lineas.push(`Tenemos un saldo a favor de ${plata(saldo)}.`);
   } else {
-    lineas.push('Estamos al día: no le debemos nada.');
+    lineas.push('Estamos al día: no les debemos nada.');
   }
   lineas.push('', 'Cualquier diferencia avisame. Gracias.');
   return lineas.join('\n');

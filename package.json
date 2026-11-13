@@ -9,6 +9,7 @@
     "dev:robot:pr": "node --env-file=.dev/supabase.env --env-file-if-exists=.env.local scrapers/pr.mjs",
     "test:robots": "node dev/prueba-robots.mjs",
     "test:seguridad": "node dev/prueba-seguridad.mjs",
+    "test:cuentas": "node dev/prueba-cuentas.mjs",
     "armar:funcion": "node dev/armar-funcion.mjs",
     "versionar": "node dev/versionar.mjs",
     "test:e2e": "python dev/e2e/recorrido.py"

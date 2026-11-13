@@ -37,10 +37,25 @@ export function resumenDeCtacte(r) {
   };
 }
 
+/**
+ * GET /ctacte/{nº de cliente}. Si falla, el error sale sin el nº de cliente: va a la consola y al resumen de GitHub
+ * Actions, que en un repo público ve cualquiera. `pedirFn` es pedir() de distrisuper.mjs (los tests pasan uno falso).
+ */
+export async function leerCtacte(pedirFn, codigo, token) {
+  const url = `${CTACTE}/${encodeURIComponent(codigo)}`;
+  try {
+    return await pedirFn(url, { token });
+  } catch (err) {
+    const tapado = String(err?.message ?? err).split(url).join(`${CTACTE}/(nº de cliente)`);
+    const sinCodigo = String(codigo ?? '') ? tapado.split(String(codigo)).join('(nº de cliente)') : tapado;
+    throw Object.assign(new Error(sinCodigo), { final: err?.final });
+  }
+}
+
 async function leer() {
   const { token, usuario } = await iniciarSesion();
   const me = await pedir(`${AUTH}/api/auth/me`, { token }).catch(() => null);
-  const r = resumenDeCtacte(await pedir(`${CTACTE}/${encodeURIComponent(codigoDeSesion(me, usuario))}`, { token }));
+  const r = resumenDeCtacte(await leerCtacte(pedir, codigoDeSesion(me, usuario), token));
   if (Math.abs(r.datos.suma_detalle - r.saldo) >= 1) console.warn('[resumen distrisuper] la suma de los comprobantes no da el saldo de la cabecera');
   return r;
 }

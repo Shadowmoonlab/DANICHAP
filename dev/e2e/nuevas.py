@@ -696,6 +696,64 @@ def recepcion_contado(page):
     return f"compra Nº {rec['id']} de $ 30.000 pagada en efectivo; saldo del proveedor sin cambios"
 
 
+@paso("Recepción a mano: código + Enter, cantidad + Enter, y 3 × '1,10' pagado al contado se confirma y queda saldado")
+def recepcion_enter_contado(page):
+    nro = f"CC-{int(time.time())}-E"
+    page.evaluate("document.querySelectorAll('#toast-container > *').forEach(t => t.remove())")   # el aviso de la prueba anterior
+    vista(page, "recepcion")
+    page.click("button:has-text('Cargar a mano')")
+    page.select_option("#recepcion-trabajo select[aria-label='Proveedor']", CC["prov"])
+    expect(page.locator("#recepcion-trabajo input[aria-label='Pagado al contado']")).to_be_visible(timeout=5000)
+    page.fill("#recepcion-trabajo input[placeholder='0001-00012345']", nro)
+    page.locator("#recepcion-trabajo input[placeholder='0001-00012345']").dispatch_event("change")
+    page.locator(".tbl-recep input[aria-label='Código']").first.click()
+    page.keyboard.type("E2E-ENTER")
+    page.keyboard.press("Enter")                       # → cantidad
+    page.keyboard.type("3")
+    page.keyboard.press("Enter")                       # → código del renglón siguiente (queda uno vacío abajo)
+    expect(page.locator(".tbl-recep tbody tr")).to_have_count(2)
+    page.fill(".tbl-recep input[aria-label='Descripción']", "Prueba Enter al contado")
+    costo = page.locator(".tbl-recep input[aria-label='Costo unitario']").first
+    costo.click()
+    page.keyboard.type("1,10")                         # 3 × 1,10 en JavaScript = 3,3000000000000003
+    page.keyboard.press("Tab")
+    page.wait_for_timeout(300)
+    page.locator("#recepcion-trabajo input[aria-label='Pagado al contado']").check()
+    # El renglón vacío del final (el que deja el Enter) no traba la carga
+    expect(page.locator("button:has-text('Confirmar y cargar')")).to_be_enabled(timeout=3000)
+    page.click("button:has-text('Confirmar y cargar')")
+    page.click("#modal-foot button:has-text('Sí, cargar')")
+    expect(page.locator("#toast-container *").filter(has_text=re.compile("cargada|no se guardó")).first).to_be_visible(timeout=8000)
+    rec = page.evaluate("async nro => (await _supabase.from('recepciones').select('id, total, recepcion_items(id)').eq('nro_comprobante', nro)).data[0]", nro)
+    try:
+        assert rec, "la compra no se guardó"
+        pend = float(page.evaluate("async id => (await _supabase.rpc('saldo_recepcion', { p_id: id })).data", rec["id"]))
+        assert len(rec["recepcion_items"]) == 1, f"se guardaron {len(rec['recepcion_items'])} renglones (el vacío no va)"
+        assert float(rec["total"]) == 3.3 and pend == 0, f"compra {rec['total']}, falta pagar {pend}"
+        assert "y pagada" in page.locator("#toast-container").inner_text(), "no avisó que quedó pagada"
+    finally:
+        if rec:
+            page.evaluate("""async id => { const a = (await _supabase.from('pagos_aplicaciones').select('pago_id').eq('recepcion_id', id)).data || [];
+                for (const x of a) await _supabase.rpc('anular_pago_proveedor', { p_id: x.pago_id });
+                await _supabase.rpc('anular_recepcion', { p_id: id }); }""", rec["id"])
+    return f"compra de $ 3,30 con 1 renglón, pagada al contado y saldada"
+
+
+@paso("Cuentas corrientes: el detalle no muestra textos sueltos ('null')")
+def cc_sin_null(page):
+    page.keyboard.press("Escape")
+    vista(page, "cuentas")
+    fila = page.locator(f".cc-fila[data-proveedor='{CC['prov']}']").first
+    expect(page.locator(".cc-fila").first).to_be_visible(timeout=8000)
+    if not fila.is_visible():
+        page.click(".cc-sin-saldo summary")   # el proveedor no debe nada: está en "Proveedores sin deuda"
+    fila.click()
+    expect(page.locator("#cc-detalle h3").first).to_have_text(re.compile("Cromosol", re.I), timeout=8000)
+    sueltos = page.evaluate("[...document.getElementById('cc-detalle').childNodes].filter(n => n.nodeType === 3 && n.textContent.trim()).map(n => n.textContent)")
+    assert not sueltos, f"textos sueltos en el detalle: {sueltos}"
+    return "sin textos sueltos"
+
+
 @paso("Cuentas corrientes en el celular (390px) y limpieza de la prueba")
 def cc_celular(page):
     page.set_viewport_size({"width": 390, "height": 844})
@@ -750,7 +808,7 @@ def main():
         page.on("console", lambda m: m.type == "error" and not any(x in m.text for x in ("frame-ancestors", "X-Frame")) and errores.append(f"consola: {m.text[:200]}"))
         for f in (entrar, francar, gomez, liqui, reposiciones, mello, joel_dolares, cotizacion, busqueda, filtros, ganancia, a_mano, tipeo, resaltado,
                   gasto_miles, caja_miles, corregir_carga, ventas_mil, comparar_barato, cobrar_lento, admin_xss,
-                  cc_compra, cc_pago, cc_nota, cc_libro, cc_anular, cc_vencido, caja_corte, caja_cierre_proveedor, recepcion_contado, cc_celular, celular):
+                  cc_compra, cc_pago, cc_nota, cc_libro, cc_anular, cc_vencido, caja_corte, caja_cierre_proveedor, recepcion_contado, recepcion_enter_contado, cc_sin_null, cc_celular, celular):
             f(page)
         b.close()
     ok = sum(1 for _, bien, _ in resultados if bien)

@@ -78,6 +78,6 @@ test('textoResumen: saldo y remitos impagos, en texto simple para WhatsApp', () 
 });
 
 test('textoResumen: sin deuda lo dice claro', () => {
-  assert.match(textoResumen({ negocio: 'DANICHAP', proveedor: 'DM', saldo: 0, hoy: '2026-11-13', remitos: [] }), /no le debemos nada/i);
+  assert.match(textoResumen({ negocio: 'DANICHAP', proveedor: 'DM', saldo: 0, hoy: '2026-11-13', remitos: [] }), /no les debemos nada/i);
   assert.match(textoResumen({ negocio: 'DANICHAP', proveedor: 'DM', saldo: -5000, hoy: '2026-11-13', remitos: [] }), /a favor.*5\.000/i);
 });

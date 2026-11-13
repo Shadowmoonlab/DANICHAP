@@ -88,18 +88,22 @@ end $$;
 -- total del remito + notas de débito del remito − notas de crédito del remito − pagos aplicados (no anulados)
 create or replace function public.saldo_recepcion(p_id bigint)
 returns numeric
-language sql
+language plpgsql
 stable
 security invoker
 set search_path = ''
 as $$
-  select coalesce(r.total, (select sum(i.cantidad * i.costo_unit) from public.recepcion_items i where i.recepcion_id = r.id), 0)
-       + coalesce((select sum(case when n.tipo = 'debito' then n.monto else -n.monto end)
-                   from public.notas_proveedor n where n.recepcion_id = r.id and not n.anulado), 0)
-       - coalesce((select sum(a.monto) from public.pagos_aplicaciones a
-                   join public.pagos_proveedor pp on pp.id = a.pago_id
-                   where a.recepcion_id = r.id and not pp.anulado), 0)
-  from public.recepciones r where r.id = p_id;
+begin
+  if not (select public.is_admin()) then raise exception 'Solo el administrador puede ver las cuentas corrientes'; end if;
+  return (
+    select coalesce(r.total, (select sum(i.cantidad * i.costo_unit) from public.recepcion_items i where i.recepcion_id = r.id), 0)
+         + coalesce((select sum(case when n.tipo = 'debito' then n.monto else -n.monto end)
+                     from public.notas_proveedor n where n.recepcion_id = r.id and not n.anulado), 0)
+         - coalesce((select sum(a.monto) from public.pagos_aplicaciones a
+                     join public.pagos_proveedor pp on pp.id = a.pago_id
+                     where a.recepcion_id = r.id and not pp.anulado), 0)
+    from public.recepciones r where r.id = p_id);
+end;
 $$;
 
 -- ── 5. Registrar y anular pagos ─────────────────────────────────────────────
@@ -113,7 +117,9 @@ as $$
 declare
   v_id        bigint;
   v_prov      text    := nullif(p->>'proveedor', '');
-  v_monto     numeric := nullif(p->>'monto', '')::numeric;
+  -- En centavos, como se guarda: el panel suma en JavaScript (3 × 1,10 = 3,3000000000000003) y sin redondear
+  -- el pago al contado de una compra de $ 3,30 "se pasaba" de lo que faltaba pagar
+  v_monto     numeric := round(nullif(p->>'monto', '')::numeric, 2);
   v_medio     text    := coalesce(nullif(p->>'medio', ''), 'efectivo');
   v_aplicado  numeric := 0;
   v_pend      numeric;
@@ -142,10 +148,10 @@ begin
 
   -- Mismo remito dos veces en la lista: se suma (no falla por la clave única)
   for ap in
-    select (x->>'recepcion_id')::bigint as rid, sum((x->>'monto')::numeric) as monto
+    select (x->>'recepcion_id')::bigint as rid, round(sum((x->>'monto')::numeric), 2) as monto
     from jsonb_array_elements(coalesce(p->'aplicaciones', '[]'::jsonb)) x
     where nullif(x->>'monto', '')::numeric > 0
-    group by 1 order by 1
+    group by 1 having round(sum((x->>'monto')::numeric), 2) > 0 order by 1
   loop
     -- "for update": dos pagos a la vez no pueden pasarse de lo que se debe del mismo remito
     perform 1 from public.recepciones where id = ap.rid and proveedor = v_prov for update;
@@ -197,7 +203,7 @@ declare
   v_id    bigint;
   v_prov  text    := nullif(p->>'proveedor', '');
   v_tipo  text    := nullif(p->>'tipo', '');
-  v_monto numeric := nullif(p->>'monto', '')::numeric;
+  v_monto numeric := round(nullif(p->>'monto', '')::numeric, 2);   -- en centavos, como se guarda
   v_rec   bigint  := nullif(p->>'recepcion_id', '')::bigint;
 begin
   if not (select public.is_admin()) then
@@ -407,15 +413,21 @@ as $$
 declare
   v_nuevo bigint;
   v_ids   uuid[] := array(select producto_id from public.recepcion_items where recepcion_id = p_id and producto_id is not null);
-  v_prov  text   := (select proveedor from public.recepciones where id = p_id);
-  v_notas bigint[] := array(select id from public.notas_proveedor where recepcion_id = p_id);
-  v_apps  jsonb  := (select jsonb_agg(jsonb_build_object('pago_id', a.pago_id, 'monto', a.monto) order by pp.fecha, a.pago_id)
-                     from public.pagos_aplicaciones a join public.pagos_proveedor pp on pp.id = a.pago_id
-                     where a.recepcion_id = p_id and not pp.anulado);
+  v_prov  text;
+  v_notas bigint[];
+  v_apps  jsonb;
   v_resto numeric;
   v_m     numeric;
   ap      jsonb;
 begin
+  -- Primero se traba el remito (como en deshacer_recepcion) y recién después se leen sus pagos y notas: si en otra
+  -- pestaña se estaba pagando este remito, se espera a ese pago y no se pierde su aplicación
+  perform 1 from public.recepciones where id = p_id for update;
+  v_prov  := (select proveedor from public.recepciones where id = p_id);
+  v_notas := array(select id from public.notas_proveedor where recepcion_id = p_id);
+  v_apps  := (select jsonb_agg(jsonb_build_object('pago_id', a.pago_id, 'monto', a.monto) order by pp.fecha, a.pago_id)
+              from public.pagos_aplicaciones a join public.pagos_proveedor pp on pp.id = a.pago_id
+              where a.recepcion_id = p_id and not pp.anulado);
   -- Sin piso en cero: si de esa carga ya se vendió algo, la cuenta queda bien al volver a sumar la corregida
   perform public.deshacer_recepcion(p_id, false);
   v_nuevo := public.confirmar_recepcion(p);
@@ -444,6 +456,7 @@ $$;
 -- Las compras SIN proveedor siguen saliendo de la caja el día de la compra (se toman como pagadas en el momento).
 -- Antes del corte todo queda como estaba: las compras salen de la caja y los pagos con fecha anterior NO
 -- (si no, una compra vieja contaría dos veces y cambiarían días ya cerrados, ej. al importar el Excel en la etapa 2).
+-- Por lo mismo, de un pago posterior al corte no sale lo que se aplicó a compras anteriores al corte.
 create or replace function public.libro_corte_compras()
 returns date
 language sql
@@ -512,10 +525,17 @@ begin
     where not anulado and fecha between p_desde and p_hasta
     group by 1
   ),
+  -- Lo que un pago aplicó a compras ANTERIORES al corte no vuelve a salir: esas compras ya salieron de la caja el día
+  -- que se cargaron (si no, una compra del 10/11 pagada el 20/11 contaba dos veces)
   pp as (
-    select date_trunc(p_agrupar, fecha)::date as p, sum(monto) as tot
-    from public.pagos_proveedor
-    where not anulado and fecha between p_desde and p_hasta and fecha >= v_corte
+    select date_trunc(p_agrupar, x.fecha)::date as p, sum(x.monto - x.viejo) as tot
+    from (
+      select pg.fecha, pg.monto,
+             coalesce((select sum(a.monto) from public.pagos_aplicaciones a join public.recepciones rr on rr.id = a.recepcion_id
+                       where a.pago_id = pg.id and rr.fecha < v_corte), 0) as viejo
+      from public.pagos_proveedor pg
+      where not pg.anulado and pg.fecha between p_desde and p_hasta and pg.fecha >= v_corte
+    ) x
     group by 1
   ),
   periodos as (select p from v union select p from c union select p from r union select p from m union select p from pp)
@@ -581,13 +601,20 @@ begin
            case when mm.tipo = 'ingreso' then mm.monto else 0 end, case when mm.tipo = 'ingreso' then 0 else mm.monto end, null, mm.anulado
     from public.movimientos mm where mm.fecha between p_desde and p_hasta
     union all
-    select (pp.fecha::timestamp + (pp.created_at at time zone 'America/Argentina/Buenos_Aires')::time) at time zone 'America/Argentina/Buenos_Aires',
-           'pago_proveedor', pp.id,
-           coalesce(pr.nombre, pp.proveedor) || coalesce(' · ' || pp.nota, '')
-             || case when pp.fecha < v_corte then ' · anterior al 14/11: la compra ya había salido de la caja' else '' end,
-           null, pp.medio, pp.monto, 0, case when pp.fecha < v_corte then 0 else pp.monto end, null, false
-    from public.pagos_proveedor pp left join public.proveedores pr on pr.slug = pp.proveedor
-    where not pp.anulado and pp.fecha between p_desde and p_hasta
+    select (z.fecha::timestamp + (z.created_at at time zone 'America/Argentina/Buenos_Aires')::time) at time zone 'America/Argentina/Buenos_Aires',
+           'pago_proveedor', z.id,
+           coalesce(z.nombre, z.proveedor) || coalesce(' · ' || z.nota, '')
+             || case when z.fecha < v_corte then ' · anterior al 14/11: la compra ya había salido de la caja'
+                     when z.viejo > 0 then ' · pagó compras anteriores al 14/11 (ya habían salido de la caja)' else '' end,
+           null, z.medio, z.monto, 0, case when z.fecha < v_corte then 0 else z.monto - z.viejo end, null, false
+    from (
+      -- lo aplicado a compras anteriores al corte no vuelve a salir (ver libro_resumen)
+      select pp.*, pr.nombre,
+             coalesce((select sum(a.monto) from public.pagos_aplicaciones a join public.recepciones rr on rr.id = a.recepcion_id
+                       where a.pago_id = pp.id and rr.fecha < v_corte), 0) as viejo
+      from public.pagos_proveedor pp left join public.proveedores pr on pr.slug = pp.proveedor
+      where not pp.anulado and pp.fecha between p_desde and p_hasta
+    ) z
   ) x
   order by 1;
 end;
@@ -651,6 +678,7 @@ revoke all on function public.corregir_recepcion(bigint, jsonb)  from public, an
 revoke all on function public.libro_movimientos(date, date)      from public, anon;
 revoke all on function public.libro_resumen(date, date, text)    from public, anon;
 revoke all on function public.caja_del_dia(date)                 from public, anon;
+revoke all on function public.libro_corte_compras()              from public, anon;
 grant execute on function public.saldo_recepcion(bigint)           to authenticated;
 grant execute on function public.registrar_pago_proveedor(jsonb)   to authenticated;
 grant execute on function public.anular_pago_proveedor(bigint)     to authenticated;

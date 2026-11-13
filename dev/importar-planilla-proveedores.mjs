@@ -32,6 +32,12 @@ const hoy = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);   //
 const desde = opcion('desde', '2024-01-01');
 const hasta = opcion('hasta', hoy);
 const salida = path.resolve(opcion('salida', path.join(ROOT, 'entrega', 'planilla')));
+// Los archivos tienen datos reales: dentro del repo (que es público) solo en entrega/, que git ignora
+const dentro = (hijo, padre) => { const r = path.relative(padre, hijo); return r === '' || (!r.startsWith('..') && !path.isAbsolute(r)); };
+if (dentro(salida, ROOT) && !dentro(salida, path.join(ROOT, 'entrega'))) {
+  console.error(`--salida=${salida}: dentro del proyecto los archivos van en entrega/ (git la ignora; en otra carpeta se subirían datos reales)`);
+  process.exit(1);
+}
 fs.mkdirSync(salida, { recursive: true });
 const ruta = nombre => path.join(salida, nombre);
 

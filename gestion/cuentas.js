@@ -5,9 +5,9 @@
 import {
   $, h, icon, vacio, db, toast, money, fechaCorta, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez,
   errorAmigable, estado, linkWhatsApp, proveedor,
-} from './core.js?v=45';
-import { numeroAR } from './texto.js?v=45';
-import { repartirPago, ordenarCuentas, totalAdeudado, diasVencido, textoResumen, compararResumen, tituloMovimiento } from './cuentas-calc.js?v=45';
+} from './core.js?v=46';
+import { numeroAR } from './texto.js?v=46';
+import { repartirPago, ordenarCuentas, totalAdeudado, diasVencido, textoResumen, compararResumen, tituloMovimiento } from './cuentas-calc.js?v=46';
 
 const MEDIOS = { efectivo: 'Efectivo', transferencia: 'Transferencia', cheque: 'Cheque', echeq: 'Echeq' };
 const TRAMOS = [['vencido_30', 'vencido 1 a 30 días', 'chip-amber'], ['vencido_60', 'vencido 31 a 60 días', 'chip-vencido'],
@@ -85,7 +85,8 @@ async function verDetalle(f) {
   const texto = textoResumen({ negocio: estado.config.nombre_negocio || 'DANICHAP', proveedor: f.nombre, saldo: Number(f.saldo), hoy: hoyISO(),
     remitos: impagos });
   const saldo = Number(f.saldo);
-  det.replaceChildren(
+  // filter(Boolean): replaceChildren escribe "null" si el bloque del resumen o el botón de anulados no van
+  det.replaceChildren(...[
     h('button', { class: 'btn btn-sm cc-volver', onclick: () => { cc.actual = null; cargar(); } }, icon('arrow_back'), 'Todos los proveedores'),
     h('div', { class: 'card card-pad cc-cabecera' },
       h('div', { class: 'cc-cab-top' },
@@ -111,7 +112,7 @@ async function verDetalle(f) {
     h('div', { class: 'card tbl-wrap' }, h('table', { class: 'tbl cc-tbl' },
       h('thead', {}, h('tr', {}, h('th', {}, 'Fecha'), h('th', {}, 'Qué'), h('th', { class: 'right' }, 'Importe'), h('th', { class: 'right' }, 'Saldo'))),
       h('tbody', { id: 'cc-movs' }, ...filasMovimientos()))),
-    botonAnulados());
+    botonAnulados()].filter(Boolean));
 }
 
 /* ── Lo que dice el proveedor (último resumen leído por los robots) ──── */

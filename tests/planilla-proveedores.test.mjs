@@ -253,3 +253,20 @@ test('informe: una línea por proveedor con la diferencia y los totales', () => 
   assert.match(txt, /TOTAL.*600.*300.*300/);
   assert.match(txt, /revisar\.csv/);
 });
+
+test('importar: --salida dentro del repo pero fuera de entrega/ se rechaza (git subiría datos reales)', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const raiz = fileURLToPath(new URL('..', import.meta.url));
+  const salida = path.join(raiz, 'docs', '_prueba_salida_planilla');
+  try {
+    const r = spawnSync(process.execPath, [path.join(raiz, 'dev', 'importar-planilla-proveedores.mjs'), 'no-existe.xlsx', `--salida=${salida}`], { encoding: 'utf8' });
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /entrega/);
+    assert.equal(fs.existsSync(salida), false, 'no tiene que crear la carpeta');
+  } finally {
+    fs.rmSync(salida, { recursive: true, force: true });
+  }
+});

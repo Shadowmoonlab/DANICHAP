@@ -1,8 +1,8 @@
 // gestion/ventas.js — Historial de ventas con ganancia real y cierre de caja por forma de pago.
-import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=45';
-import { imprimirComprobante } from './comprobante.js?v=45';
-import { calcularCierre, leerDiferencia } from './caja-calc.js?v=45';
-import { numeroAR } from './texto.js?v=45';
+import { $, h, icon, vacio, db, toast, money, fecha, fechaCorta, PAGOS, hoyISO, openModal, closeModal, confirmar, registrarVista, unaVez } from './core.js?v=46';
+import { imprimirComprobante } from './comprobante.js?v=46';
+import { calcularCierre, leerDiferencia } from './caja-calc.js?v=46';
+import { numeroAR } from './texto.js?v=46';
 
 let pedidoVentas = 0;   // si se cambia el filtro rápido, la respuesta vieja no pisa a la nueva
 async function cargar() {
@@ -180,7 +180,7 @@ async function cerrarCaja() {
     cuentas.replaceChildren(...[
       h('div', {}, h('span', {}, 'Cambio con el que abriste'), h('b', { class: 'num' }, money(Math.max(0, plata(inicial) || 0)))),
       h('div', {}, h('span', {}, '+ Entró en efectivo (ventas y otros ingresos)'), h('b', { class: 'num ganancia' }, money(c.entra))),
-      h('div', {}, h('span', {}, '− Salió en efectivo (gastos, retiros y pagos a proveedores)'), h('b', { class: 'num egreso' }, money(c.sale))),
+      h('div', {}, h('span', {}, '− Salió en efectivo (gastos, retiros, compras y pagos a proveedores)'), h('b', { class: 'num egreso' }, money(c.sale))),
       h('div', { class: 'arqueo-total' }, h('span', {}, 'Tendría que haber en la caja'), h('b', { class: 'num' }, money(c.esperado))),
       Object.keys(c.otros).length ? h('p', { class: 'hint' }, 'No van a la caja (quedan en el banco): ',
         Object.entries(c.otros).map(([m, v]) => `${PAGOS[m] || MEDIOS_PROVEEDOR[m] || m} ${money(v)}`).join(' · ')) : null,

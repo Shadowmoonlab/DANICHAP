@@ -4,8 +4,8 @@
 import {
   $, h, icon, vacio, db, toast, money, fechaCorta, estado, nombreProveedor, precioVenta, debounce,
   buscarStock, confirmar, registrarVista, actualizarBadgeRepo, hoyISO, unaVez, aPesos,
-} from './core.js?v=45';
-import { normalizar, numeroAR } from './texto.js?v=45';
+} from './core.js?v=46';
+import { normalizar, numeroAR } from './texto.js?v=46';
 
 const CATEGORIAS = [
   ['mecanica', 'Mecánica'], ['iluminacion', 'Iluminación'], ['faros', 'Faros'], ['opticas', 'Ópticas'],
@@ -143,6 +143,8 @@ function fotoProducto(f, repintar) {
     h('span', {}, f.imagen_url ? 'Cambiar foto' : 'Agregar foto'));
 }
 
+// Renglón sin tocar (el que deja el Enter de la cantidad al final de la carga a mano): no se carga ni traba el Confirmar
+const enBlanco = f => !f.codigo && !f.descripcion.trim() && f.costo == null;
 const filaVacia = () => ({ incluir: true, codigo: '', descripcion: '', cantidad: 1, costo: null, legible: true, nota: null,
   accion: 'solo', producto_id: null, producto_nombre: '', categoria: 'mecanica', precio_venta: null, repo: null, coincide: [] });
 
@@ -285,7 +287,7 @@ function renderEditor() {
       h('td', {}, h('button', { class: 'btn btn-icon btn-red btn-sm', title: 'Quitar renglón', 'aria-label': 'Quitar renglón', onclick: () => { b.filas.splice(i, 1); repintar(); } }, icon('close'))));
   });
 
-  const activas = b.filas.filter(f => f.incluir);
+  const activas = b.filas.filter(f => f.incluir && !enBlanco(f));
   const suma = activas.reduce((s, f) => s + (f.costo ?? 0) * (f.cantidad ?? 0), 0);
   const resumen = {
     stock: activas.filter(f => f.accion === 'stock').length,
@@ -373,7 +375,7 @@ async function completarPorCodigo(f, b) {
 // unaVez + botón deshabilitado: un doble clic o una conexión lenta no cargan dos veces la misma compra
 const confirmarRecepcion = unaVez(async (btn, suma, resumen) => {
   const b = borrador;
-  const activas = b.filas.filter(f => f.incluir);
+  const activas = b.filas.filter(f => f.incluir && !enBlanco(f));
   const alContado = Boolean(b.proveedor && b.alContado && !b.corrigiendo);
   const medio = b.medioContado || 'efectivo';
   const ok = await confirmar(b.corrigiendo ? 'Guardar corrección' : 'Confirmar recepción',

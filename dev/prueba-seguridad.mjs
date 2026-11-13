@@ -22,7 +22,8 @@ async function filas(quien, tabla) {
 }
 
 const INTERNAS = ['precios_distribuidor', 'ventas', 'venta_items', 'clientes', 'pagos_clientes', 'recepciones', 'proveedores',
-  'reposicion_items', 'presupuestos', 'config_negocio', 'productos_costos', 'scraper_runs', 'lecturas_ia', 'movimientos', 'cierres_caja', 'listas_pendientes'];
+  'reposicion_items', 'presupuestos', 'config_negocio', 'productos_costos', 'scraper_runs', 'lecturas_ia', 'movimientos', 'cierres_caja', 'listas_pendientes',
+  'pagos_proveedor', 'pagos_aplicaciones', 'notas_proveedor', 'resumenes_proveedor'];
 
 let fallas = 0;
 const revisar = (ok, texto) => { console.log(`${ok ? '✅' : '❌'} ${texto}`); if (!ok) fallas++; };
@@ -39,7 +40,9 @@ const rolDespues = (await (await pedir('admin', `perfiles?select=rol&id=eq.${DEV
 revisar(rolDespues === 'cliente', `cliente intenta ponerse rol admin → HTTP ${escalada.status}, rol queda "${rolDespues}"`);
 
 // Escrituras internas bloqueadas para el cliente
-for (const [tabla, fila] of [['ventas', { medio_pago: 'efectivo', total: 1 }], ['productos', { nombre: 'X', precio: 1 }], ['movimientos', { tipo: 'gasto', categoria: 'X', monto: 1 }]]) {
+for (const [tabla, fila] of [['ventas', { medio_pago: 'efectivo', total: 1 }], ['productos', { nombre: 'X', precio: 1 }], ['movimientos', { tipo: 'gasto', categoria: 'X', monto: 1 }],
+  ['pagos_proveedor', { proveedor: 'dm', monto: 1 }], ['notas_proveedor', { proveedor: 'dm', tipo: 'credito', monto: 1 }],
+  ['resumenes_proveedor', { proveedor: 'dm', saldo_segun_proveedor: 1 }]]) {
   const r = await pedir('cliente', tabla, { method: 'POST', body: JSON.stringify(fila) });
   revisar(!r.ok, `cliente intenta crear en ${tabla} → HTTP ${r.status}`);
 }
@@ -54,12 +57,21 @@ for (const [fn, body] of [['libro_resumen', { p_desde: '2026-01-01', p_hasta: '2
   ['cargar_costo_item', { p_item: 1, p_costo: 1 }], ['caja_del_dia', { p_fecha: '2026-01-01' }],
   ['libro_movimientos', { p_desde: '2026-01-01', p_hasta: '2026-01-02' }],
   ['buscar_precios3', { p_patrones: ['\\mfaro'] }], ['sincronizar_precios', { p_rows: [], p_visto: new Date().toISOString() }],
-  ['desactivar_ausentes', { p_distribuidor: 'dm', p_codigos: [] }]]) {
+  ['desactivar_ausentes', { p_distribuidor: 'dm', p_codigos: [] }],
+  // Cuenta corriente de proveedores (v18)
+  ['registrar_pago_proveedor', { p: { proveedor: 'dm', monto: 1 } }], ['anular_pago_proveedor', { p_id: 1 }],
+  ['registrar_nota_proveedor', { p: { proveedor: 'dm', tipo: 'credito', monto: 1 } }], ['anular_nota_proveedor', { p_id: 1 }],
+  ['cc_proveedores', {}], ['cc_movimientos', { p_proveedor: 'dm' }], ['saldo_recepcion', { p_id: 1 }]]) {
   for (const rol of ['cliente', 'anonimo']) {
     const r = await pedir(rol, `rpc/${fn}`, { method: 'POST', body: JSON.stringify(body) });
     if (r.status === 404) { console.log(`·  ${fn}: no existe en esta base (se omite)`); break; }
     revisar(!r.ok, `${rol} llama ${fn} → HTTP ${r.status}`);
   }
+}
+// La fecha de corte del Libro diario (v18) no es un dato privado, pero sin sesión tampoco se puede llamar
+{
+  const r = await pedir('anonimo', 'rpc/libro_corte_compras', { method: 'POST', body: '{}' });
+  if (r.status !== 404) revisar(!r.ok, `anonimo llama libro_corte_compras → HTTP ${r.status}`);
 }
 // El buscador con patrones (v12) tampoco le muestra precios a un cliente
 {

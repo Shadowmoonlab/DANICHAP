@@ -8,7 +8,7 @@ process.env.SUPABASE_URL ??= 'http://supabase.invalid';
 process.env.SUPABASE_SERVICE_KEY ??= 'sin-uso';
 process.env.CROMOSOL_SOLO_FUNCIONES = '1';
 const { leerEmpresa, resumenDeTransacciones, EMPRESAS } = await import('../scrapers/resumen-cromosol.mjs');
-const { resumenDeCtacte, codigoDeSesion } = await import('../scrapers/resumen-distrisuper.mjs');
+const { resumenDeCtacte, codigoDeSesion, leerCtacte } = await import('../scrapers/resumen-distrisuper.mjs');
 
 const leer = nombre => JSON.parse(fs.readFileSync(new URL(nombre, import.meta.url), 'utf8'));
 const CROMOSOL = leer('./resumen-cromosol.fixture.json');
@@ -84,4 +84,15 @@ test('distrisuper resumenDeCtacte: respuesta rara → error claro', () => {
   assert.throws(() => resumenDeCtacte({ ok: 0 }), /ctacte/);
   assert.throws(() => resumenDeCtacte({ ok: 1, data: { saldo: 'x', data: [] } }), /saldo/);
   assert.deepEqual(resumenDeCtacte({ ok: 1, data: { saldo: 0, data: [] } }).detalle, []);
+});
+
+test('distrisuper leerCtacte: un error no muestra el nº de cliente (el log de GitHub es público)', async () => {
+  const pedir = async url => { throw new Error(`${url} HTTP 500`); };
+  await assert.rejects(leerCtacte(pedir, '40123', 'tok'), err => {
+    assert.doesNotMatch(err.message, /40123/);
+    assert.match(err.message, /ctacte.*HTTP 500/);
+    return true;
+  });
+  const ok = await leerCtacte(async url => ({ url }), '40123', 'tok');
+  assert.match(ok.url, /\/ctacte\/40123$/);
 });
